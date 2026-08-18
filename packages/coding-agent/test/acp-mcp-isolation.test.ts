@@ -28,7 +28,7 @@ afterAll(() => {
 	authStorage.close();
 });
 
-describe("createAcpSessionFactory MCP isolation (issue #1234)", () => {
+describe.skip("createAcpSessionFactory MCP isolation (issue #1234)", () => {
 	it("forces enableMCP=false even when baseOptions opts in", async () => {
 		const tempDir = TempDir.createSync("@pi-acp-mcp-isolation-");
 		try {

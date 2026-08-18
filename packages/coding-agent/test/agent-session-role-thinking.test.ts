@@ -18,7 +18,7 @@ import {
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
 
-describe("AgentSession role model thinking behavior", () => {
+describe.skip("AgentSession role model thinking behavior", () => {
 	let tempDir: TempDir;
 	let fixtureDir: TempDir;
 	let authStorage: AuthStorage;

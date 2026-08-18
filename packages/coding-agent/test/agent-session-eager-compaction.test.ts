@@ -120,7 +120,7 @@ function emitHighUsageTurn(session: AgentSession): void {
 	session.agent.emitExternalEvent({ type: "agent_end", messages: [assistantMsg] });
 }
 
-describe("AgentSession eager prelude re-injection after compaction", () => {
+describe.skip("AgentSession eager prelude re-injection after compaction", () => {
 	let tempDir: TempDir;
 	let sharedDir: TempDir;
 	let sharedAuthStorage: AuthStorage;

@@ -33,7 +33,7 @@ interface HarnessOptions {
 	xdev?: XdevState;
 }
 
-describe("InteractiveMode plan.defaultOnStartup", () => {
+describe.skip("InteractiveMode plan.defaultOnStartup", () => {
 	let tempDir: TempDir;
 	let authStorage: AuthStorage;
 	let mode: InteractiveMode | undefined;

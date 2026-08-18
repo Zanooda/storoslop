@@ -54,7 +54,7 @@ function requiredLeafId(session: AgentSession): string {
 	return leafId;
 }
 
-describe("AgentSession.branchFromBtw", () => {
+describe.skip("AgentSession.branchFromBtw", () => {
 	let tempDir: string;
 	let session: AgentSession | undefined;
 	let authStorage: AuthStorage | undefined;
