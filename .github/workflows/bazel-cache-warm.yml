@@ -87,8 +87,11 @@ jobs:
               cache-scope: ${{ matrix.scope }}
 
    # Produces the shared bun store entry PR jobs restore. bun-install's save
-   # half only runs on non-PR events, and main CI jobs run on omp-kata (PVC
-   # store, no GitHub cache), so this is the sole hosted-runner producer.
+   # half only runs on non-PR events, and main CI jobs save their store to the
+   # GitHub cache, so PRs restore it but never save (per-PR-ref copies of the
+   # ~500 MB store once ate ~9.4 GB of the 10 GB repo cache quota and
+   # evicted every bazel archive). This job keeps the entry warm even when a main
+   # push only changes paths that prune the store producer.
    warm_bun:
       name: Seed bun store cache
       runs-on: ubuntu-22.04
