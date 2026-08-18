@@ -59,7 +59,7 @@ export function renderFormula(version: string, sums: Record<string, string>): st
 	// Mach-O/ELF executables, not archives. Without it Homebrew's default
 	// CurlDownloadStrategy routes through UnpackStrategy::Uncompressed#extract_nestedly,
 	// which nests the file outside the staging CWD; `Dir["storoslop-*"].first` then
-	// returns `nil` and `bin.install nil => "omp"` raises.
+	// returns `nil` and `bin.install nil => "storoslop"` raises.
 	//
 	// `with_env(HOME: buildpath)` redirects the CLI's `os.homedir()` lookup to
 	// the writable staging dir so `generate_completions_from_executable` does
@@ -98,7 +98,7 @@ export function renderFormula(version: string, sums: Record<string, string>): st
   end
 
   def install
-    bin.install Dir["storoslop-*"].first => "omp"
+    bin.install Dir["storoslop-*"].first => "storoslop"
     (bin/"storoslop").chmod 0555
     with_env(HOME: buildpath) do
       generate_completions_from_executable(bin/"storoslop", "completions", shells: [:bash, :zsh, :fish])

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-18
+
+### Added
+
+- Initial release of storoslop: a single-provider fork of oh-my-pi.
+
 ## [17.3.7] - 2026-08-17
 
 ### Changed
