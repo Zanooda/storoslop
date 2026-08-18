@@ -3,7 +3,7 @@ import { CURRENT_SETUP_VERSION } from "../setup-version";
 import type { InteractiveModeContext } from "../types";
 import { glyphSetupScene } from "./scenes/glyph";
 import { modelSetupScene } from "./scenes/model";
-import { providersSetupScene } from "./scenes/providers";
+import { storoslopSetupScene } from "./scenes/storoslop";
 import { themeSetupScene } from "./scenes/theme";
 import type { SetupScene } from "./scenes/types";
 import { SetupWizardComponent } from "./wizard-overlay";
@@ -14,7 +14,7 @@ export { runStartupSplash } from "./startup-splash";
 export { CURRENT_SETUP_VERSION };
 
 export const ALL_SCENES = [
-	providersSetupScene,
+	storoslopSetupScene,
 	modelSetupScene,
 	glyphSetupScene,
 	themeSetupScene,
@@ -96,8 +96,5 @@ export async function runSetupWizard(
 		component.dispose();
 		ctx.ui.setFocus(component);
 		overlay.hide();
-	}
-	if (options.playWelcomeIntro !== false) {
-		ctx.playWelcomeIntro();
 	}
 }

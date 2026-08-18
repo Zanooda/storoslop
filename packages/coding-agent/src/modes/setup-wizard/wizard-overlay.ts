@@ -80,10 +80,13 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 	) {}
 
 	run(): Promise<void> {
-		this.#phase = this.scenes.length === 0 ? "outro" : "splash";
-		this.#phaseStartedAt = performance.now();
-		this.#startTimer();
-		this.ctx.ui.requestRender();
+		// Fork: skip the animated splash/welcome — start directly at the first scene.
+		if (this.scenes.length === 0) {
+			this.#phase = "done";
+			this.#done.resolve();
+			return this.#done.promise;
+		}
+		this.#mountSceneController("scene");
 		return this.#done.promise;
 	}
 

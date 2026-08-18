@@ -58,7 +58,7 @@ export function renderFormula(version: string, sums: Record<string, string>): st
 	// Each `url` carries `using: :nounzip` because the release assets are bare
 	// Mach-O/ELF executables, not archives. Without it Homebrew's default
 	// CurlDownloadStrategy routes through UnpackStrategy::Uncompressed#extract_nestedly,
-	// which nests the file outside the staging CWD; `Dir["omp-*"].first` then
+	// which nests the file outside the staging CWD; `Dir["storoslop-*"].first` then
 	// returns `nil` and `bin.install nil => "omp"` raises.
 	//
 	// `with_env(HOME: buildpath)` redirects the CLI's `os.homedir()` lookup to
@@ -73,35 +73,35 @@ export function renderFormula(version: string, sums: Record<string, string>): st
 
   on_macos do
     on_arm do
-      url "https://github.com/${REPO}/releases/download/v#{version}/omp-darwin-arm64",
+      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-darwin-arm64",
           using: :nounzip
-      sha256 "${sums["omp-darwin-arm64"]}"
+      sha256 "${sums["storoslop-darwin-arm64"]}"
     end
     on_intel do
-      url "https://github.com/${REPO}/releases/download/v#{version}/omp-darwin-x64",
+      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-darwin-x64",
           using: :nounzip
-      sha256 "${sums["omp-darwin-x64"]}"
+      sha256 "${sums["storoslop-darwin-x64"]}"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/${REPO}/releases/download/v#{version}/omp-linux-arm64",
+      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-linux-arm64",
           using: :nounzip
-      sha256 "${sums["omp-linux-arm64"]}"
+      sha256 "${sums["storoslop-linux-arm64"]}"
     end
     on_intel do
-      url "https://github.com/${REPO}/releases/download/v#{version}/omp-linux-x64",
+      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-linux-x64",
           using: :nounzip
-      sha256 "${sums["omp-linux-x64"]}"
+      sha256 "${sums["storoslop-linux-x64"]}"
     end
   end
 
   def install
-    bin.install Dir["omp-*"].first => "omp"
-    (bin/"omp").chmod 0555
+    bin.install Dir["storoslop-*"].first => "omp"
+    (bin/"storoslop").chmod 0555
     with_env(HOME: buildpath) do
-      generate_completions_from_executable(bin/"omp", "completions", shells: [:bash, :zsh, :fish])
+      generate_completions_from_executable(bin/"storoslop", "completions", shells: [:bash, :zsh, :fish])
     end
   end
 
@@ -117,7 +117,7 @@ async function main(): Promise<void> {
 	const version = tag.replace(/^v/, "");
 	const assets = await fetchAssets(tag);
 
-	const targets = ["omp-darwin-arm64", "omp-darwin-x64", "omp-linux-arm64", "omp-linux-x64"];
+	const targets = ["storoslop-darwin-arm64", "storoslop-darwin-x64", "storoslop-linux-arm64", "storoslop-linux-x64"];
 	const sums: Record<string, string> = {};
 	for (const name of targets) sums[name] = sha256For(assets, name);
 

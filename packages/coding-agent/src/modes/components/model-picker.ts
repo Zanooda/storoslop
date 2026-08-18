@@ -156,7 +156,8 @@ export class ModelPickerComponent implements Component {
 			}
 		}
 
-		const allModels = this.#scopedModels.length > 0 ? models : this.#registry.getAll();
+		const allModels =
+			this.#scopedModels.length > 0 ? models : this.#registry.getAll().filter(m => m.provider === "storoslop");
 		const roles = resolveRoleAssignments(this.#settings, allModels, models);
 		const storage = this.#settings.getStorage();
 		const mruOrder = storage?.getModelUsageOrder() ?? [];

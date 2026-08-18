@@ -222,7 +222,7 @@ export class StreamingRevealController {
 	#component: StreamingRevealComponent | undefined;
 	#timer: NodeJS.Timeout | undefined;
 	#revealed = 0;
-	#hideThinkingBlock = false;
+	#hideThinkingBlock = true;
 	#proseOnlyThinking = true;
 	#smoothStreaming = true;
 	readonly #unitCounter = new BlockUnitCounter();

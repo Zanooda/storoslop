@@ -204,22 +204,22 @@ export const commands: CommandEntry[] = [
 // fires vs. when the argv still falls through to `launch`.
 const RESERVED_TOP_LEVEL_WORDS: Record<string, string> = {
 	extensions:
-		'`omp extensions` is not a management command. Use `omp plugin list` / `omp plugin install`, or run `omp launch extensions` if you meant to send "extensions" as a prompt.',
-	list: '`omp list` is not a top-level command. Use `omp plugin list` to list installed plugins, or run `omp launch list` if you meant to send "list" as a prompt.',
+		'`storoslop extensions` is not a management command. Use `storoslop plugin list` / `storoslop plugin install`, or run `storoslop launch extensions` if you meant to send "extensions" as a prompt.',
+	list: '`storoslop list` is not a top-level command. Use `storoslop plugin list` to list installed plugins, or run `storoslop launch list` if you meant to send "list" as a prompt.',
 	remove:
-		'`omp remove` is not a top-level command. Use `omp plugin uninstall <name>` to remove a plugin, or run `omp launch remove` if you meant to send "remove" as a prompt.',
+		'`storoslop remove` is not a top-level command. Use `storoslop plugin uninstall <name>` to remove a plugin, or run `storoslop launch remove` if you meant to send "remove" as a prompt.',
 	uninstall:
-		'`omp uninstall` is not a top-level command. Use `omp plugin uninstall <name@marketplace>` to remove a plugin, or run `omp launch uninstall` if you meant to send "uninstall" as a prompt.',
+		'`storoslop uninstall` is not a top-level command. Use `storoslop plugin uninstall <name@marketplace>` to remove a plugin, or run `storoslop launch uninstall` if you meant to send "uninstall" as a prompt.',
 	marketplace:
-		'`omp marketplace` is not a top-level command. Use `omp plugin marketplace <add|remove|update|list>` to manage marketplaces, or run `omp launch marketplace` if you meant to send "marketplace" as a prompt.',
+		'`storoslop marketplace` is not a top-level command. Use `storoslop plugin marketplace <add|remove|update|list>` to manage marketplaces, or run `storoslop launch marketplace` if you meant to send "marketplace" as a prompt.',
 	discover:
-		'`omp discover` is not a top-level command. Use `omp plugin discover [marketplace]` to browse available plugins, or run `omp launch discover` if you meant to send "discover" as a prompt.',
+		'`storoslop discover` is not a top-level command. Use `storoslop plugin discover [marketplace]` to browse available plugins, or run `storoslop launch discover` if you meant to send "discover" as a prompt.',
 	upgrade:
-		'`omp upgrade` is not a top-level command. Use `omp plugin upgrade [name@marketplace]` to upgrade plugins, or run `omp launch upgrade` if you meant to send "upgrade" as a prompt.',
+		'`storoslop upgrade` is not a top-level command. Use `storoslop plugin upgrade [name@marketplace]` to upgrade plugins, or run `storoslop launch upgrade` if you meant to send "upgrade" as a prompt.',
 	enable:
-		'`omp enable` is not a top-level command. Use `omp plugin enable <name@marketplace>` to enable a plugin, or run `omp launch enable` if you meant to send "enable" as a prompt.',
+		'`storoslop enable` is not a top-level command. Use `storoslop plugin enable <name@marketplace>` to enable a plugin, or run `storoslop launch enable` if you meant to send "enable" as a prompt.',
 	disable:
-		'`omp disable` is not a top-level command. Use `omp plugin disable <name@marketplace>` to disable a plugin, or run `omp launch disable` if you meant to send "disable" as a prompt.',
+		'`storoslop disable` is not a top-level command. Use `storoslop plugin disable <name@marketplace>` to disable a plugin, or run `storoslop launch disable` if you meant to send "disable" as a prompt.',
 };
 
 // Sub-actions that make `omp marketplace <sub>` unambiguously a management

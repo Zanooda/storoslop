@@ -1734,7 +1734,11 @@ export async function runRootCommand(
 			authStorage.setRuntimeApiKey(session.model.provider, parsedArgs.apiKey);
 		}
 
-		if (modelFallbackMessage) {
+		// Fork: a first-run (setup hasn't completed) resolves no model yet but the
+		// storoslop setup installs it right after — skip the premature "no model"
+		// warning so the setup run doesn't alarm the user.
+		const setupComplete = Number(settingsInstance.get("setupVersion") ?? 0) >= CURRENT_SETUP_VERSION;
+		if (modelFallbackMessage && setupComplete) {
 			notifs.push({ kind: "warn", message: modelFallbackMessage });
 		}
 

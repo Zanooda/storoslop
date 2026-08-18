@@ -62,7 +62,6 @@ import {
 	discoverLlamaCppModelRuntimeMetadata,
 	discoverModelsByProviderType,
 	ensureLlamaCppV1BaseUrl,
-	getImplicitOllamaBaseUrl,
 	getOllamaContextLengthOverride,
 	normalizeLiteLLMDiscoveryBaseUrl,
 	normalizeLlamaCppBaseUrl,
@@ -851,41 +850,10 @@ export class ModelRegistry {
 		});
 	}
 
-	#addImplicitDiscoverableProviders(configuredProviders: Set<string>): void {
-		const disabledProviders = getDisabledProviderIdsFromSettings();
-		if (!configuredProviders.has("ollama") && !disabledProviders.has("ollama")) {
-			this.#discoverableProviders.push({
-				provider: "ollama",
-				api: "openai-responses",
-				baseUrl: getImplicitOllamaBaseUrl(),
-				discovery: { type: "ollama" },
-				optional: true,
-			});
-			this.#keylessProviders.add("ollama");
-		}
-		if (!configuredProviders.has("llama.cpp") && !disabledProviders.has("llama.cpp")) {
-			this.#discoverableProviders.push({
-				provider: "llama.cpp",
-				api: "openai-responses",
-				baseUrl: Bun.env.LLAMA_CPP_BASE_URL || "http://127.0.0.1:8080",
-				discovery: { type: "llama.cpp" },
-				optional: true,
-			});
-			// Only mark as keyless if no API key is configured
-			if (!this.authStorage.hasAuth("llama.cpp")) {
-				this.#keylessProviders.add("llama.cpp");
-			}
-		}
-		if (!configuredProviders.has("lm-studio") && !disabledProviders.has("lm-studio")) {
-			this.#discoverableProviders.push({
-				provider: "lm-studio",
-				api: "openai-completions",
-				baseUrl: Bun.env.LM_STUDIO_BASE_URL || "http://127.0.0.1:1234/v1",
-				discovery: { type: "lm-studio" },
-				optional: true,
-			});
-			this.#keylessProviders.add("lm-studio");
-		}
+	#addImplicitDiscoverableProviders(_configuredProviders: Set<string>): void {
+		// Fork: no local/discoverable providers (ollama, llama.cpp, lm-studio).
+		// storoslop is configured normally (models.yml), not discovered.
+		return;
 	}
 
 	#loadCustomModels(): CustomModelsResult {
@@ -1640,27 +1608,36 @@ export class ModelRegistry {
 		const disabledProviders = getDisabledProviderIdsFromSettings();
 		const byProvider = new Map<string, boolean>();
 		return provider => {
+			// Fork: the storoslop provider is available when it has a configured
+			// API key (from `storoslop setup` -> models.yml). Its key is not an
+			// OAuth credential, so it must count without authStorage/haskeyless.
+			if (provider === "storoslop" && this.#customProviderApiKeys.has("storoslop")) return true;
 			let available = byProvider.get(provider);
 			if (available === undefined) {
 				available =
 					!disabledProviders.has(provider) &&
 					(this.#keylessProviders.has(provider) || this.authStorage.hasAuth(provider));
-				byProvider.set(provider, available);
 			}
-			return available;
+			byProvider.set(provider, available ?? false);
+			return available ?? false;
 		};
 	}
 
 	/**
-	 * Get only models that have auth configured.
-	 * This is a fast check that doesn't refresh OAuth tokens.
+	 * Fork: storoslop exposes only its own provider. Even the bundled catalog
+	 * providers must not be user-selectable, so ALL available models are scoped
+	 * to the `storoslop` provider regardless of stored auth elsewhere.
 	 */
 	getAvailable(): Model<Api>[] {
 		const isProviderAvailable = this.#createProviderAvailabilityCheck();
+		// Fork: storoslop is ready when it has a configured API key (from
+		// `storoslop setup` -> models.yml), which is not an OAuth credential.
+		const isStoroslopReady = (p: string): boolean =>
+			p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop"));
 		if (this.#hasFullSnapshot) {
-			return this.#models.filter(model => isProviderAvailable(model.provider));
+			return this.#models.filter(model => isStoroslopReady(model.provider));
 		}
-		const availableProviders = new Set(this.#knownStaticProviders().filter(isProviderAvailable));
+		const availableProviders = new Set(this.#knownStaticProviders().filter(isStoroslopReady));
 		return this.#composeStaticModels(availableProviders);
 	}
 
@@ -1706,10 +1683,9 @@ export class ModelRegistry {
 	}
 
 	getDiscoverableProviders(): string[] {
-		const disabledProviders = getDisabledProviderIdsFromSettings();
-		return this.#discoverableProviders
-			.filter(provider => !disabledProviders.has(provider.provider))
-			.map(provider => provider.provider);
+		// Fork: storoslop is the only provider; local/discoverable (ollama,
+		// llama.cpp, lm-studio) models are not surfaced.
+		return [];
 	}
 
 	/**

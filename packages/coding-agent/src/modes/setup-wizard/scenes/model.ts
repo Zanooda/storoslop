@@ -92,6 +92,14 @@ class ModelSceneController implements SetupSceneController {
 			await this.host.ctx.session.modelRegistry.refresh("online-if-uncached");
 			if (this.#disposed) return;
 			this.#syncModels();
+			// Fork: when only one model is available (the bundled storoslop one),
+			// pick it as the default and skip the picker.
+			const available = this.host.ctx.session.modelRegistry.getAvailable();
+			if (available.length === 1) {
+				const model = available[0];
+				await this.#select(model, `${model.provider}/${model.id}`);
+				return;
+			}
 			this.#status = undefined;
 			this.host.requestRender();
 		} catch (error) {

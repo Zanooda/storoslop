@@ -50,7 +50,7 @@ import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
  */
 const FLUSH_INTERVAL_MS = 30_000;
 
-const SERVICE_NAME = "oh-my-pi";
+const SERVICE_NAME = "storoslop";
 
 type TelemetrySignal = "trace" | "log" | "metric";
 type OtelLogLevel = "none" | logger.LogLevel;

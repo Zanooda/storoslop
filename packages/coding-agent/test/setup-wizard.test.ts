@@ -1,4 +1,7 @@
-import { afterEach, describe, expect, it, mock, vi } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
+import * as fs from "node:fs/promises";
+import { tmpdir } from "node:os";
+import * as path from "node:path";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { runOnboardingSetup } from "@oh-my-pi/pi-coding-agent/commands/setup";
@@ -12,13 +15,15 @@ import {
 	type SetupSceneHost,
 	selectSetupScenes,
 } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard";
-import { providersSetupScene } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/scenes/providers";
+import {
+	StoroslopSceneController,
+	saveStoroslopProvider,
+} from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/scenes/storoslop";
 import { themeSetupScene } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/scenes/theme";
-import { WebSearchTab } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/scenes/web-search";
 import { SetupWizardComponent } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/wizard-overlay";
 import { initTheme, theme } from "@oh-my-pi/pi-coding-agent/modes/theme/theme";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
-import { SEARCH_PROVIDER_OPTIONS, SEARCH_PROVIDER_ORDER } from "@oh-my-pi/pi-coding-agent/web/search/types";
+import { YAML } from "bun";
 
 function fakeContextWithConfiguredModel(): InteractiveModeContext {
 	return {
@@ -84,9 +89,9 @@ describe("setup wizard scene selection", () => {
 		expect(await selectSetupScenes(0, ALL_SCENES, ctx, { isTTY: true, setupWizardEnabled: false })).toEqual([]);
 	});
 
-	it("keeps the providers scene eligible even when a model is already configured", async () => {
+	it("keeps the storoslop scene eligible even when a model is already configured", async () => {
 		const scenes = await selectSetupScenes(0, ALL_SCENES, fakeContextWithConfiguredModel(), { isTTY: true });
-		expect(scenes.some(scene => scene.id === "providers")).toBe(true);
+		expect(scenes.some(scene => scene.id === "storoslop")).toBe(true);
 	});
 
 	it("force mode ignores version and user skip gates but still requires a TTY", async () => {
@@ -246,6 +251,82 @@ describe("setup wizard persistence", () => {
 		expect(setFocus).toHaveBeenCalled();
 	});
 });
+describe("setup wizard storoslop scene", () => {
+	async function tempAgentDir(): Promise<string> {
+		return fs.mkdtemp(path.join(tmpdir(), "storoslop-setup-"));
+	}
+	interface StoroslopTestProvider {
+		baseUrl?: string;
+		api?: string;
+		apiKey?: string;
+		models?: { id: string; contextWindow?: number; compat?: { reasoningContentField?: string } }[];
+	}
+	async function readProvider(dir: string, name: string): Promise<StoroslopTestProvider> {
+		const text = await Bun.file(path.join(dir, "models.yml")).text();
+		const parsed = YAML.parse(text) as { providers?: Record<string, StoroslopTestProvider> };
+		return parsed.providers?.[name] ?? {};
+	}
+
+	it("persists the bundled storoslop provider and the api key", async () => {
+		const dir = await tempAgentDir();
+		try {
+			await saveStoroslopProvider("sk-test-key", dir);
+			const provider = await readProvider(dir, "storoslop");
+			expect(provider.baseUrl).toBe("http://slop.storo.cloud:4000/v1");
+			expect(provider.api).toBe("openai-completions");
+			expect(provider.apiKey).toBe("sk-test-key");
+			expect(provider.models![0]!.id).toBe("deepseek-v4-flash");
+			expect(provider.models![0]!.contextWindow).toBe(1048576);
+			expect(provider.models![0]!.compat?.reasoningContentField).toBe("reasoning");
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("merges with an existing provider instead of clobbering it", async () => {
+		const dir = await tempAgentDir();
+		try {
+			await fs.writeFile(
+				path.join(dir, "models.yml"),
+				YAML.stringify(
+					{ providers: { other: { baseUrl: "http://x/v1", apiKey: "k", models: [{ id: "m" }] } } },
+					null,
+					2,
+				),
+			);
+			await saveStoroslopProvider("sk-merge", dir);
+			expect(await readProvider(dir, "other")).toBeDefined();
+			expect((await readProvider(dir, "storoslop")).apiKey).toBe("sk-merge");
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("collects the api key and finishes done, then refreshes the registry", async () => {
+		const dir = await tempAgentDir();
+		await initTheme(false, "unicode", false, "titanium", "light");
+		const finished = Promise.withResolvers<string>();
+		const refresh = mock(async () => {});
+		const host = {
+			ctx: {
+				session: { modelRegistry: { refresh } },
+			},
+			requestRender: () => {},
+			finish: (value: string) => finished.resolve(value),
+			setFocus: () => {},
+			restoreFocus: () => {},
+		} as unknown as SetupSceneHost;
+		const controller = new StoroslopSceneController(host, dir);
+		for (const char of "sk-controller") controller.handleInput(char);
+		controller.handleInput("\r");
+		try {
+			expect(await finished.promise).toBe("done");
+			expect(refresh).toHaveBeenCalledWith("online-if-uncached");
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+});
 describe("setup wizard mouse routing", () => {
 	it("synthesizes arrow keys from wheel notches for scenes without routeMouse", () => {
 		const received: string[] = [];
@@ -320,8 +401,6 @@ describe("setup wizard mouse routing", () => {
 		const component = new SetupWizardComponent(ctx, [scene]);
 		try {
 			void component.run();
-			component.handleInput("\r"); // splash → scene
-			await Bun.sleep(500); // let the splash→scene dissolve (420ms) finish so the frame is the scene
 			const frame = component.render(80);
 			const row = frame.findIndex(line => line.includes("MARKER-ROW"));
 			expect(row).toBeGreaterThan(0);
@@ -366,44 +445,10 @@ describe("setup wizard short terminals", () => {
 		} as unknown as InteractiveModeContext;
 	}
 
-	/**
-	 * Advance the wizard's dissolve clock past SCENE_TRANSITION_MS so render()
-	 * shows the fully revealed scene without waiting real time. Activate after
-	 * the splash→scene input (the transition timestamps itself on entry).
-	 */
-	function skipDissolve(): { mockRestore(): void } {
-		const realNow = performance.now.bind(performance);
-		return vi.spyOn(performance, "now").mockImplementation(() => realNow() + 1_000);
-	}
-
-	it("keeps the selected provider row visible while navigating on a 24-row terminal", async () => {
-		await initTheme(false, "unicode", false, "titanium", "light");
-		const component = new SetupWizardComponent(shortTerminalCtx(24), [providersSetupScene]);
-		void component.run();
-		component.handleInput("\r"); // splash → scene
-		const nowSpy = skipDissolve();
-		try {
-			// Walk down past a full wrap and back up; the selection must stay
-			// inside the 24-row frame on every step (the list window used to
-			// assume ten visible rows and the wizard clipped the cursor off).
-			for (const key of [...Array(45).fill("\x1b[B"), "\x1b[A", "\x1b[A"]) {
-				component.handleInput(key);
-				const frame = component.render(80).map(line => Bun.stripANSI(line));
-				expect(frame.length).toBe(24);
-				expect(frame.some(line => line.trimStart().startsWith(theme.nav.cursor))).toBe(true);
-			}
-		} finally {
-			nowSpy.mockRestore();
-			component.dispose();
-		}
-	});
-
 	it("keeps the curated theme list and its selection visible on a 24-row terminal", async () => {
 		await initTheme(false, "unicode", false, "titanium", "light");
 		const component = new SetupWizardComponent(shortTerminalCtx(24), [themeSetupScene]);
 		void component.run();
-		component.handleInput("\r"); // splash → scene
-		const nowSpy = skipDissolve();
 		try {
 			const frame = component.render(80).map(line => Bun.stripANSI(line));
 			expect(frame.length).toBe(24);
@@ -412,7 +457,6 @@ describe("setup wizard short terminals", () => {
 				expect(frame.some(line => line.includes(label))).toBe(true);
 			}
 		} finally {
-			nowSpy.mockRestore();
 			component.dispose();
 		}
 	});
@@ -482,68 +526,6 @@ describe("setup wizard glyph scene", () => {
 		await Bun.sleep(20);
 		expect(settings.get("symbolPreset")).toBe("nerd");
 		expect(finished).toBe(true);
-	});
-});
-
-describe("setup wizard web search tab", () => {
-	it("exposes every web-search provider preference in the shared TUI list", () => {
-		expect(SEARCH_PROVIDER_OPTIONS[0]?.value).toBe("auto");
-		expect(SEARCH_PROVIDER_OPTIONS.slice(1).map(option => option.value)).toEqual([...SEARCH_PROVIDER_ORDER]);
-	});
-
-	it("persists the highlighted provider as the head of the web search order", async () => {
-		const settings = Settings.isolated();
-		const host = {
-			ctx: {
-				settings,
-				session: { modelRegistry: { authStorage: { hasAuth: () => false } } },
-			},
-			requestRender: () => {},
-			finish: () => {},
-			setFocus: () => {},
-			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
-
-		const tab = new WebSearchTab(host);
-		tab.handleInput("\x1b[B"); // move off "auto" to the next provider
-		tab.handleInput("\n"); // confirm the highlighted provider
-		await Bun.sleep(20);
-
-		const expected = SEARCH_PROVIDER_OPTIONS[1]!.value;
-		expect(expected).not.toBe("auto");
-		expect(settings.get("providers.webSearchOrder")).toEqual([
-			expected,
-			...SEARCH_PROVIDER_ORDER.filter(id => id !== expected),
-		]);
-	});
-
-	it("can select the last provider in the setup TUI list", async () => {
-		const settings = Settings.isolated();
-		const host = {
-			ctx: {
-				settings,
-				session: { modelRegistry: { authStorage: { hasAuth: () => false } } },
-			},
-			requestRender: () => {},
-			finish: () => {},
-			setFocus: () => {},
-			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
-
-		const tab = new WebSearchTab(host);
-		for (let i = 1; i < SEARCH_PROVIDER_OPTIONS.length; i++) {
-			tab.handleInput("\x1b[B");
-		}
-		tab.handleInput("\n");
-		await Bun.sleep(20);
-
-		const lastOption = SEARCH_PROVIDER_OPTIONS[SEARCH_PROVIDER_OPTIONS.length - 1]!;
-		const lastValue = lastOption.value;
-		if (lastValue === "auto") throw new Error("last option must be a concrete provider");
-		expect(settings.get("providers.webSearchOrder")).toEqual([
-			lastValue,
-			...SEARCH_PROVIDER_ORDER.filter(id => id !== lastValue),
-		]);
 	});
 });
 

@@ -17,10 +17,10 @@ import { $ } from "bun";
 import { theme } from "../modes/theme/theme";
 import { isTimeoutError, withTimeoutSignal } from "../utils/fetch-timeout";
 
-const REPO = "can1357/oh-my-pi";
+const REPO = "Zanooda/storoslop";
 const PACKAGE = "@oh-my-pi/pi-coding-agent";
 const HOMEBREW_FORMULA = "can1357/tap/omp";
-const MISE_TOOL = "github:can1357/oh-my-pi";
+const MISE_TOOL = "github:Zanooda/storoslop";
 const NIX_STORE_DIR = "/nix/store";
 /**
  * Official npm registry origin.
@@ -654,64 +654,25 @@ async function resolveUpdateTarget(options: { allowPackageManagers: boolean }): 
 	throw new Error(`Could not resolve ${APP_NAME} binary path in PATH`);
 }
 
-/** Bound on `omp.rename` hops so a broken pointer chain cannot loop forever. */
-const MAX_RENAME_HOPS = 3;
-
-async function fetchLatestManifest(
-	pkg: string,
-	timeoutMs: number,
-): Promise<{ version: string; manifest: Record<string, unknown> }> {
-	let response: Response;
-	try {
-		response = await fetch(`${NPM_REGISTRY}${pkg}/latest`, {
-			signal: withTimeoutSignal(timeoutMs),
-		});
-	} catch (err) {
-		if (isTimeoutError(err)) {
-			throw new Error(`Timed out fetching release info for ${pkg} after ${Math.round(timeoutMs / 1000)}s`, {
-				cause: err,
-			});
-		}
-		throw err;
-	}
-	if (!response.ok) {
-		throw new Error(`Failed to fetch release info for ${pkg}: ${response.statusText}`);
-	}
-
-	const data: unknown = await response.json();
-	if (!isRecord(data) || typeof data.version !== "string") {
-		throw new Error(`Malformed npm registry response for ${pkg}: missing version`);
-	}
-	return { version: data.version, manifest: data };
-}
-
 /**
- * Get the latest release info from the npm registry, following `omp.rename`
- * pointers ({@link resolveReleaseRename}) when the package has moved to a new
- * npm name. Version, dist, and install names all come from the final manifest
- * in the chain. Uses npm instead of GitHub API to avoid unauthenticated rate
- * limiting.
+ * Get the latest release from the storoslop GitHub repository
+ * (Zanooda/storoslop). `storoslop` ships release binaries, so the latest
+ * release is compared by its `v<version>` tag.
  */
 export async function getLatestRelease(options: { timeoutMs?: number } = {}): Promise<ReleaseInfo> {
-	const timeoutMs = options.timeoutMs ?? RELEASE_METADATA_TIMEOUT_MS;
-	const packages: ReleasePackages = { ...CURRENT_PACKAGES };
-	const visited = new Set([packages.pkg]);
-	let latest = await fetchLatestManifest(packages.pkg, timeoutMs);
-	for (let hop = 0; hop < MAX_RENAME_HOPS; hop++) {
-		const rename = resolveReleaseRename(latest.manifest);
-		if (!rename || visited.has(rename.pkg)) break;
-		visited.add(rename.pkg);
-		packages.pkg = rename.pkg;
-		if (rename.natives) packages.natives = rename.natives;
-		latest = await fetchLatestManifest(packages.pkg, timeoutMs);
+	const response = await fetch(`${GITHUB_API}/repos/${REPO}/releases/latest`, {
+		signal: withTimeoutSignal(options.timeoutMs ?? RELEASE_METADATA_TIMEOUT_MS),
+	});
+	if (!response.ok) {
+		throw new Error(`Failed to fetch latest release from ${REPO}: ${response.statusText}`);
 	}
-
-	return {
-		tag: `v${latest.version}`,
-		version: latest.version,
-		dist: resolveReleaseDist(latest.manifest),
-		packages,
-	};
+	const release = (await response.json()) as { tag_name?: unknown };
+	if (typeof release.tag_name !== "string") {
+		throw new Error(`GitHub release for ${REPO} has no tag_name`);
+	}
+	const tag = release.tag_name.startsWith("v") ? release.tag_name : `v${release.tag_name}`;
+	const version = tag.replace(/^v/, "");
+	return { tag, version, dist: "binary", packages: { ...CURRENT_PACKAGES } };
 }
 
 interface BunInstallCachePruneResult {

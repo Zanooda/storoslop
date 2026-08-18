@@ -1100,7 +1100,7 @@ export const SETTINGS_SCHEMA = {
 
 	hideThinkingBlock: {
 		type: "boolean",
-		default: false,
+		default: true,
 		ui: {
 			tab: "model",
 			group: "Thinking",
