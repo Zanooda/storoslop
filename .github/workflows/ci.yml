@@ -181,6 +181,22 @@ jobs:
               summary=$(sed -E 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/bazel-build.log" | grep -E '[0-9]+ processes:' | tail -1 || true)
               echo "::notice title=Bazel build summary::${summary:-no process summary found}"
 
+         # On GitHub-hosted runners (no omp-kata remote cache) this job is the
+         # only producer of the `linux` scope. Without a save site the disk cache
+         # restored above was never written back, so every generation rebuilt the
+         # addons fully cold — the regression from 51f1bce. Only non-PR runs
+         # save (this job is already PR-gated), and an exact-key restore skips the
+         # save so unchanged generations don't churn the 10 GB repo-cache quota.
+         # Paths must mirror the restore list in the bazel-cache action.
+         - name: Save bazel disk cache
+           if: steps.cache.outputs.save-needed == 'true'
+           uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+           with:
+              path: |
+                 ~/.cache/omp-bazel-disk
+                 ~/.cache/omp-bazel-repo
+              key: ${{ steps.cache.outputs.cache-key }}
+
          - name: Upload native addon artifacts
            uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
            with:
