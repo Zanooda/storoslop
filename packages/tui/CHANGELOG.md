@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Desktop notification source name now reports `storoslop` instead of the upstream `Oh My Pi` across D-Bus, OSC 99, and cmux delivery paths.
+
 ## [17.3.5] - 2026-08-16
 
 ### Fixed

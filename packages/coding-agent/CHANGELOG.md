@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Terminal notifications (completion, error, ask, protocol test) now fall back to `storoslop` as the title instead of the upstream `Oh My Pi`.
+
 ## [1.0.0] - 2026-08-18
 
 ### Added
