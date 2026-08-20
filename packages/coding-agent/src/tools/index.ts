@@ -54,6 +54,7 @@ import { HubTool, isIrcEnabled } from "./hub";
 import { InspectImageTool } from "./inspect-image";
 import { LearnTool } from "./learn";
 import { ManageSkillTool } from "./manage-skill";
+import { MemoryTool } from "./memory";
 import { MemoryEditTool } from "./memory-edit";
 import { MemoryRecallTool } from "./memory-recall";
 import { MemoryReflectTool } from "./memory-reflect";
@@ -95,6 +96,7 @@ export * from "./image-gen";
 export * from "./inspect-image";
 export * from "./learn";
 export * from "./manage-skill";
+export * from "./memory";
 export * from "./memory-edit";
 export * from "./memory-recall";
 export * from "./memory-reflect";
@@ -444,6 +446,7 @@ export const BUILTIN_TOOLS: Record<BuiltinToolName, ToolFactory> = {
 	reflect: MemoryReflectTool.createIf,
 	learn: LearnTool.createIf,
 	manage_skill: ManageSkillTool.createIf,
+	memory: s => new MemoryTool(s),
 };
 
 export const HIDDEN_TOOLS: Record<HiddenToolName, ToolFactory> = {

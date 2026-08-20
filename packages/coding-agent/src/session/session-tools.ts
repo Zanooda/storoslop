@@ -16,6 +16,8 @@ import { deduplicateMCPToolsByName } from "../mcp/tool-bridge";
 import { resolveMemoryBackend } from "../memory-backend/resolve";
 import { MEMORY_BACKEND_TOOL_NAMES } from "../memory-backend/tool-names";
 import type { MemoryBackendStartOptions } from "../memory-backend/types";
+import { deriveProjectKey, type ProjectKey } from "../memory-files/paths";
+import { readMemory } from "../memory-files/store";
 import xdevMountNoticePrompt from "../prompts/system/xdev-mount-notice.md" with { type: "text" };
 import { usesCodexTaskPrompt } from "../task/prompt-policy";
 import { isMCPToolName, normalizeToolNames } from "../tools/builtin-names";
@@ -1357,6 +1359,11 @@ export class SessionTools {
 
 	/** Applies one-turn memory prompt injection before an agent run. */
 	async buildSystemPromptForAgentStart(promptText: string): Promise<string[]> {
+		const backendPrompt = await this.#buildMemoryBackendStartPrompt(promptText);
+		return this.#appendFileMemoryToPrompt(backendPrompt);
+	}
+
+	async #buildMemoryBackendStartPrompt(promptText: string): Promise<string[]> {
 		const backend = await resolveMemoryBackend(this.#host.settings);
 		if (!backend.beforeAgentStartPrompt) return this.#baseSystemPrompt;
 
@@ -1393,6 +1400,32 @@ export class SessionTools {
 			});
 			return this.#baseSystemPrompt;
 		}
+	}
+
+	/**
+	 * Append the ambient file-based memory (global + current project) to a
+	 * resolved start prompt, so memory is present every turn without an explicit
+	 * recall — Claude-Code-style. Always-on; independent of `memory.backend`.
+	 */
+	async #appendFileMemoryToPrompt(prompt: string[]): Promise<string[]> {
+		const cwd = this.#host.sessionManager.getCwd();
+		let project: ProjectKey | null = null;
+		try {
+			project = await deriveProjectKey(cwd);
+		} catch {
+			project = null;
+		}
+		const [globalText, projectText] = [await readMemory(null), project ? await readMemory(project) : undefined];
+		const block = [
+			projectText ? `<memory scope="project">\n${projectText}\n</memory>` : undefined,
+			globalText ? `<memory scope="global">\n${globalText}\n</memory>` : undefined,
+		]
+			.filter(Boolean)
+			.join("\n\n");
+		if (!block) return prompt;
+		const last = [...prompt];
+		last[last.length - 1] = `${last[last.length - 1]}\n\n${block}`;
+		return last;
 	}
 
 	/**

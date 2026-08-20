@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Claude-Code-style file memory: an always-on `memory` agent tool (`write`/`recall`/`forget`/`status`) with a **global** store (`~/.storoslop/memory/MEMORY.md`) plus a **per-project** store (`~/.storoslop/memory/projects/<owner>/<repo>/MEMORY.md`), and ambient injection of global + current-project memory into the session prompt. Independent of the `memory.backend` pipeline (which defaults to `off`). Never writes into the project directory; override the root via `STOROSLOP_MEMORY_DIR`.
+
 ### Changed
 
 - Synced with upstream `oh-my-pi` v17.4.0: integrated upstream's changes (model hub, session compaction, telemetry, tools, and fixes) while preserving storoslop branding, versioning, and provider/CI choices.
