@@ -2,12 +2,6 @@
 
 ## [Unreleased]
 
-## [1.0.1] - 2026-08-20
-
-### Fixed
-
-- Desktop notification source name now reports `storoslop` instead of the upstream `Oh My Pi` across D-Bus, OSC 99, and cmux delivery paths.
-
 ## [17.3.5] - 2026-08-16
 
 ### Fixed
@@ -2003,6 +1997,12 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 ### Added
 
 - Added `getText()` method to Text component for retrieving current text content
+
+## [1.0.1] - 2026-08-20
+
+### Fixed
+
+- Desktop notification source name now reports `storoslop` instead of the upstream `Oh My Pi` across D-Bus, OSC 99, and cmux delivery paths.
 
 ## [0.50.0] - 2026-01-26
 

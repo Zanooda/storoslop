@@ -2,11 +2,11 @@
 
 ## [Unreleased]
 
-## [1.0.1] - 2026-08-20
+## [1.0.2] - 2026-08-20
 
 ### Fixed
 
-- Terminal notifications (completion, error, ask, protocol test) now fall back to `storoslop` as the title instead of the upstream `Oh My Pi`.
+- The "update available" notification and the `update` command examples now instruct running `storoslop update` instead of the upstream `omp update`.
 
 ## [17.3.7] - 2026-08-17
 
@@ -12817,6 +12817,12 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 - Fixed Task tool progress display showing repeated nearly-identical lines during streaming
 - Fixed Task tool subprocess model selection ignoring agent's configured model and falling back to settings default. The `--model` flag now accepts `provider/model` format directly.
 - Fixed Task tool showing "done + succeeded" when aborted; now correctly displays "⊘ aborted" status
+
+## [1.0.1] - 2026-08-20
+
+### Fixed
+
+- Terminal notifications (completion, error, ask, protocol test) now fall back to `storoslop` as the title instead of the upstream `Oh My Pi`.
 
 ## [1.0.0] - 2026-08-18
 
