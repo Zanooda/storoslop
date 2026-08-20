@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- The composer-shape setup scene preview now shows `storoslop` in the title instead of the upstream `omp`.
 - Aligned `update-cli` tests with the storoslop rebrand: mocked release URLs, mise slug, release-asset names, installed `storoslop.exe`/shim paths, and reported version format now target `Zanooda/storoslop`. Initialized the module `theme` in tests so update success paths render status glyphs.
 
 ## [1.0.2] - 2026-08-20
