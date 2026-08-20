@@ -245,7 +245,12 @@ async function cmdRelease(versionOrBump: string): Promise<void> {
 	const nixBunDepsGenerator = resolveNixBunDepsGenerator();
 	console.log(`  Nix dependency generator: ${nixBunDepsGenerator.kind}`);
 
-	const latestTag = (await git(["describe", "--tags", "--abbrev=0", "--match", "v*"]).text()).trim();
+	// Fork: version off the fork's own manifest lineage (e.g. v1.0.2), NOT the
+	// highest git tag — the repo also carries upstream oh-my-pi tags (v17.x, old
+	// v1.3xx) that are not fork releases and would wrongly reject a lower fork
+	// version or bump off upstream's line.
+	const currentVersion = (await Bun.file("packages/coding-agent/package.json").json()).version as string;
+	const latestTag = `v${currentVersion}`;
 	let version = versionOrBump;
 	if (version === "major" || version === "minor" || version === "patch") {
 		version = bumpVersion(latestTag, version);
