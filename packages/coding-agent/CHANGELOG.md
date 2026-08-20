@@ -6,6 +6,10 @@
 
 - Synced with upstream `oh-my-pi` v17.4.0: integrated upstream's changes (model hub, session compaction, telemetry, tools, and fixes) while preserving storoslop branding, versioning, and provider/CI choices.
 
+### Fixed
+
+- Aligned `update-cli` tests with the storoslop rebrand: mocked release URLs/mise slug now target `Zanooda/storoslop`, and shim-takeover tests use `storoslop` launcher/binary names. Initialized the module `theme` in tests so update success paths render status glyphs.
+
 ## [1.0.2] - 2026-08-20
 
 ### Fixed
