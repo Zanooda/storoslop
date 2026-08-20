@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- Aligned `update-cli` tests with the storoslop rebrand: mocked release URLs/mise slug now target `Zanooda/storoslop`, and shim-takeover tests use `storoslop` launcher/binary names. Initialized the module `theme` in tests so update success paths render status glyphs.
+- Aligned `update-cli` tests with the storoslop rebrand: mocked release URLs, mise slug, release-asset names, installed `storoslop.exe`/shim paths, and reported version format now target `Zanooda/storoslop`. Initialized the module `theme` in tests so update success paths render status glyphs.
 
 ## [1.0.2] - 2026-08-20
 
