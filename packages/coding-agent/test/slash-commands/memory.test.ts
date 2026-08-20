@@ -20,22 +20,22 @@ function createRuntime() {
 }
 
 describe("/memory slash command", () => {
-	it("routes the full command text through the memory handler and saves it to history", async () => {
+	it("routes the full command text through the memory-backend handler and saves it to history", async () => {
 		const harness = createRuntime();
 
-		const handled = await executeBuiltinSlashCommand("/memory view", harness.runtime);
+		const handled = await executeBuiltinSlashCommand("/memory-backend view", harness.runtime);
 
 		expect(handled).toBe(true);
 		expect(harness.setText).toHaveBeenCalledWith("");
-		expect(harness.handleMemoryCommand).toHaveBeenCalledWith("/memory view");
+		expect(harness.handleMemoryCommand).toHaveBeenCalledWith("/memory-backend view");
 	});
 
 	it("preserves the raw command text for history", async () => {
 		const harness = createRuntime();
 
-		const handled = await executeBuiltinSlashCommand("/memory    stats", harness.runtime);
+		const handled = await executeBuiltinSlashCommand("/memory-backend    stats", harness.runtime);
 
 		expect(handled).toBe(true);
-		expect(harness.handleMemoryCommand).toHaveBeenCalledWith("/memory    stats");
+		expect(harness.handleMemoryCommand).toHaveBeenCalledWith("/memory-backend    stats");
 	});
 });

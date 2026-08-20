@@ -3,6 +3,8 @@ import * as path from "node:path";
 import { setProjectDir } from "@oh-my-pi/pi-utils";
 import { applyProviderGlobalsFromSettings } from "../config/provider-globals";
 import { memoryStatsUnavailableMessage, resolveMemoryBackend } from "../memory-backend";
+import { deriveProjectKey } from "../memory-files/paths";
+import { forgetMemory, readMemory, writeMemory } from "../memory-files/store";
 import type { FreshSessionResult } from "../session/agent-session";
 import { COMPACT_MODES, parseCompactArgs } from "../session/compact-modes";
 import { resolveResumableSession } from "../session/session-listing";
@@ -298,7 +300,7 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 		},
 	},
 	{
-		name: "memory",
+		name: "memory-backend",
 		description: "Inspect and operate memory maintenance",
 		acpDescription: "Manage memory",
 		acpInputHint: "<subcommand>",
@@ -357,11 +359,11 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 				}
 				case "mm":
 					return usage(
-						"Mental-model maintenance via /memory mm is unsupported in ACP mode; use the hindsight HTTP API directly.",
+						"Mental-model maintenance via /memory-backend mm is unsupported in ACP mode; use the hindsight HTTP API directly.",
 						runtime,
 					);
 				default:
-					return usage("Usage: /memory <view|stats|diagnose|clear|reset|enqueue|rebuild>", runtime);
+					return usage("Usage: /memory-backend <view|stats|diagnose|clear|reset|enqueue|rebuild>", runtime);
 			}
 		},
 		handleTui: async (command, runtime) => {
@@ -506,6 +508,50 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 		acpDescription: "List this session's workspace directories",
 		handle: async (_command, runtime) => {
 			await runtime.output(formatWorkspaceDirectories(runtime));
+			return commandConsumed();
+		},
+	},
+	{
+		name: "memory",
+		description: "View, write, and forget file memory (per-project and global)",
+		acpDescription: "Manage file memory",
+		allowArgs: true,
+		handle: async (command, runtime) => {
+			const trimmed = command.args.trim();
+			const verb = (trimmed.split(/\s+/)[0]?.toLowerCase() ?? "") || "view";
+			const showGlobal = verb === "global";
+			const projKey = showGlobal ? null : await deriveProjectKey(runtime.cwd);
+			const key = projKey ? `${projKey.owner}/${projKey.repo}` : undefined;
+
+			if (verb === "write") {
+				const entry = trimmed.replace(/^write\s+/, "").trim();
+				if (!entry) return usage("Usage: /memory write <fact> (omit write for view)", runtime);
+				await writeMemory(projKey, entry);
+				await runtime.output(`Remembered (${showGlobal ? "global" : `project${key ? ` ${key}` : ""}`}).`);
+				return commandConsumed();
+			}
+			if (verb === "forget") {
+				const match = trimmed.replace(/^forget\s+/, "").trim();
+				if (!match) return usage("Usage: /memory forget <text>", runtime);
+				const removed = await forgetMemory(projKey, match);
+				await runtime.output(
+					removed > 0
+						? `Forgot ${removed} matching entr${removed === 1 ? "y" : "ies"}.`
+						: "No matching memory to forget.",
+				);
+				return commandConsumed();
+			}
+
+			const projectText = showGlobal ? undefined : await readMemory(projKey);
+			const globalText = await readMemory(null);
+			const out =
+				[
+					projectText ? `Project memory:\n${projectText}` : undefined,
+					globalText ? `Global memory:\n${globalText}` : undefined,
+				]
+					.filter(Boolean)
+					.join("\n\n") || "No saved memory yet.";
+			await runtime.output(out);
 			return commandConsumed();
 		},
 	},
