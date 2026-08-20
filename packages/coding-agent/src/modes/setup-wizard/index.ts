@@ -1,6 +1,7 @@
 import type { Settings } from "../../config/settings";
 import { CURRENT_SETUP_VERSION } from "../setup-version";
 import type { InteractiveModeContext } from "../types";
+import { composerSetupScene } from "./scenes/composer";
 import { glyphSetupScene } from "./scenes/glyph";
 import { modelSetupScene } from "./scenes/model";
 import { storoslopSetupScene } from "./scenes/storoslop";
@@ -17,6 +18,7 @@ export const ALL_SCENES = [
 	storoslopSetupScene,
 	modelSetupScene,
 	glyphSetupScene,
+	composerSetupScene,
 	themeSetupScene,
 ] as const satisfies readonly SetupScene[];
 
