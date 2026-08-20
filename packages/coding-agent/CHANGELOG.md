@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-20
+
 ### Added
 
 - Claude-Code-style file memory: an always-on `memory` agent tool (`write`/`recall`/`forget`/`status`) with a **global** store (`~/.storoslop/memory/MEMORY.md`) plus a **per-project** store (`~/.storoslop/memory/projects/<owner>/<repo>/MEMORY.md`), and ambient injection of global + current-project memory into the session prompt. Independent of the `memory.backend` pipeline (which defaults to `off`). Never writes into the project directory; override the root via `STOROSLOP_MEMORY_DIR`.
@@ -16,11 +18,6 @@
 - The composer-shape setup scene preview now shows `storoslop` in the title instead of the upstream `omp`.
 - Aligned `update-cli` tests with the storoslop rebrand: mocked release URLs, mise slug, release-asset names, installed `storoslop.exe`/shim paths, and reported version format now target `Zanooda/storoslop`. Initialized the module `theme` in tests so update success paths render status glyphs.
 
-## [1.0.2] - 2026-08-20
-
-### Fixed
-
-- The "update available" notification and the `update` command examples now instruct running `storoslop update` instead of the upstream `omp update`.
 ## [17.4.0] - 2026-08-20
 
 ### Added
@@ -12928,6 +12925,12 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 - Fixed Task tool progress display showing repeated nearly-identical lines during streaming
 - Fixed Task tool subprocess model selection ignoring agent's configured model and falling back to settings default. The `--model` flag now accepts `provider/model` format directly.
 - Fixed Task tool showing "done + succeeded" when aborted; now correctly displays "⊘ aborted" status
+
+## [1.0.2] - 2026-08-20
+
+### Fixed
+
+- The "update available" notification and the `update` command examples now instruct running `storoslop update` instead of the upstream `omp update`.
 
 ## [1.0.1] - 2026-08-20
 
