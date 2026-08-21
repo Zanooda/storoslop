@@ -22,6 +22,7 @@
 ### Fixed
 
 - Regional Codex HTTP 401s via token residency metadata; macOS SSH ControlMaster socket failures; Nix on-demand native addon loading; external editor attach; session-resume CPU spin; MCP OAuth scopes; retry fallback chain/role priority; built-in shell utility POSIX/GNU/BSD edge cases; dark-theme code-fence contrast.
+- `/autoprompt` no longer appends a `=== PROMPT 1 ===` duplex entry to `PROMPTS.txt` after `createRunState` already wrote the canonical mission line, which corrupted the ledger bytes/hash and made every dispatched agent fail pointer verification with INVALID-BRIEF.
 
 ## [1.1.2] - 2026-08-21
 

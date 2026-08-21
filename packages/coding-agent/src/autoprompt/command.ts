@@ -8,7 +8,7 @@
 
 import type { SlashCommandRuntime, SlashCommandSpec } from "../slash-commands/types";
 import { parseAutopromptArgs } from "./args";
-import { appendGatewayArtifact, createRunState, PROMPTS_FILE } from "./governance";
+import { createRunState } from "./governance";
 import { buildAutopromptSeed } from "./orchestrator";
 
 /** The single `/autoprompt` command spec (TUI and ACP share it). */
@@ -26,7 +26,6 @@ function createAutopromptSlashCommand(): SlashCommandSpec {
 			}
 			const { mission, mode, maxSubs } = parsed;
 			const state = await createRunState(mission);
-			await appendGatewayArtifact(state.root, PROMPTS_FILE, `=== PROMPT 1 ===\n${mission}\n`);
 			const promptText = buildAutopromptSeed({ state, mode, maxSubs }, mission);
 			await runtime.output(`Autoprompt: created run ${state.root} (mode=${mode}, max_subs=${maxSubs})`);
 			return { prompt: promptText };
