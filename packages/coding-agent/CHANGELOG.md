@@ -2,25 +2,11 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-21
+
 ### Changed
 
 - The `deepseek-v4-flash` model now always uses provider-native tool calls under `tools.format: auto`, even when its metadata marks it as lacking native tool support.
-
-## [1.1.0] - 2026-08-20
-
-### Added
-
-- Claude-Code-style file memory: an always-on `memory` agent tool (`write`/`recall`/`forget`/`status`) with a **global** store (`~/.storoslop/memory/MEMORY.md`) plus a **per-project** store (`~/.storoslop/memory/projects/<owner>/<repo>/MEMORY.md`), and ambient injection of global + current-project memory into the session prompt. Independent of the `memory.backend` pipeline (which defaults to `off`). Never writes into the project directory; override the root via `STOROSLOP_MEMORY_DIR`.
-- `/memory` (and the `memory` tool) now manages this file memory; the former backend-memory `/memory` command moved to `/memory-backend`.
-
-### Changed
-
-- Synced with upstream `oh-my-pi` v17.4.0: integrated upstream's changes (model hub, session compaction, telemetry, tools, and fixes) while preserving storoslop branding, versioning, and provider/CI choices.
-
-### Fixed
-
-- The composer-shape setup scene preview now shows `storoslop` in the title instead of the upstream `omp`.
-- Aligned `update-cli` tests with the storoslop rebrand: mocked release URLs, mise slug, release-asset names, installed `storoslop.exe`/shim paths, and reported version format now target `Zanooda/storoslop`. Initialized the module `theme` in tests so update success paths render status glyphs.
 
 ## [17.4.0] - 2026-08-20
 
@@ -12929,6 +12915,22 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 - Fixed Task tool progress display showing repeated nearly-identical lines during streaming
 - Fixed Task tool subprocess model selection ignoring agent's configured model and falling back to settings default. The `--model` flag now accepts `provider/model` format directly.
 - Fixed Task tool showing "done + succeeded" when aborted; now correctly displays "⊘ aborted" status
+
+## [1.1.0] - 2026-08-20
+
+### Added
+
+- Claude-Code-style file memory: an always-on `memory` agent tool (`write`/`recall`/`forget`/`status`) with a **global** store (`~/.storoslop/memory/MEMORY.md`) plus a **per-project** store (`~/.storoslop/memory/projects/<owner>/<repo>/MEMORY.md`), and ambient injection of global + current-project memory into the session prompt. Independent of the `memory.backend` pipeline (which defaults to `off`). Never writes into the project directory; override the root via `STOROSLOP_MEMORY_DIR`.
+- `/memory` (and the `memory` tool) now manages this file memory; the former backend-memory `/memory` command moved to `/memory-backend`.
+
+### Changed
+
+- Synced with upstream `oh-my-pi` v17.4.0: integrated upstream's changes (model hub, session compaction, telemetry, tools, and fixes) while preserving storoslop branding, versioning, and provider/CI choices.
+
+### Fixed
+
+- The composer-shape setup scene preview now shows `storoslop` in the title instead of the upstream `omp`.
+- Aligned `update-cli` tests with the storoslop rebrand: mocked release URLs, mise slug, release-asset names, installed `storoslop.exe`/shim paths, and reported version format now target `Zanooda/storoslop`. Initialized the module `theme` in tests so update success paths render status glyphs.
 
 ## [1.0.2] - 2026-08-20
 
