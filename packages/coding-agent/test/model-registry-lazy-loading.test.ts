@@ -84,12 +84,28 @@ describe("ModelRegistry lazy bundled composition", () => {
 			tempDirs.push(tempDir);
 			const authStorage = await AuthStorage.create(path.join(tempDir.path(), "auth.db"));
 			authStorages.push(authStorage);
-			authStorage.setRuntimeApiKey("anthropic", "test-key");
+			// Fork: storoslop is the only provider, so it must be configured in
+			// models.yml (with an API key) for it to surface in getAvailable().
+			await Bun.write(
+				path.join(tempDir.path(), "models.yml"),
+				JSON.stringify({
+					providers: {
+						storoslop: {
+							baseUrl: "http://slop.storo.cloud:4000/v1",
+							api: "openai-completions",
+							apiKey: "test-key",
+							models: [
+								{ id: "deepseek-v4-flash", name: "deepseek-v4-flash", input: ["text"], contextWindow: 1048576 },
+							],
+						},
+					},
+				}),
+			);
 			return new ModelRegistry(authStorage, path.join(tempDir.path(), "models.yml"));
 		};
 
 		const findFirstRegistry = await createRegistry("find-first");
-		const foundBeforeAll = findFirstRegistry.find("anthropic", "claude-sonnet-4-5");
+		const foundBeforeAll = findFirstRegistry.find("storoslop", "deepseek-v4-flash");
 		expect(foundBeforeAll).toBeDefined();
 		const availableBeforeAll = findFirstRegistry.getAvailable();
 		const availableAgain = findFirstRegistry.getAvailable();
@@ -101,20 +117,20 @@ describe("ModelRegistry lazy bundled composition", () => {
 		const allAfterSelectiveQueries = findFirstRegistry.getAll();
 		expect(findFirstRegistry.getAll()).toBe(allAfterSelectiveQueries);
 		expect(foundBeforeAll).toBe(
-			allAfterSelectiveQueries.find(model => model.provider === "anthropic" && model.id === "claude-sonnet-4-5"),
+			allAfterSelectiveQueries.find(model => model.provider === "storoslop" && model.id === "deepseek-v4-flash"),
 		);
 		expect(foundBeforeAll).toBe(
-			availableBeforeAll.find(model => model.provider === "anthropic" && model.id === "claude-sonnet-4-5"),
+			availableBeforeAll.find(model => model.provider === "storoslop" && model.id === "deepseek-v4-flash"),
 		);
 		expectSameModelObjects(availableBeforeAll, allAfterSelectiveQueries);
 
 		const allFirstRegistry = await createRegistry("all-first");
 		const allBeforeSelectiveQueries = allFirstRegistry.getAll();
 		const availableAfterAll = allFirstRegistry.getAvailable();
-		const foundAfterAll = allFirstRegistry.find("anthropic", "claude-sonnet-4-5");
+		const foundAfterAll = allFirstRegistry.find("storoslop", "deepseek-v4-flash");
 		expect(allFirstRegistry.getAll()).toBe(allBeforeSelectiveQueries);
 		expect(foundAfterAll).toBe(
-			allBeforeSelectiveQueries.find(model => model.provider === "anthropic" && model.id === "claude-sonnet-4-5"),
+			allBeforeSelectiveQueries.find(model => model.provider === "storoslop" && model.id === "deepseek-v4-flash"),
 		);
 		expectSameModelObjects(availableAfterAll, allBeforeSelectiveQueries);
 		expect(modelKeys(allBeforeSelectiveQueries)).toEqual(modelKeys(allAfterSelectiveQueries));

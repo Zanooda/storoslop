@@ -1690,10 +1690,13 @@ describe("ModelRegistry", () => {
 			expect(registry.find("openai-codex", "gpt-5.6-terra")?.contextWindow).toBe(1_000_000);
 		});
 	});
-	describe("bundled Anthropic catalog availability", () => {
+	describe("single-provider invariant: storoslop only", () => {
 		let anthropicAuth: AuthStorage;
 		let registry: ModelRegistry;
 		beforeAll(async () => {
+			// Upstream surfaces every bundled provider that has auth in getAvailable();
+			// the fork exposes ONLY storoslop, so a foreign provider's stored auth must
+			// never let it surface regardless of its credentials.
 			anthropicAuth = await AuthStorage.create(":memory:");
 			await anthropicAuth.set("anthropic", [{ type: "api_key", key: "sk-ant-api-test" }]);
 			registry = new ModelRegistry(anthropicAuth, sharedConfigPath({ providers: {} }));
@@ -1701,10 +1704,58 @@ describe("ModelRegistry", () => {
 		});
 		afterAll(() => anthropicAuth.close());
 
-		test("includes native Opus 4.7 in available models when Anthropic auth exists", () => {
+		test("bundled providers are not available even with valid stored auth", () => {
 			expect(
 				registry.getAvailable().some(model => model.provider === "anthropic" && model.id === "claude-opus-4-7"),
-			).toBe(true);
+			).toBe(false);
+		});
+
+		test("only storoslop models are available when storoslop carries a models.yml API key", () => {
+			const available = readonlyRegistry({
+				providers: {
+					storoslop: providerConfig(
+						"http://slop.storo.cloud:4000/v1",
+						[{ id: "deepseek-v4-flash" }],
+						"openai-completions",
+					),
+				},
+			}).getAvailable();
+			expect(new Set(available.map(model => model.provider))).toEqual(new Set(["storoslop"]));
+			expect(available.map(model => model.id)).toContain("deepseek-v4-flash");
+		});
+
+		test("implicit local providers are not discovered (#addImplicitDiscoverableProviders is a no-op)", () => {
+			const original: Record<string, string | undefined> = {
+				OLLAMA_BASE_URL: Bun.env.OLLAMA_BASE_URL,
+				LLAMA_CPP_BASE_URL: Bun.env.LLAMA_CPP_BASE_URL,
+				LM_STUDIO_BASE_URL: Bun.env.LM_STUDIO_BASE_URL,
+			};
+			try {
+				Bun.env.OLLAMA_BASE_URL = "http://127.0.0.1:11434";
+				Bun.env.LLAMA_CPP_BASE_URL = "http://127.0.0.1:8080";
+				Bun.env.LM_STUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
+				const providers = new Set(
+					readonlyRegistry({ providers: {} })
+						.getAll()
+						.map(model => model.provider),
+				);
+				expect(providers).not.toContain("ollama");
+				expect(providers).not.toContain("llama.cpp");
+				expect(providers).not.toContain("lm-studio");
+				expect(
+					new Set(
+						readonlyRegistry({ providers: {} })
+							.getAvailable()
+							.map(m => m.provider),
+					),
+				).not.toContain("ollama");
+			} finally {
+				for (const [key, value] of Object.entries(original)) {
+					const env = Bun.env as Record<string, string | undefined>;
+					if (value === undefined) delete env[key];
+					else env[key] = value;
+				}
+			}
 		});
 	});
 	describe("disableStrictTools", () => {
