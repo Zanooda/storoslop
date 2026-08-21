@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The `deepseek-v4-flash` model now always uses provider-native tool calls under `tools.format: auto`, even when its metadata marks it as lacking native tool support.
+
 ## [1.1.0] - 2026-08-20
 
 ### Added
