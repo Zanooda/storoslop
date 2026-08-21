@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `/autoprompt` — run the Autoprompt orchestration: turn one mission into an executable roadmap, dispatch parallel lanes as `ap-*` subagents, and verify each with an independent reviewer and a blind fresh verifier, under a governance root outside the working tree.
+
 ## [1.1.1] - 2026-08-21
 
 ### Changed

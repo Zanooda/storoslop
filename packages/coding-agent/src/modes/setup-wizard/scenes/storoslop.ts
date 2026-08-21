@@ -140,7 +140,7 @@ export class StoroslopSceneController implements SetupSceneController {
 		if (this.#pasting || began) {
 			const fragment = data.replace(/\x1b\[200~/g, "").replace(/\x1b\[201~/g, "");
 			if (fragment) this.#append(fragment);
-			this.#pasting = ended ? false : true;
+			this.#pasting = !ended;
 			return;
 		}
 		const printable = extractPrintableText(data);

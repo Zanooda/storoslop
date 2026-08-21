@@ -6,6 +6,31 @@
 import { Effort } from "@oh-my-pi/pi-ai";
 import { parseFrontmatter, prompt } from "@oh-my-pi/pi-utils";
 import { parseAgentFields } from "../discovery/helpers";
+import apArbiterMd from "../prompts/agents/autoprompt/ap-arbiter.md" with { type: "text" };
+import apDepthProberMd from "../prompts/agents/autoprompt/ap-depth-prober.md" with { type: "text" };
+import apExecharnessResolverMd from "../prompts/agents/autoprompt/ap-execharness-resolver.md" with { type: "text" };
+import apFeatureCoordinatorMd from "../prompts/agents/autoprompt/ap-feature-coordinator.md" with { type: "text" };
+import apFrameworkGeneratorMd from "../prompts/agents/autoprompt/ap-framework-generator.md" with { type: "text" };
+import apFrameworkValidatorMd from "../prompts/agents/autoprompt/ap-framework-validator.md" with { type: "text" };
+import apFreshVerifierMd from "../prompts/agents/autoprompt/ap-fresh-verifier.md" with { type: "text" };
+import apGoalCheckerMd from "../prompts/agents/autoprompt/ap-goal-checker.md" with { type: "text" };
+import apImplementerMd from "../prompts/agents/autoprompt/ap-implementer.md" with { type: "text" };
+import apIntakeMd from "../prompts/agents/autoprompt/ap-intake.md" with { type: "text" };
+import apJanitorMd from "../prompts/agents/autoprompt/ap-janitor.md" with { type: "text" };
+import apJurorMd from "../prompts/agents/autoprompt/ap-juror.md" with { type: "text" };
+import apManagerMd from "../prompts/agents/autoprompt/ap-manager.md" with { type: "text" };
+import apPlannerMd from "../prompts/agents/autoprompt/ap-planner.md" with { type: "text" };
+import apPreflightProbeMd from "../prompts/agents/autoprompt/ap-preflight-probe.md" with { type: "text" };
+import apReAnchorMd from "../prompts/agents/autoprompt/ap-re-anchor.md" with { type: "text" };
+import apResearcherMd from "../prompts/agents/autoprompt/ap-researcher.md" with { type: "text" };
+import apReviewerMd from "../prompts/agents/autoprompt/ap-reviewer.md" with { type: "text" };
+import apScopeCoordinatorMd from "../prompts/agents/autoprompt/ap-scope-coordinator.md" with { type: "text" };
+import apScoperMd from "../prompts/agents/autoprompt/ap-scoper.md" with { type: "text" };
+import apScribeMd from "../prompts/agents/autoprompt/ap-scribe.md" with { type: "text" };
+import apSweepCoordinatorMd from "../prompts/agents/autoprompt/ap-sweep-coordinator.md" with { type: "text" };
+import apSweeperMd from "../prompts/agents/autoprompt/ap-sweeper.md" with { type: "text" };
+import apSynthesizerMd from "../prompts/agents/autoprompt/ap-synthesizer.md" with { type: "text" };
+import apVerifierMd from "../prompts/agents/autoprompt/ap-verifier.md" with { type: "text" };
 import designerMd from "../prompts/agents/designer.md" with { type: "text" };
 // Embed agent markdown files at build time
 import agentFrontmatterTemplate from "../prompts/agents/frontmatter.md" with { type: "text" };
@@ -73,6 +98,32 @@ const EMBEDDED_AGENT_DEFS: EmbeddedAgentDef[] = [
 		},
 		template: taskMd,
 	},
+	// Autoprompt personas (ported from Spielewoy/autoprompt-skill, MIT, Copyright 2026 Spielewoy).
+	{ fileName: "autoprompt/ap-arbiter.md", template: apArbiterMd },
+	{ fileName: "autoprompt/ap-depth-prober.md", template: apDepthProberMd },
+	{ fileName: "autoprompt/ap-execharness-resolver.md", template: apExecharnessResolverMd },
+	{ fileName: "autoprompt/ap-feature-coordinator.md", template: apFeatureCoordinatorMd },
+	{ fileName: "autoprompt/ap-framework-generator.md", template: apFrameworkGeneratorMd },
+	{ fileName: "autoprompt/ap-framework-validator.md", template: apFrameworkValidatorMd },
+	{ fileName: "autoprompt/ap-fresh-verifier.md", template: apFreshVerifierMd },
+	{ fileName: "autoprompt/ap-goal-checker.md", template: apGoalCheckerMd },
+	{ fileName: "autoprompt/ap-implementer.md", template: apImplementerMd },
+	{ fileName: "autoprompt/ap-intake.md", template: apIntakeMd },
+	{ fileName: "autoprompt/ap-janitor.md", template: apJanitorMd },
+	{ fileName: "autoprompt/ap-juror.md", template: apJurorMd },
+	{ fileName: "autoprompt/ap-manager.md", template: apManagerMd },
+	{ fileName: "autoprompt/ap-planner.md", template: apPlannerMd },
+	{ fileName: "autoprompt/ap-preflight-probe.md", template: apPreflightProbeMd },
+	{ fileName: "autoprompt/ap-re-anchor.md", template: apReAnchorMd },
+	{ fileName: "autoprompt/ap-researcher.md", template: apResearcherMd },
+	{ fileName: "autoprompt/ap-reviewer.md", template: apReviewerMd },
+	{ fileName: "autoprompt/ap-scope-coordinator.md", template: apScopeCoordinatorMd },
+	{ fileName: "autoprompt/ap-scoper.md", template: apScoperMd },
+	{ fileName: "autoprompt/ap-scribe.md", template: apScribeMd },
+	{ fileName: "autoprompt/ap-sweep-coordinator.md", template: apSweepCoordinatorMd },
+	{ fileName: "autoprompt/ap-sweeper.md", template: apSweeperMd },
+	{ fileName: "autoprompt/ap-synthesizer.md", template: apSynthesizerMd },
+	{ fileName: "autoprompt/ap-verifier.md", template: apVerifierMd },
 ];
 
 // Computed lazily on first loadBundledAgents() call to avoid eager prompt.render at module load.

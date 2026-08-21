@@ -1,4 +1,5 @@
 import type { AutocompleteItem } from "@oh-my-pi/pi-tui";
+import { BUILTIN_AUTOPROMPT_SLASH_COMMANDS } from "../autoprompt/command";
 import { COLLAB_GUEST_ALLOWED_COMMANDS } from "../collab/guest";
 import { BUILTIN_COLLABORATION_SLASH_COMMANDS } from "./builtin-collaboration";
 import {
@@ -35,6 +36,7 @@ export interface TuiBuiltinSlashCommand extends BuiltinSlashCommand {
 }
 
 const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
+	...BUILTIN_AUTOPROMPT_SLASH_COMMANDS,
 	...BUILTIN_MODE_SLASH_COMMANDS,
 	...BUILTIN_COLLABORATION_SLASH_COMMANDS,
 	...BUILTIN_SESSION_SLASH_COMMANDS,
