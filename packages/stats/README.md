@@ -27,16 +27,16 @@ Local observability dashboard for AI usage statistics.
 
 ```bash
 # Start dashboard server (default: http://localhost:3847)
-omp stats
+storoslop stats
 
 # Custom port
-omp stats --port 8080
+storoslop stats --port 8080
 
 # Print summary to console
-omp stats --summary
+storoslop stats --summary
 
 # Output as JSON (for scripting)
-omp stats --json
+storoslop stats --json
 ```
 
 ### Programmatic

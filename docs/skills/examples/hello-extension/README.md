@@ -10,9 +10,9 @@ A minimal `storoslop` extension that demonstrates the two most common authoring 
 cp -r . ~/.storoslop/agent/extensions/hello-extension
 ```
 
-Restart `omp`. You will see the startup notification immediately.
+Restart `storoslop`. You will see the startup notification immediately.
 
-With `omp --profile <name>`, use `~/.storoslop/profiles/<name>/agent/extensions/hello-extension` instead. `PI_CODING_AGENT_DIR` likewise changes the agent directory.
+With `storoslop --profile <name>`, use `~/.storoslop/profiles/<name>/agent/extensions/hello-extension` instead. `PI_CODING_AGENT_DIR` likewise changes the agent directory.
 
 **Option B — point the settings `extensions` array at it:**
 
@@ -25,12 +25,12 @@ extensions:
 **Option C — load once via CLI flag:**
 
 ```
-omp --extension ./hello-extension
+storoslop --extension ./hello-extension
 ```
 
 ## Usage
 
-After loading, type `/hello` or `/hello Ada` in the omp prompt. The command sends a visible greeting custom message into the conversation and shows a "Message sent!" notification.
+After loading, type `/hello` or `/hello Ada` in the storoslop prompt. The command sends a visible greeting custom message into the conversation and shows a "Message sent!" notification.
 
 ## What it demonstrates
 

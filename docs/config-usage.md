@@ -75,13 +75,13 @@ Project-level bases:
 
 ## Profiles
 
-A named profile (`omp --profile <name>`, `OMP_PROFILE`, or the legacy fallback `PI_PROFILE`) relocates the storoslop user base. `OMP_PROFILE` wins when it is defined, including when it is explicitly empty; `default`, empty, or whitespace selects the default profile. When a profile is active, every storoslop-native user-level path written here as `~/.storoslop/agent/...` normally resolves to `~/.storoslop/profiles/<name>/agent/...`. `--alias <command>` does not select a profile by itself: paired with `--profile`, it creates a shell shortcut for that profile.
+A named profile (`storoslop --profile <name>`, `OMP_PROFILE`, or the legacy fallback `PI_PROFILE`) relocates the storoslop user base. `OMP_PROFILE` wins when it is defined, including when it is explicitly empty; `default`, empty, or whitespace selects the default profile. When a profile is active, every storoslop-native user-level path written here as `~/.storoslop/agent/...` normally resolves to `~/.storoslop/profiles/<name>/agent/...`. `--alias <command>` does not select a profile by itself: paired with `--profile`, it creates a shell shortcut for that profile.
 
 The relocation is uniform across the native provider (`builtin.ts`) and the generic `config.ts` helpers, so it covers slash commands, rules, prompts, instructions, hooks, tools, extensions, settings, skills, and MCP, plus the top-level `SYSTEM.md` / `RULES.md` / `AGENTS.md` files and runtime state (sessions, blobs, `agent.db`). A profile sees only its own storoslop config, never the default profile's agent config.
 
 Keybindings are the one exception: a named profile merges the default profile's `~/.storoslop/agent/keybindings.*` under its own `~/.storoslop/profiles/<name>/agent/keybindings.*`, with the profile file overriding per binding ([#4867](https://github.com/Zanooda/storoslop/issues/4867)). Keybindings describe the terminal/keyboard in front of the user, which doesn't change with the active profile, so user-level remaps keep working in every profile unless the profile explicitly overrides them. The inherited file is read-only for the profile process — legacy-format migration of the default profile's file only happens when the default profile itself runs.
 
-On macOS and Linux, an existing `$XDG_DATA_HOME/omp`, `$XDG_STATE_HOME/omp`, or `$XDG_CACHE_HOME/omp` can relocate the corresponding data, state, or cache paths. For a named profile, storoslop uses an XDG category only when that category already contains `omp/profiles/<name>`; otherwise that category remains under `~/.storoslop/profiles/<name>`. Run `omp config init-xdg` before relying on XDG paths.
+On macOS and Linux, an existing `$XDG_DATA_HOME/omp`, `$XDG_STATE_HOME/omp`, or `$XDG_CACHE_HOME/omp` can relocate the corresponding data, state, or cache paths. For a named profile, storoslop uses an XDG category only when that category already contains `omp/profiles/<name>`; otherwise that category remains under `~/.storoslop/profiles/<name>`. Run `storoslop config init-xdg` before relying on XDG paths.
 
 The other source bases are not profile-scoped and load identically under every profile: the external-tool bases (`~/.claude`, `~/.codex`, `~/.gemini`) belong to those tools, and the project-level bases (`<cwd>/.storoslop`, `<cwd>/.claude`, ...) are keyed to the working directory. Throughout this document, read `~/.storoslop/agent` as shorthand for the active profile's agent directory unless an environment override or XDG path is being discussed.
 
@@ -151,7 +151,7 @@ The runtime settings model is layered:
 
 1. Global settings: the first present file among `~/.storoslop/agent/config.yml` and `config.yaml`
 2. Project settings: discovered via the settings capability (`settings.json` and `config.yml` from providers)
-3. Config overlays: `PI_CONFIG_FILES` (platform path-list), followed by repeated `omp --config <path>` files; all are loaded as `config.yml`-style YAML for this process only
+3. Config overlays: `PI_CONFIG_FILES` (platform path-list), followed by repeated `storoslop --config <path>` files; all are loaded as `config.yml`-style YAML for this process only
 4. Runtime overrides: in-memory, non-persistent
 5. Schema defaults: from `SETTINGS_SCHEMA`
 

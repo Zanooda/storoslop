@@ -14,12 +14,12 @@ An `storoslop` extension that demonstrates `tool_call` blocking. It intercepts `
 cp -r . ~/.storoslop/agent/extensions/safety-hook
 ```
 
-Restart `omp`. The hook is active for all sessions.
+Restart `storoslop`. The hook is active for all sessions.
 
 Or load once:
 
 ```
-omp --extension ./safety-hook
+storoslop --extension ./safety-hook
 ```
 
 ## How it works

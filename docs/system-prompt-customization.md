@@ -25,7 +25,7 @@ Primary implementation:
 1. `<cwd>/.storoslop/<file>`, `<cwd>/.claude/<file>`, `<cwd>/.codex/<file>`, `<cwd>/.gemini/<file>`
 2. `~/.storoslop/agent/<file>`, `~/.claude/<file>`, `~/.codex/<file>`, `~/.gemini/<file>`
 
-The native user path follows the active profile: with `omp --profile work`, `~/.storoslop/agent` becomes `~/.storoslop/profiles/work/agent`. `PI_CONFIG_DIR` changes the native config-directory name. This shared config lookup does not use `PI_CODING_AGENT_DIR` as an arbitrary replacement base.
+The native user path follows the active profile: with `storoslop --profile work`, `~/.storoslop/agent` becomes `~/.storoslop/profiles/work/agent`. `PI_CONFIG_DIR` changes the native config-directory name. This shared config lookup does not use `PI_CODING_AGENT_DIR` as an arbitrary replacement base.
 
 Discovery does **not** walk ancestors. Starting storoslop in `<repo>/packages/api` does not discover `<repo>/.storoslop/SYSTEM.md`; launch from `<repo>`, put the file under the current directory's config base, or use a user-level file. See [Configuration usage](./config-usage.md) for the shared config-directory contract.
 

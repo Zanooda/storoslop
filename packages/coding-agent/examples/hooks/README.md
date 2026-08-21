@@ -1,12 +1,12 @@
 # Hooks Examples
 
-Example hooks for omp-coding-agent.
+Example hooks for storoslop.
 
 ## Usage
 
 ```bash
 # Load a hook with --hook flag
-omp --hook examples/hooks/permission-gate.ts
+storoslop --hook examples/hooks/permission-gate.ts
 
 # Or copy to hooks directory for auto-discovery
 cp permission-gate.ts ~/.storoslop/agent/hooks/
