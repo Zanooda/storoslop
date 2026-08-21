@@ -194,10 +194,13 @@ describe("windows native addon staging", () => {
 
 	it("removes only older version directories after the current native version loads", async () => {
 		const nativesDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-natives-cache-"));
-		const currentMajor = Number.parseInt(packageJson.version, 10);
+		const [currentMajor, currentMinor, currentPatch] = packageJson.version.split(".").map(Number);
 		const futureVersion = `${currentMajor + 1}.0.0`;
-		const staleVersion = "15.10.11";
-		const freshVersion = "15.10.12";
+		// Older cousins of the loaded package version — must exist for the current
+		// lineage regardless of whether the fork tracks 1.x or upstream's 17.x, so
+		// both are strictly older than `packageJson.version`.
+		const staleVersion = `${currentMajor}.${currentMinor}.${Math.max(0, currentPatch - 2)}`;
+		const freshVersion = `${currentMajor}.${currentMinor}.${Math.max(0, currentPatch - 1)}`;
 		try {
 			await fs.mkdir(path.join(nativesDir, staleVersion));
 			await fs.mkdir(path.join(nativesDir, freshVersion));
