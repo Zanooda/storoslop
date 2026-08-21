@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Integrated upstream v17.4.1 into the fork: Codex workspace data-residency helpers, `tool_mode`/`tokenizer` catalog metadata, and subscription pricing `cost.longContext` tiers.
+
 ## [17.4.1] - 2026-08-21
 
 ### Added

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Integrated upstream v17.4.1 into the fork: unified `@oh-my-pi/pi-utils/ar` archive API with `openArchive`/`ArchiveReader` across formats and lazy ranged reads.
+
 ## [17.4.1] - 2026-08-21
 
 ### Added
