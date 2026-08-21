@@ -1073,7 +1073,7 @@ export async function listClaudePluginRoots(
 				}
 			}
 		} else {
-			warnings.push(`Failed to parse OMP plugin registry: ${ompRegistryPath}`);
+			warnings.push(`Failed to parse storoslop plugin registry: ${ompRegistryPath}`);
 		}
 	}
 

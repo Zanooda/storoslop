@@ -40,8 +40,8 @@ describe("fork skill slash-command registration survives registry refactors", ()
 	it("exposes all three fork commands in the TUI builtin set", () => {
 		const byName: Record<string, boolean> = {};
 		for (const command of BUILTIN_SLASH_COMMANDS) byName[command.name] = true;
-		expect(byName["memory"]).toBe(true);
+		expect(byName.memory).toBe(true);
 		expect(byName["memory-backend"]).toBe(true);
-		expect(byName["autoprompt"]).toBe(true);
+		expect(byName.autoprompt).toBe(true);
 	});
 });

@@ -1,8 +1,8 @@
 {
   "name": "hello-extension",
   "version": "1.0.0",
-  "description": "Minimal oh-my-pi extension example",
-  "homepage": "https://omp.sh",
+  "description": "Minimal storoslop extension example",
+  "homepage": "https://github.com/Zanooda/storoslop",
   "omp": {
     "extensions": ["./index.ts"]
   }

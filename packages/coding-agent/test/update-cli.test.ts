@@ -525,7 +525,9 @@ describe("migrateRenamedInstall transaction", () => {
 		vi.spyOn(console, "log").mockImplementation(() => {});
 		const { steps, calls } = scriptedSteps({ install: [0, 0], verify: [false, false] });
 
-		await expect(migrateRenamedInstall(release, steps)).rejects.toThrow("raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.sh");
+		await expect(migrateRenamedInstall(release, steps)).rejects.toThrow(
+			"raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.sh",
+		);
 		expect(calls).toEqual(["install", "removeOld", "verify", "install", "verify"]);
 	});
 });

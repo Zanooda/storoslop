@@ -200,7 +200,7 @@ The catalog's current family-affinity helper maps every model id containing
 `qwen` to `qwen3`, including Qwen3-Coder. For a Coder endpoint, set
 `tools.format=native` (or the equivalent native-tool setting) and configure the
 serving endpoint itself with its `qwen3_xml` parser. `qwen3_xml` is not an
-OMP-owned dialect and therefore is not a valid `tools.format` value.
+storoslop-owned dialect and therefore is not a valid `tools.format` value.
 
 The omp renderer always writes a nested `arguments` object and renders
 parallel calls newline-separated. Results become newline-delimited
@@ -240,7 +240,7 @@ text.
   through vLLM's structured-outputs backend when using vLLM native tools, but
   owned mode sends no native provider tool definition and therefore cannot rely
   on that backend.
-- **Version/scope:** this `hermes` template covers `Qwen3-*`, `Qwen2.5-*`, and `QwQ-32B`. It does **not** cover `Qwen3-Coder`, which uses a different XML scheme parsed by a serving engine's `qwen3_xml` parser. OMP has no `qwen3_xml` owned dialect; use `tools.format=native` and configure that parser at the endpoint.
+- **Version/scope:** this `hermes` template covers `Qwen3-*`, `Qwen2.5-*`, and `QwQ-32B`. It does **not** cover `Qwen3-Coder`, which uses a different XML scheme parsed by a serving engine's `qwen3_xml` parser. storoslop has no `qwen3_xml` owned dialect; use `tools.format=native` and configure that parser at the endpoint.
 
 ## Sources
 

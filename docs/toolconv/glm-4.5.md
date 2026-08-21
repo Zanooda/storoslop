@@ -310,7 +310,7 @@ arrives, and streams each argument body as keyed `toolArgDelta` events.
 String-only schema properties stay verbatim; every other completed property is
 parsed with strict `JSON.parse` after trimming and falls back to the original
 raw text on failure. On flush, an unfinished key/value drops only the scanner's
-private call state. If `toolStart` was already emitted, OMP retains the
+private call state. If `toolStart` was already emitted, storoslop retains the
 canonical call and a normal stop may dispatch it; previously accumulated
 arguments—including partial value text published through `toolArgDelta`—remain
 on that call. Input that never yields a valid name emits no `toolStart` and

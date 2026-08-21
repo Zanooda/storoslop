@@ -72,16 +72,16 @@ describe.skip("multiprocess file logging", () => {
 		const expiredNames: string[] = [];
 		for (const pid of exitedPids) {
 			for (let daysAgo = -1; daysAgo <= 5; daysAgo++) {
-				const name = `storoslop\.${localDate(daysAgo)}.${pid}.log`;
+				const name = `storoslop.${localDate(daysAgo)}.${pid}.log`;
 				await Bun.write(path.join(logsDir, name), name);
 				await fs.utimes(path.join(logsDir, name), 2, 2);
 				(daysAgo > 0 && daysAgo < 5 ? retainedNames : expiredNames).push(name);
 			}
-			const rolloverName = `storoslop\.${localDate(0)}.${pid}.log.1`;
+			const rolloverName = `storoslop.${localDate(0)}.${pid}.log.1`;
 			await Bun.write(path.join(logsDir, rolloverName), rolloverName);
 			await fs.utimes(path.join(logsDir, rolloverName), 2, 2);
 			retainedNames.push(rolloverName);
-			await Bun.write(path.join(logsDir, `\.storoslop.${pid}-audit.json`), "{}");
+			await Bun.write(path.join(logsDir, `.storoslop.${pid}-audit.json`), "{}");
 		}
 
 		let currentPid = 0;
@@ -100,6 +100,6 @@ describe.skip("multiprocess file logging", () => {
 		for (const expected of retainedNames) expect(entries).toContain(expected);
 		for (const expired of expiredNames) expect(entries).not.toContain(expired);
 		expect(entries.filter(name => name.endsWith(".log.1"))).toHaveLength(exitedPids.length);
-		expect(entries.filter(name => name.endsWith("-audit.json"))).toEqual([`\.storoslop.${currentPid}-audit.json`]);
+		expect(entries.filter(name => name.endsWith("-audit.json"))).toEqual([`.storoslop.${currentPid}-audit.json`]);
 	});
 });

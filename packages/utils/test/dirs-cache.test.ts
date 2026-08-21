@@ -157,9 +157,9 @@ describe("legacy file adoption on XDG paths", () => {
 		await fs.mkdir(path.join(xdgState, "storoslop"), { recursive: true });
 		await fs.mkdir(path.join(xdgData, "storoslop"), { recursive: true });
 		// Legacy layout: key under ~/\.storoslop/agent, registry under ~/\.storoslop.
-		await fs.mkdir(path.join(tempRoot, "\.storoslop", "agent"), { recursive: true });
-		await fs.writeFile(path.join(tempRoot, "\.storoslop", "agent", "secret-placeholder.key"), "legacy-key");
-		await fs.writeFile(path.join(tempRoot, "\.storoslop", "marketplaces.json"), '{"legacy":true}');
+		await fs.mkdir(path.join(tempRoot, ".storoslop", "agent"), { recursive: true });
+		await fs.writeFile(path.join(tempRoot, ".storoslop", "agent", "secret-placeholder.key"), "legacy-key");
+		await fs.writeFile(path.join(tempRoot, ".storoslop", "marketplaces.json"), '{"legacy":true}');
 		// The XDG registry is already populated: adoption must not overwrite it.
 		await fs.writeFile(path.join(xdgData, "storoslop", "marketplaces.json"), '{"xdg":true}');
 		activateTempHome({ XDG_STATE_HOME: xdgState, XDG_DATA_HOME: xdgData });
@@ -175,7 +175,7 @@ describe("legacy file adoption on XDG paths", () => {
 	it("keeps the legacy paths canonical when XDG is inactive", async () => {
 		if (process.platform === "win32") return;
 		activateTempHome({});
-		expect(getSecretPlaceholderKeyPath()).toBe(path.join(tempRoot, "\.storoslop", "agent", "secret-placeholder.key"));
-		expect(getMarketplacesRegistryPath()).toBe(path.join(tempRoot, "\.storoslop", "marketplaces.json"));
+		expect(getSecretPlaceholderKeyPath()).toBe(path.join(tempRoot, ".storoslop", "agent", "secret-placeholder.key"));
+		expect(getMarketplacesRegistryPath()).toBe(path.join(tempRoot, ".storoslop", "marketplaces.json"));
 	});
 });

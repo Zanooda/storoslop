@@ -37,8 +37,8 @@ import {
 } from "./helpers";
 
 const PROVIDER_ID = "native";
-const DISPLAY_NAME = "OMP";
-const DESCRIPTION = "Native OMP configuration from ~/.storoslop and .storoslop/";
+const DISPLAY_NAME = "storoslop";
+const DESCRIPTION = "Native storoslop configuration from ~/.storoslop and .storoslop/";
 const PRIORITY = 100;
 
 const PATHS = SOURCE_PATHS.native;
