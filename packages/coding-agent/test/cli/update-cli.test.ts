@@ -4,18 +4,23 @@ import { getLatestRelease, runUpdateCommand } from "../../src/cli/update-cli";
 type FetchInput = string | URL | Request;
 type FetchInit = RequestInit | BunFetchRequestInit;
 
+const FORK_RELEASE_URL = "https://api.github.com/repos/Zanooda/storoslop/releases/latest";
+const FORK_RELEASE = { tag_name: "v999.0.0" };
+
 describe("runUpdateCommand fetch cancellation", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
-	it("checks release metadata with a timeout signal", async () => {
+	it("checks the fork release metadata with a timeout signal", async () => {
 		let requestSignal: AbortSignal | undefined;
+		const requestedUrls: string[] = [];
 		vi.spyOn(console, "log").mockImplementation(() => {});
 		const fetchStub = Object.assign(
-			async (_input: FetchInput, init?: FetchInit) => {
+			async (input: FetchInput, init?: FetchInit) => {
 				requestSignal = init?.signal ?? undefined;
-				return Response.json({ version: "999.0.0" });
+				requestedUrls.push(String(input));
+				return Response.json(FORK_RELEASE);
 			},
 			{ preconnect: globalThis.fetch.preconnect },
 		);
@@ -24,100 +29,45 @@ describe("runUpdateCommand fetch cancellation", () => {
 		await runUpdateCommand({ force: false, check: true });
 
 		expect(requestSignal).toBeInstanceOf(AbortSignal);
+		// The fork's own update flow must talk to the storoslop release endpoint.
+		expect(requestedUrls).toContain(FORK_RELEASE_URL);
 	});
 });
 
-describe("getLatestRelease rename pointers", () => {
+describe("getLatestRelease fork update contract", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
 
-	function stubRegistry(manifests: Record<string, unknown>): string[] {
-		const urls: string[] = [];
+	it("resolves version, tag, and binary dist from the fork release tag_name", async () => {
+		const requestedUrls: string[] = [];
 		const fetchStub = Object.assign(
 			async (input: FetchInput) => {
-				const url = String(input);
-				urls.push(url);
-				let manifest: unknown;
-				for (const pkg in manifests) {
-					if (url.includes(pkg)) {
-						manifest = manifests[pkg];
-						break;
-					}
-				}
-				if (!manifest) return new Response(null, { status: 404, statusText: "Not Found" });
-				return Response.json(manifest);
+				requestedUrls.push(String(input));
+				return Response.json({ tag_name: "v999.0.0" });
 			},
 			{ preconnect: globalThis.fetch.preconnect },
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
-		return urls;
-	}
-
-	it("follows omp.rename to the new package and resolves version, dist, and names from its manifest", async () => {
-		const urls = stubRegistry({
-			"@new/omp": { version: "999.1.0", omp: { dist: "npm" } },
-			"@oh-my-pi/pi-coding-agent": {
-				version: "999.0.0",
-				omp: { dist: "binary", rename: { package: "@new/omp", natives: "@new/natives" } },
-			},
-		});
 
 		const release = await getLatestRelease();
 
-		expect(release.version).toBe("999.1.0");
-		expect(release.dist).toBe("npm");
-		expect(release.packages).toEqual({ pkg: "@new/omp", natives: "@new/natives" });
-		expect(urls).toEqual([
-			"https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/latest",
-			"https://registry.npmjs.org/@new/omp/latest",
-		]);
-	});
-
-	it("ignores a rename pointer that cycles back to an already-visited package", async () => {
-		const urls = stubRegistry({
-			"@oh-my-pi/pi-coding-agent": {
-				version: "999.0.0",
-				omp: { rename: { package: "@oh-my-pi/pi-coding-agent" } },
-			},
-		});
-
-		const release = await getLatestRelease();
-
-		expect(urls).toHaveLength(1);
+		expect(requestedUrls).toEqual([FORK_RELEASE_URL]);
+		expect(release.tag).toBe("v999.0.0");
 		expect(release.version).toBe("999.0.0");
+		expect(release.dist).toBe("binary");
 		expect(release.packages).toEqual({ pkg: "@oh-my-pi/pi-coding-agent", natives: "@oh-my-pi/pi-natives" });
 	});
-});
 
-describe("getLatestRelease proxy errors", () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
-	it("translates Bun's UnsupportedProxyProtocol fetch failure into an actionable CLI message", async () => {
-		const fetchStub = Object.assign(
-			async () => {
-				throw new Error(
-					'UnsupportedProxyProtocol fetching "https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/latest". ' +
-						"For more information, pass `verbose: true` in the second argument to fetch()",
-				);
-			},
-			{ preconnect: globalThis.fetch.preconnect },
-		);
+	it("normalizes a version without a leading v prefix", async () => {
+		const fetchStub = Object.assign(async () => Response.json({ tag_name: "999.1.0" }), {
+			preconnect: globalThis.fetch.preconnect,
+		});
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 
-		const err = await getLatestRelease({ timeoutMs: 5000 }).then(
-			() => null,
-			(e: unknown) => e as Error,
-		);
+		const release = await getLatestRelease();
 
-		expect(err).toBeInstanceOf(Error);
-		// The raw fetch() instruction the CLI user cannot act on must not leak through.
-		expect(err?.message).not.toContain("verbose: true");
-		expect(err?.message).not.toContain("fetch()");
-		// Instead the user gets actionable guidance about supported proxy schemes.
-		expect(err?.message).toMatch(/SOCKS/i);
-		expect(err?.message).toMatch(/https?:\/\//i);
+		expect(release.tag).toBe("v999.1.0");
+		expect(release.version).toBe("999.1.0");
 	});
 });
