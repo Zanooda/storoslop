@@ -2,11 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-08-21
+
 ### Added
 
 - Integrated upstream v17.4.1 into the fork (v1.x lineage) — new features land in the next fork release:
 - Added `PERSONALITY.md` support: `~/.omp/agent/PERSONALITY.md` (profile/XDG-aware agent dir) replaces the system prompt's personality block text; `personality: none` still omits the block ([#8528](https://github.com/can1357/oh-my-pi/issues/8528)).
-- Extensions can provide a normalized `usage` provider through `pi.registerProvider()`. Its reports now flow through AuthStorage caching, history, and usage displays, and the override is removed when the extension provider is unregistered.
 - Sloppy edits support inline replacements and recover `⟪old│new⟫` ops mixed with a `»` REWRITE without failing.
 - Expanded archive support in `read`/`write` (RAR 4/5, 7z, ISO, CAB, cpio, RPM, ar, LZH, ARJ, single-stream; `write` gains `.tar.zst` and `.asar` updates).
 - Code Mode for Codex `code_mode_only` models via `providers.openai-codex.codeMode` (`off`/`on`/`auto`).
@@ -24,11 +25,6 @@
 - Regional Codex HTTP 401s via token residency metadata; macOS SSH ControlMaster socket failures; Nix on-demand native addon loading; external editor attach; session-resume CPU spin; MCP OAuth scopes; retry fallback chain/role priority; built-in shell utility POSIX/GNU/BSD edge cases; dark-theme code-fence contrast.
 - `/autoprompt` no longer appends a `=== PROMPT 1 ===` duplex entry to `PROMPTS.txt` after `createRunState` already wrote the canonical mission line, which corrupted the ledger bytes/hash and made every dispatched agent fail pointer verification with INVALID-BRIEF.
 
-## [1.1.2] - 2026-08-21
-
-### Added
-
-- `/autoprompt` — run the Autoprompt orchestration: turn one mission into an executable roadmap, dispatch parallel lanes as `ap-*` subagents, and verify each with an independent reviewer and a blind fresh verifier, under a governance root outside the working tree.
 ## [17.4.1] - 2026-08-21
 
 ### Added
@@ -12996,6 +12992,12 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 - Fixed Task tool progress display showing repeated nearly-identical lines during streaming
 - Fixed Task tool subprocess model selection ignoring agent's configured model and falling back to settings default. The `--model` flag now accepts `provider/model` format directly.
 - Fixed Task tool showing "done + succeeded" when aborted; now correctly displays "⊘ aborted" status
+
+## [1.1.2] - 2026-08-21
+
+### Added
+
+- `/autoprompt` — run the Autoprompt orchestration: turn one mission into an executable roadmap, dispatch parallel lanes as `ap-*` subagents, and verify each with an independent reviewer and a blind fresh verifier, under a governance root outside the working tree.
 
 ## [1.1.1] - 2026-08-21
 

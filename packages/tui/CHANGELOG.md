@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-08-21
+
 - Integrated upstream v17.4.1 into the fork: optional `getNativeScrollbackLiveRegionPinnedStart()` hook for nested transcripts.
 
 ## [17.4.1] - 2026-08-21

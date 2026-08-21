@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-08-21
+
 - Integrated upstream v17.4.1 into the fork: `bun run build:native` builds through the local cargo/napi-rs backend by default (Bazel opt-in).
 
 ## [17.4.1] - 2026-08-21
