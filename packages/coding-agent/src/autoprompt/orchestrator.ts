@@ -7,10 +7,10 @@
  * the `ap-*` bundled subagents via the task tool.
  */
 
-import * as path from "node:path";
 import type { AutopromptMode } from "./args";
 import type { AutopromptRunState } from "./governance";
 import { PROMPTS_FILE, ROADMAP_FILE } from "./governance";
+import autopromptSkillMd from "../prompts/autoprompt/skill.md" with { type: "text" };
 
 export interface AutopromptSeed {
 	state: AutopromptRunState;
@@ -45,13 +45,6 @@ const PERSONAS = [
 	"ap-framework-generator",
 	"ap-framework-validator",
 ];
-
-/**
- * Absolute path to the autoprompt doctrine, resolved from this module's own install
- * directory so it stays valid wherever the coding-agent is installed and used (never a
- * hard-coded repo-relative path the conductor would have to discover at run time).
- */
-const SKILL_MD = path.join(import.meta.dir, "..", "prompts", "autoprompt", "skill.md");
 
 /** The mission-pointer token block every brief verifies before acting. */
 export function buildMissionPointerBlock(state: AutopromptRunState): string {
@@ -90,7 +83,11 @@ Loop:
 5. Convergence: \`ap-sweep-coordinator\` → \`ap-sweeper\` + \`ap-juror\` (→ \`ap-arbiter\` on technical forks) → \`ap-goal-checker\` (final acceptance) → \`ap-janitor\` only when enabled → ledger validation.
 6. Verdict: \`Autoprompt DONE: <n> lanes <status>\` or \`FAILED: <numbered reasons>\`, plus the governance root path.
 
-The full orchestration doctrine (start contract, hierarchy, dispatch rules, TDD/build contract, DONE gate) lives in \`${SKILL_MD}\`; execute from that when a lane or verdict runs, and apply its rules verbatim.
+The full orchestration doctrine (start contract, hierarchy, dispatch rules, TDD/build contract, DONE gate) is embedded in this turn via a build-time text import — available in-memory, so it resolves identically in dev and in \`bun --compile\` binaries. Execute from the doctrine below when a lane or verdict runs, and apply its rules verbatim.
+
+\`\`\`md
+${autopromptSkillMd}
+\`\`\`
 
 Do not commit, push, publish, deploy, spend money, or clean the working tree without explicit user authorization for that action.`;
 }
