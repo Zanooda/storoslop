@@ -5,6 +5,9 @@
 ## [1.1.3] - 2026-08-21
 
 - Integrated upstream v17.4.1 into the fork: token counting/estimation moved to model-scoped immutable `Tokenizer` instances (`agent.tokenizer`) with `checkTokenBudget`; context functions take an explicit tokenizer.
+### Fixed
+
+- Fixed post-handoff identity confusion: the injected handoff document now tells the successor it was written by its own prior instance (first person = you, plan = your resumed plan, handoff already complete), and handoff generation now writes successor-addressed imperatives and never lists the handoff itself as progress or a next step.
 
 ## [17.4.1] - 2026-08-21
 

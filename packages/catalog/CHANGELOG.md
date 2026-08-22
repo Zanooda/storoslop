@@ -5,6 +5,15 @@
 ## [1.1.3] - 2026-08-21
 
 - Integrated upstream v17.4.1 into the fork: Codex workspace data-residency helpers, `tool_mode`/`tokenizer` catalog metadata, and subscription pricing `cost.longContext` tiers.
+## [17.4.2] - 2026-08-21
+
+### Added
+
+- Added identification of provider-side image fetchers (OpenAI, Anthropic, xAI, Google), so a server hosting images by URL can attribute an inbound fetch to the vendor that issued it.
+
+### Fixed
+
+- Fixed Cursor model discovery showing separate picker rows for pure effort-suffixed models beyond GPT-5.6 by collapsing each standard and Fast lane into one reasoning-effort model ([#9237](https://github.com/can1357/oh-my-pi/issues/9237)).
 
 ## [17.4.1] - 2026-08-21
 

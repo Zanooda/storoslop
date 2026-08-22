@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+
+- Added `HighlightStream`, a stateful incremental syntax highlighter that carries parser state across pushes so chunked highlighting is byte-identical to whole-text highlighting
 
 ## [1.1.3] - 2026-08-21
 
