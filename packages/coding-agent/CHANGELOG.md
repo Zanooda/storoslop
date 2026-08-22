@@ -2,81 +2,6 @@
 
 ## [Unreleased]
 
-### Added
-
-- Integrated upstream v17.4.4 into the fork (v1.x lineage) — verbatim edit mode, startup composer immediacy, compaction handoff summaries, marketable features land in the next fork release.
-
-### Fixed
-
-- Goal mode no longer stops auto-continuing after a single turn that ends without a tool call; an active goal keeps looping and only halts after several consecutive idle turns.
-
-## [1.1.3] - 2026-08-21
-
-### Added
-
-- Integrated upstream v17.4.1 into the fork (v1.x lineage) — new features land in the next fork release:
-- Added `PERSONALITY.md` support: `~/.omp/agent/PERSONALITY.md` (profile/XDG-aware agent dir) replaces the system prompt's personality block text; `personality: none` still omits the block ([#8528](https://github.com/can1357/oh-my-pi/issues/8528)).
-- Sloppy edits support inline replacements and recover `⟪old│new⟫` ops mixed with a `»` REWRITE without failing.
-- Expanded archive support in `read`/`write` (RAR 4/5, 7z, ISO, CAB, cpio, RPM, ar, LZH, ARJ, single-stream; `write` gains `.tar.zst` and `.asar` updates).
-- Code Mode for Codex `code_mode_only` models via `providers.openai-codex.codeMode` (`off`/`on`/`auto`).
-- MCP tool names over 64 chars are truncated with a deterministic hash suffix; marketplace plugins with manifest settings configurable via `omp plugin config`.
-- Added `isProjectTrusted()` compatibility shim on `ExtensionContext` for trust-gate-targeting extensions.
-
-### Changed
-
-- Added `compaction.asyncEnabled` (default on) for background speculation; replaced `compaction.strategy`/`remoteEnabled` with an ordered `compaction.methodOrder`.
-- Token counting/estimation now scoped per-model tokenizer; added `tokenizer` option and `modelOverrides`; `extendedContext` clamps premium long-context models.
-- `omp cleanse`/`/cleanse` live status board; handoff maintenance commits summaries directly to the active session; eval-bridge nested `tool.<name>()` enforces ACP gates.
-
-### Fixed
-
-- Regional Codex HTTP 401s via token residency metadata; macOS SSH ControlMaster socket failures; Nix on-demand native addon loading; external editor attach; session-resume CPU spin; MCP OAuth scopes; retry fallback chain/role priority; built-in shell utility POSIX/GNU/BSD edge cases; dark-theme code-fence contrast.
-- `/autoprompt` no longer appends a `=== PROMPT 1 ===` duplex entry to `PROMPTS.txt` after `createRunState` already wrote the canonical mission line, which corrupted the ledger bytes/hash and made every dispatched agent fail pointer verification with INVALID-BRIEF.
-### Added
-
-- Added `/shake thinking` to remove model reasoning blocks from session history
-- Added icon support to slash command autocomplete, with unique visuals for actions, files, settings, and other command types
-- Slash-command autocomplete now ranks equally matching commands by how often you use them; usage counts persist across sessions in agent.db
-- Edit tool payloads now accept `＋`-prefixed add lines to insert whole lines in place (consecutive `＋` lines insert together, both marker indent styles supported), and the prompt documents multi-line inline selections for contained restructures.
-- Edit tool now recovers common payload dialect slips instead of erroring: selections trailing their retyped line, elided unchanged lines in inline operations, guillemets used as brackets around old/new blocks, a stray trailing rewrite separator, rewrites written as replacement-directive lists, and apply-patch sentinels mixed into payloads.
-- Edit tool now defers ambiguous operations and resolves them against sibling operations' claimed spans, merges a pure deletion with a contained sibling rewrite into one union replace, reads a bare *** line as the rewrite separator, and strips split envelope sentinels plus decoding noise between an End sentinel and the next Begin.
-- Edit tool moves are now taught as delete-plus-restate; the register re-emit idiom left the prompt and constrained-decoding grammar (the engine still applies it), after benchmarks showed models inventing conflicting semantics for it.
-- Edit tool now reads a bare selection in a rewrite-less operation as the desired text: the current span is captured in place and replaced, keeping boundary whitespace outside the replacement.
-- Added an experimental `mono` edit variant: header-less `§relative/path` operation openers (bare `§` continues in the same file), inline-only changes, a real transpiler front-end, and dialect-voiced errors so retry guidance is always expressible under the mono grammar. Benchmarks with the corrected error surface still favor keeping the block form.
-- Edit tool now accepts the pretrained diff schema wherever models emit it: unified-diff-shaped operations (`@@` hunks, `-`/`+` runs, context lines) apply as inline changes, an added line that is a near-variant of its anchor replaces it instead of duplicating it.
-- Added an experimental `wdiff` edit variant speaking git word-diff (`@@ path` operation headers, `[-old-]{+new+}` inline changes, line-diff runs, `...` skips); benchmarks show block-instinct models roughly double their first-try edit success on it versus the inline-only mono dialect.
-- Edit tool now collapses back-to-back duplicate blocks when a payload states the desired text once, drops overlapping fuzzy-match artifacts of the same operation, and removes a dangling blank line left directly above a closing delimiter after a block deletion.
-- Edit tool now resolves delimiter-garbled punctuation selections against the file, rejects matches that would rewrite part of a longer punctuation run, treats candidates with whitespace-equivalent outcomes as unambiguous, recovers a dropped seam between a selection and its following text, and cleans blank lines left beside opening or closing delimiters after deletions.
-
-### Changed
-
-- Switched fallback edit mode from replace to sloppy for models that do not support hashline
-- Autocomplete dropdown now shows up to 10 rows by default (was 5), clamped to the terminal height (`autocompleteMaxVisible` setting)
-- Long slash-command descriptions now truncate to two rows with an ellipsis in the autocomplete popup instead of wrapping in full
-- Sloppy edits now treat all authored whitespace as verbatim and require explicit `»` or `⟪⟫` markers for all operations, forbidding marker-less changes.
-
-### Removed
-
-- Removed the experimental `wdiff` edit variant (git word-diff surface); `sloppy` is the single sparse-edit dialect.
-- Removed the experimental `mono` edit variant: its syntax and recoveries are now native to `sloppy`, which teaches `§relative/path` operation openers (bare `§` continues in the same file, `§*` for every match) instead of separate header lines, voices errors in the same vocabulary, and applies marker-less operations as desired text when the delta is punctuation-level or collapses an adjacent duplicate. Legacy bracket headers and guillemet openers remain accepted.
-
-### Fixed
-
-- Code blocks now syntax-highlight live while the response streams instead of staying plain until the block settles
-- Fixed `/shake thinking` reporting "Nothing to shake" after removing reasoning; it now reports the dropped count and leaves thinking-only turns empty.
-- Fixed session teardown occasionally losing pending input drafts during shutdown
-- Fixed streaming edit failures caused by trailing partial lines
-- Interrupting a Claude model mid-thinking no longer replays the partial reasoning as quoted conversation text on the next turn, which Anthropic's `reasoning_extraction` classifier refused.
-- Sloppy edit `＋` inserts before an anchor line no longer double their typed indentation or flatten the anchor.
-- Session restore no longer re-runs the edit-matching engine for every historical edit in the transcript; large sessions with many edits resume several times faster.
-- Fixed image requests to Kimi Code / Moonshot failing with 400 `unsupported image url`: their catalog api is openai-completions so the image URL mirror gate wrongly admitted them; Moonshot-native hosts now always receive inline base64 images.
-- Fixed Read failing with `unable to open database file` for cleanly closed WAL-mode SQLite databases without `-wal`/`-shm` sidecars.
-- Fixed collapsed edit results with long wrapped diff lines growing beyond their rendered-row budget and corrupting native Windows terminal transcript layout ([#9302](https://github.com/can1357/oh-my-pi/issues/9302)).
-- Fixed edit tool section header paths not trimming surrounding whitespace, so a header with padded brackets failed with file-not-found.
-- Fixed transcript content disappearing from terminal scrollback below a live hub-wait/todo/jobs card: the card's viewport pin froze scrollback commits at its own rows, so everything the turn streamed below it scrolled off-screen without ever entering terminal history (and was lost for good when the session exited first). A displaceable card with content below it no longer holds the commit ceiling; its rows commit as they scroll off and the card seals in place, so the next poll stacks a fresh card instead of retracting history.
-- Fixed the composer attachment chip thumbnail showing an empty box for pasted images: the paste pipeline re-encodes images as JPEG/WebP, and transmitting those bytes as Kitty PNG data made the terminal reject them (blank placeholder cells). Non-PNG attachments now convert to PNG before the thumbnail transmit, like transcript images.
-- Added an immediately editable startup composer for plain interactive launches; drafts typed while session initialization runs transfer intact into the full UI.
-
 ## [17.4.4] - 2026-08-22
 
 ### Added
@@ -13095,6 +13020,75 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 - Fixed Task tool progress display showing repeated nearly-identical lines during streaming
 - Fixed Task tool subprocess model selection ignoring agent's configured model and falling back to settings default. The `--model` flag now accepts `provider/model` format directly.
 - Fixed Task tool showing "done + succeeded" when aborted; now correctly displays "⊘ aborted" status
+
+## [1.1.4] - 2026-08-22
+
+### Added
+
+- Integrated upstream v17.4.4 into the fork (v1.x lineage) — verbatim edit mode, startup composer immediacy, compaction handoff summaries, marketable features land in the next fork release.
+
+### Fixed
+
+- Goal mode no longer stops auto-continuing after a single turn that ends without a tool call; an active goal keeps looping and only halts after several consecutive idle turns.
+
+## [1.1.3] - 2026-08-21
+
+### Added
+
+- Integrated upstream v17.4.1 into the fork (v1.x lineage) — new features land in the next fork release:
+- Added `PERSONALITY.md` support: `~/.omp/agent/PERSONALITY.md` (profile/XDG-aware agent dir) replaces the system prompt's personality block text; `personality: none` still omits the block ([#8528](https://github.com/can1357/oh-my-pi/issues/8528)).
+- Sloppy edits support inline replacements and recover `⟪old│new⟫` ops mixed with a `»` REWRITE without failing.
+- Expanded archive support in `read`/`write` (RAR 4/5, 7z, ISO, CAB, cpio, RPM, ar, LZH, ARJ, single-stream; `write` gains `.tar.zst` and `.asar` updates).
+- Code Mode for Codex `code_mode_only` models via `providers.openai-codex.codeMode` (`off`/`on`/`auto`).
+- MCP tool names over 64 chars are truncated with a deterministic hash suffix; marketplace plugins with manifest settings configurable via `omp plugin config`.
+- Added `isProjectTrusted()` compatibility shim on `ExtensionContext` for trust-gate-targeting extensions.
+- Added `/shake thinking` to remove model reasoning blocks from session history
+- Added icon support to slash command autocomplete, with unique visuals for actions, files, settings, and other command types
+- Slash-command autocomplete now ranks equally matching commands by how often you use them; usage counts persist across sessions in agent.db
+- Edit tool payloads now accept `＋`-prefixed add lines to insert whole lines in place (consecutive `＋` lines insert together, both marker indent styles supported), and the prompt documents multi-line inline selections for contained restructures.
+- Edit tool now recovers common payload dialect slips instead of erroring: selections trailing their retyped line, elided unchanged lines in inline operations, guillemets used as brackets around old/new blocks, a stray trailing rewrite separator, rewrites written as replacement-directive lists, and apply-patch sentinels mixed into payloads.
+- Edit tool now defers ambiguous operations and resolves them against sibling operations' claimed spans, merges a pure deletion with a contained sibling rewrite into one union replace, reads a bare *** line as the rewrite separator, and strips split envelope sentinels plus decoding noise between an End sentinel and the next Begin.
+- Edit tool moves are now taught as delete-plus-restate; the register re-emit idiom left the prompt and constrained-decoding grammar (the engine still applies it), after benchmarks showed models inventing conflicting semantics for it.
+- Edit tool now reads a bare selection in a rewrite-less operation as the desired text: the current span is captured in place and replaced, keeping boundary whitespace outside the replacement.
+- Added an experimental `mono` edit variant: header-less `§relative/path` operation openers (bare `§` continues in the same file), inline-only changes, a real transpiler front-end, and dialect-voiced errors so retry guidance is always expressible under the mono grammar. Benchmarks with the corrected error surface still favor keeping the block form.
+- Edit tool now accepts the pretrained diff schema wherever models emit it: unified-diff-shaped operations (`@@` hunks, `-`/`+` runs, context lines) apply as inline changes, an added line that is a near-variant of its anchor replaces it instead of duplicating it.
+- Added an experimental `wdiff` edit variant speaking git word-diff (`@@ path` operation headers, `[-old-]{+new+}` inline changes, line-diff runs, `...` skips); benchmarks show block-instinct models roughly double their first-try edit success on it versus the inline-only mono dialect.
+- Edit tool now collapses back-to-back duplicate blocks when a payload states the desired text once, drops overlapping fuzzy-match artifacts of the same operation, and removes a dangling blank line left directly above a closing delimiter after a block deletion.
+- Edit tool now resolves delimiter-garbled punctuation selections against the file, rejects matches that would rewrite part of a longer punctuation run, treats candidates with whitespace-equivalent outcomes as unambiguous, recovers a dropped seam between a selection and its following text, and cleans blank lines left beside opening or closing delimiters after deletions.
+
+### Changed
+
+- Added `compaction.asyncEnabled` (default on) for background speculation; replaced `compaction.strategy`/`remoteEnabled` with an ordered `compaction.methodOrder`.
+- Token counting/estimation now scoped per-model tokenizer; added `tokenizer` option and `modelOverrides`; `extendedContext` clamps premium long-context models.
+- `omp cleanse`/`/cleanse` live status board; handoff maintenance commits summaries directly to the active session; eval-bridge nested `tool.<name>()` enforces ACP gates.
+- Switched fallback edit mode from replace to sloppy for models that do not support hashline
+- Autocomplete dropdown now shows up to 10 rows by default (was 5), clamped to the terminal height (`autocompleteMaxVisible` setting)
+- Long slash-command descriptions now truncate to two rows with an ellipsis in the autocomplete popup instead of wrapping in full
+- Sloppy edits now treat all authored whitespace as verbatim and require explicit `»` or `⟪⟫` markers for all operations, forbidding marker-less changes.
+
+### Fixed
+
+- Regional Codex HTTP 401s via token residency metadata; macOS SSH ControlMaster socket failures; Nix on-demand native addon loading; external editor attach; session-resume CPU spin; MCP OAuth scopes; retry fallback chain/role priority; built-in shell utility POSIX/GNU/BSD edge cases; dark-theme code-fence contrast.
+- `/autoprompt` no longer appends a `=== PROMPT 1 ===` duplex entry to `PROMPTS.txt` after `createRunState` already wrote the canonical mission line, which corrupted the ledger bytes/hash and made every dispatched agent fail pointer verification with INVALID-BRIEF.
+- Code blocks now syntax-highlight live while the response streams instead of staying plain until the block settles
+- Fixed `/shake thinking` reporting "Nothing to shake" after removing reasoning; it now reports the dropped count and leaves thinking-only turns empty.
+- Fixed session teardown occasionally losing pending input drafts during shutdown
+- Fixed streaming edit failures caused by trailing partial lines
+- Interrupting a Claude model mid-thinking no longer replays the partial reasoning as quoted conversation text on the next turn, which Anthropic's `reasoning_extraction` classifier refused.
+- Sloppy edit `＋` inserts before an anchor line no longer double their typed indentation or flatten the anchor.
+- Session restore no longer re-runs the edit-matching engine for every historical edit in the transcript; large sessions with many edits resume several times faster.
+- Fixed image requests to Kimi Code / Moonshot failing with 400 `unsupported image url`: their catalog api is openai-completions so the image URL mirror gate wrongly admitted them; Moonshot-native hosts now always receive inline base64 images.
+- Fixed Read failing with `unable to open database file` for cleanly closed WAL-mode SQLite databases without `-wal`/`-shm` sidecars.
+- Fixed collapsed edit results with long wrapped diff lines growing beyond their rendered-row budget and corrupting native Windows terminal transcript layout ([#9302](https://github.com/can1357/oh-my-pi/issues/9302)).
+- Fixed edit tool section header paths not trimming surrounding whitespace, so a header with padded brackets failed with file-not-found.
+- Fixed transcript content disappearing from terminal scrollback below a live hub-wait/todo/jobs card: the card's viewport pin froze scrollback commits at its own rows, so everything the turn streamed below it scrolled off-screen without ever entering terminal history (and was lost for good when the session exited first). A displaceable card with content below it no longer holds the commit ceiling; its rows commit as they scroll off and the card seals in place, so the next poll stacks a fresh card instead of retracting history.
+- Fixed the composer attachment chip thumbnail showing an empty box for pasted images: the paste pipeline re-encodes images as JPEG/WebP, and transmitting those bytes as Kitty PNG data made the terminal reject them (blank placeholder cells). Non-PNG attachments now convert to PNG before the thumbnail transmit, like transcript images.
+- Added an immediately editable startup composer for plain interactive launches; drafts typed while session initialization runs transfer intact into the full UI.
+
+### Removed
+
+- Removed the experimental `wdiff` edit variant (git word-diff surface); `sloppy` is the single sparse-edit dialect.
+- Removed the experimental `mono` edit variant: its syntax and recoveries are now native to `sloppy`, which teaches `§relative/path` operation openers (bare `§` continues in the same file, `§*` for every match) instead of separate header lines, voices errors in the same vocabulary, and applies marker-less operations as desired text when the delta is punctuation-level or collapses an adjacent duplicate. Legacy bracket headers and guillemet openers remain accepted.
 
 ## [1.1.2] - 2026-08-21
 

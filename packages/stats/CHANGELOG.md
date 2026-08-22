@@ -297,3 +297,5 @@
 ### Fixed
 
 - Include subtask session files in usage stats ([#250](https://github.com/can1357/oh-my-pi/issues/250))
+
+## [1.1.4] - 2026-08-22

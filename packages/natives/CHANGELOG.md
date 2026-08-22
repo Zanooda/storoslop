@@ -1,13 +1,6 @@
 # Changelog
 
 ## [Unreleased]
-### Added
-
-- Added `HighlightStream`, a stateful incremental syntax highlighter that carries parser state across pushes so chunked highlighting is byte-identical to whole-text highlighting
-
-## [1.1.3] - 2026-08-21
-
-- Integrated upstream v17.4.1 into the fork: `bun run build:native` builds through the local cargo/napi-rs backend by default (Bazel opt-in).
 
 ## [17.4.1] - 2026-08-21
 
@@ -1270,3 +1263,13 @@
 ### Fixed
 
 - Fixed potential crashes when updating native binaries by using safe copy strategy that avoids overwriting in-memory binaries
+
+## [1.1.4] - 2026-08-22
+
+### Added
+
+- Added `HighlightStream`, a stateful incremental syntax highlighter that carries parser state across pushes so chunked highlighting is byte-identical to whole-text highlighting
+
+## [1.1.3] - 2026-08-21
+
+- Integrated upstream v17.4.1 into the fork: `bun run build:native` builds through the local cargo/napi-rs backend by default (Bazel opt-in).

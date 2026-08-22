@@ -38,3 +38,5 @@
 ### Added
 
 - Added shared collab live-session wire contracts for the host CLI and browser guest client.
+
+## [1.1.4] - 2026-08-22

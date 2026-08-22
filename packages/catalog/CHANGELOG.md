@@ -2,9 +2,6 @@
 
 ## [Unreleased]
 
-## [1.1.3] - 2026-08-21
-
-- Integrated upstream v17.4.1 into the fork: Codex workspace data-residency helpers, `tool_mode`/`tokenizer` catalog metadata, and subscription pricing `cost.longContext` tiers.
 ## [17.4.2] - 2026-08-21
 
 ### Added
@@ -1178,3 +1175,9 @@
 ### Removed
 
 - Removed the runtime enrichment layer: `enrichModelThinking` (and its non-enumerable memo-slot cache), `refreshModelThinking`, `modelOmitsReasoningEffort`, and the `model-thinking` re-exports of generator-only policies. Thinking metadata is resolved exactly once inside `buildModel`; runtime helpers (`getSupportedEfforts`, `clampThinkingLevelForModel`, `requireSupportedEffort`, the effort mappers) are pure field reads.
+
+## [1.1.4] - 2026-08-22
+
+## [1.1.3] - 2026-08-21
+
+- Integrated upstream v17.4.1 into the fork: Codex workspace data-residency helpers, `tool_mode`/`tokenizer` catalog metadata, and subscription pricing `cost.longContext` tiers.

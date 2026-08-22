@@ -2,23 +2,6 @@
 
 ## [Unreleased]
 
-## [1.1.3] - 2026-08-21
-
-- Integrated upstream v17.4.1 into the fork: optional `getNativeScrollbackLiveRegionPinnedStart()` hook for nested transcripts.
-### Added
-
-- Added icon support to autocomplete and select lists, with customizable theming
-- `MarkdownTheme.createHighlightStream` lets themes supply a stateful incremental highlighter; streaming Markdown now syntax-highlights the completed lines of any open code fence (previously only diff/patch fences), and a fence highlights whole-block as soon as it closes
-- `SelectList` layouts accept `maxDescriptionRows` to cap wrapped descriptions with a trailing ellipsis
-- `CombinedAutocompleteProvider` accepts a `commandUsage` callback that ranks equal-score slash matches by usage frequency
-- `Editor.viewportRowsProvider` lets hosts clamp the autocomplete dropdown to the live terminal height
-
-### Changed
-
-- Increased default autocomplete dropdown height from 5 to 10 items
-- Changed the test `VirtualTerminal` engine from ghostty-web to `kitty-vt-wasm` (kitty's real screen.c/vt-parser.c). Retires the ghostty-web 0.4 crash workarounds (combining-mark input stripping, event-log replay/compaction, allocator-exhaustion engine rotation, full-clear ED3 recreate), gives the render-stress oracles exact default-color detection from typed cell snapshots, and lets full-clear/ED3 repaints exercise the engine natively instead of being masked by an engine recreate.
-- Added `Editor.setTheme()` so an adopted editor can switch from its lightweight startup theme to the configured interactive theme without replacing the editor or losing its draft.
-
 ## [17.4.4] - 2026-08-22
 
 ### Added
@@ -2052,6 +2035,26 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 ### Added
 
 - Added `getText()` method to Text component for retrieving current text content
+
+## [1.1.4] - 2026-08-22
+
+## [1.1.3] - 2026-08-21
+
+- Integrated upstream v17.4.1 into the fork: optional `getNativeScrollbackLiveRegionPinnedStart()` hook for nested transcripts.
+
+### Added
+
+- Added icon support to autocomplete and select lists, with customizable theming
+- `MarkdownTheme.createHighlightStream` lets themes supply a stateful incremental highlighter; streaming Markdown now syntax-highlights the completed lines of any open code fence (previously only diff/patch fences), and a fence highlights whole-block as soon as it closes
+- `SelectList` layouts accept `maxDescriptionRows` to cap wrapped descriptions with a trailing ellipsis
+- `CombinedAutocompleteProvider` accepts a `commandUsage` callback that ranks equal-score slash matches by usage frequency
+- `Editor.viewportRowsProvider` lets hosts clamp the autocomplete dropdown to the live terminal height
+
+### Changed
+
+- Increased default autocomplete dropdown height from 5 to 10 items
+- Changed the test `VirtualTerminal` engine from ghostty-web to `kitty-vt-wasm` (kitty's real screen.c/vt-parser.c). Retires the ghostty-web 0.4 crash workarounds (combining-mark input stripping, event-log replay/compaction, allocator-exhaustion engine rotation, full-clear ED3 recreate), gives the render-stress oracles exact default-color detection from typed cell snapshots, and lets full-clear/ED3 repaints exercise the engine natively instead of being masked by an engine recreate.
+- Added `Editor.setTheme()` so an adopted editor can switch from its lightweight startup theme to the configured interactive theme without replacing the editor or losing its draft.
 
 ## [1.0.1] - 2026-08-20
 
