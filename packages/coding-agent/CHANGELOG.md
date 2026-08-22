@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+## [1.1.5] - 2026-08-22
+
 ### Fixed
 
 - Fixed `/autoprompt` failing in compiled binaries: the orchestration doctrine was referenced by a runtime `$bunfs`-derived path that is unreachable on Bun 1.3.14+, so the skill failed to load. The doctrine is now embedded via a build-time text import, so it resolves identically in dev and in the shipped binary.
