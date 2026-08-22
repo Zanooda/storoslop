@@ -217,6 +217,36 @@ describe("AgentSession eager todo enforcement", () => {
 		sharedDir = TempDir.createSync("@pi-agent-session-eager-todo-shared-");
 		sharedAuthStorage = await AuthStorage.create(path.join(sharedDir.path(), "auth.db"));
 		sharedAuthStorage.setRuntimeApiKey("anthropic", "test-key");
+		// Fork: storoslop is the only selectable provider. Configure it via models.yml
+		// (with a key) so the todo-init title-refresh path can resolve a titling model
+		// and actually run, rather than bailing on an empty getAvailable().
+		await Bun.write(
+			path.join(sharedDir.path(), "models.yml"),
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "http://slop.storo.cloud/v1",
+						apiKey: "TEST_KEY",
+						api: "openai-completions",
+						models: [
+							{
+								id: "slop-v3",
+								name: "slop-v3",
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: ["minimal", "low", "medium", "high", "xhigh", "max"],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100000,
+								maxTokens: 8000,
+							},
+						],
+					},
+				},
+			}),
+		);
 		sharedModelRegistry = new ModelRegistry(sharedAuthStorage, path.join(sharedDir.path(), "models.yml"));
 	});
 

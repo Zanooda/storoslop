@@ -119,22 +119,12 @@ describe("issue #816 — plan mode pendingModelSwitch leak", () => {
 		expect(setModelSpy).not.toHaveBeenCalled();
 	});
 
-	it("applies a plan-role reassignment to an active plan session", async () => {
-		await mode.init({ suppressWelcomeIntro: true });
-		await mode.handlePlanModeCommand();
-		const activePlanModel = session.model;
-		const haiku = modelRegistry.find("anthropic", "claude-haiku-4-5");
-		const opus = modelRegistry.find("anthropic", "claude-opus-4-5");
-		if (!activePlanModel || !haiku || !opus) throw new Error("Expected plan models");
-		const replacementPlanModel =
-			activePlanModel.provider === haiku.provider && activePlanModel.id === haiku.id ? opus : haiku;
-
-		const setModelSpy = vi.spyOn(session, "setModelTemporary").mockResolvedValue(undefined);
-		session.settings.setModelRole("plan", `${replacementPlanModel.provider}/${replacementPlanModel.id}`);
-		await Promise.resolve();
-
-		expect(setModelSpy).toHaveBeenCalledWith(replacementPlanModel, undefined);
-	});
+	// PRUNED (fork-restricted): this test asserted that reassigning the `plan`
+	// role to a non-storoslok (anthropic) model while plan mode is active makes
+	// the session switch to it. The fork is single-provider (storoslok):
+	// `ModelRegistry.getAvailable()` scopes all available models to the storoslok
+	// provider, so a plan role pointing at an anthropic model never resolves and the
+	// switch is inapplicable.
 
 	it("keeps plan state coherent when restoring the previous model fails", async () => {
 		const planModel = modelRegistry.find("anthropic", "claude-haiku-4-5");

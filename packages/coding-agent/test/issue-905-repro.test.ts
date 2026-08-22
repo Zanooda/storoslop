@@ -22,18 +22,15 @@ import { getProjectAgentDir, TempDir } from "@oh-my-pi/pi-utils";
 
 let tmp: TempDir;
 let extPath: string;
-let explicitPackagePath: string;
 let ambientExtPath: string;
 let ambientHookMarkerPath: string;
 let configuredHookMarkerPath: string;
-let dbPath: string;
 let shutdownExtPath: string;
 let shutdownPath: string;
 
 beforeAll(async () => {
 	tmp = await TempDir.create("@issue-905-");
 	extPath = tmp.join("ext.ts");
-	dbPath = tmp.join("auth.db");
 	shutdownExtPath = tmp.join("shutdown-ext.ts");
 	shutdownPath = tmp.join("shutdown");
 	await fs.writeFile(
@@ -65,7 +62,6 @@ beforeAll(async () => {
 }
 `,
 	);
-	explicitPackagePath = tmp.join("explicit-package");
 	ambientExtPath = tmp.join("ambient.ts");
 	ambientHookMarkerPath = tmp.join("ambient-hook-loaded");
 	configuredHookMarkerPath = tmp.join("configured-hook-loaded");
@@ -135,69 +131,10 @@ afterAll(async () => {
 	await tmp.remove();
 });
 
-test("omp models surfaces extension-registered providers (issue #905)", async () => {
-	const authStorage = await AuthStorage.create(dbPath);
-	try {
-		const modelRegistry = new ModelRegistry(authStorage);
-
-		const captured: string[] = [];
-		const originalWrite = process.stdout.write.bind(process.stdout);
-		process.stdout.write = ((chunk: string | Uint8Array) => {
-			captured.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-			return true;
-		}) as typeof process.stdout.write;
-
-		try {
-			await runModelsListing({
-				modelRegistry,
-				cwd: tmp.path(),
-				action: "ls",
-				additionalExtensionPaths: [extPath],
-				disableExtensionDiscovery: true,
-			});
-		} finally {
-			process.stdout.write = originalWrite;
-		}
-
-		const output = captured.join("");
-		expect(output).toContain("test-gw");
-		expect(output).toContain("test-model");
-	} finally {
-		authStorage.close();
-	}
-});
-
-test("omp models does not execute ambient hooks while retaining explicit providers", async () => {
-	const authStorage = await AuthStorage.create(":memory:");
-	try {
-		const modelRegistry = new ModelRegistry(authStorage);
-		const captured: string[] = [];
-		const originalWrite = process.stdout.write.bind(process.stdout);
-		process.stdout.write = ((chunk: string | Uint8Array) => {
-			captured.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-			return true;
-		}) as typeof process.stdout.write;
-
-		try {
-			await runModelsListing({
-				modelRegistry,
-				cwd: tmp.path(),
-				action: "ls",
-				additionalExtensionPaths: [explicitPackagePath],
-			});
-		} finally {
-			process.stdout.write = originalWrite;
-		}
-
-		const output = captured.join("");
-		expect(output).toContain("explicit-gw");
-		expect(output).toContain("explicit-model");
-		expect(await Bun.file(ambientHookMarkerPath).exists()).toBe(false);
-		expect(await Bun.file(configuredHookMarkerPath).exists()).toBe(false);
-	} finally {
-		authStorage.close();
-	}
-});
+// PRUNED (fork-restricted): these tests asserted extension-registered model
+// providers (`pi.registerProvider` → `test-gw` / `explicit-gw`) surface in
+// the `omp models` listing. The fork is single-provider (storoslok), so
+// extension-registered model providers are not surfaced into provider lists.
 
 test("omp models emits extension shutdown after listing (issue #6297)", async () => {
 	const authStorage = await AuthStorage.create(":memory:");
@@ -218,39 +155,10 @@ test("omp models emits extension shutdown after listing (issue #6297)", async ()
 	}
 });
 
-test("omp models explicit-only mode resolves a package and excludes settings providers", async () => {
-	const authStorage = await AuthStorage.create(":memory:");
-	try {
-		const modelRegistry = new ModelRegistry(authStorage);
-		const captured: string[] = [];
-		const originalWrite = process.stdout.write.bind(process.stdout);
-		process.stdout.write = ((chunk: string | Uint8Array) => {
-			captured.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-			return true;
-		}) as typeof process.stdout.write;
-
-		try {
-			await runModelsListing({
-				modelRegistry,
-				cwd: tmp.path(),
-				action: "ls",
-				additionalExtensionPaths: [explicitPackagePath],
-				settingsExtensions: [ambientExtPath],
-				disableExtensionDiscovery: true,
-			});
-		} finally {
-			process.stdout.write = originalWrite;
-		}
-
-		const output = captured.join("");
-		expect(output).toContain("explicit-gw");
-		expect(output).toContain("explicit-model");
-		expect(output).not.toContain("ambient-gw");
-		expect(output).not.toContain("ambient-model");
-	} finally {
-		authStorage.close();
-	}
-});
+// PRUNED (fork-restricted): asserted an explicit extension-registered provider
+// (`explicit-gw`) resolves and is retained in the models listing while settings
+// providers are excluded. The fork is single-provider (storoslok), so
+// extension-registered model providers are not surfaced into provider lists.
 
 test("omp models prints invalid models.yml schema errors before listing output", async () => {
 	const modelsPath = tmp.join("invalid-models.yml");

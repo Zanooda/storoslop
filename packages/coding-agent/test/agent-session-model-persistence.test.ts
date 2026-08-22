@@ -2,7 +2,6 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { type Api, type AssistantMessage, Effort, type Model } from "@oh-my-pi/pi-ai";
-import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { type CreateAgentSessionResult, createAgentSession } from "@oh-my-pi/pi-coding-agent/sdk";
@@ -29,6 +28,49 @@ describe("AgentSession model persistence", () => {
 		sharedDir = TempDir.createSync("@pi-model-persistence-shared-");
 		sharedAuthStorage = await AuthStorage.create(path.join(sharedDir.path(), "auth.db"));
 		sharedAuthStorage.setRuntimeApiKey("anthropic", "test-key");
+		// Fork: storoslop is the only selectable provider. Configure it via
+		// models.yml (with a key) so getAvailable()/role resolution resolve the
+		// persistence scenarios below against the fork's actual provider.
+		await Bun.write(
+			path.join(sharedDir.path(), "models.yml"),
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "http://slop.storo.cloud/v1",
+						apiKey: "TEST_KEY",
+						api: "openai-completions",
+						models: [
+							{
+								id: "slop-v3",
+								name: "slop-v3",
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High, Effort.XHigh, Effort.Max],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100000,
+								maxTokens: 8000,
+							},
+							{
+								id: "slop-v3-flash",
+								name: "slop-v3-flash",
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High, Effort.XHigh, Effort.Max],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 60000,
+								maxTokens: 4000,
+							},
+						],
+					},
+				},
+			}),
+		);
 		sharedModelRegistry = new ModelRegistry(sharedAuthStorage, path.join(sharedDir.path(), "models.yml"));
 	});
 
@@ -49,9 +91,9 @@ describe("AgentSession model persistence", () => {
 		tempDir.removeSync();
 	});
 
-	function getAnthropicModelOrThrow(id: string): Model<Api> {
-		const model = getBundledModel("anthropic", id);
-		if (!model) throw new Error(`Expected anthropic model ${id} to exist`);
+	function getSlopModelOrThrow(id: string): Model<Api> {
+		const model = sharedModelRegistry.find("storoslop", id);
+		if (!model) throw new Error(`Expected storoslop model ${id} to exist`);
 		return model;
 	}
 
@@ -102,7 +144,7 @@ describe("AgentSession model persistence", () => {
 		const model =
 			options?.initialModel ??
 			options?.selectInitialModel?.(modelRegistry.getAvailable()) ??
-			getAnthropicModelOrThrow("claude-sonnet-4-5");
+			getSlopModelOrThrow("slop-v3");
 		const agent = new Agent({
 			initialState: {
 				model,
@@ -160,8 +202,8 @@ describe("AgentSession model persistence", () => {
 		return result;
 	}
 	it("switches the active model without persisting by default", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const nextModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const nextModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 
 		const created = await createSession({
@@ -184,8 +226,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("persists the default role when explicitly requested", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const nextModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const nextModel = getSlopModelOrThrow("slop-v3-flash");
 
 		const created = await createSession({
 			initialModel: defaultModel,
@@ -199,8 +241,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("switches the active model even when the live context is over the target window", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const nextModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const nextModel = getSlopModelOrThrow("slop-v3-flash");
 
 		const created = await createSession({
 			initialModel: defaultModel,
@@ -218,8 +260,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("cycles role models without rewriting configured roles", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const slowModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const slowModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const slowRoleValue = `${modelValue(slowModel)}:high`;
 
@@ -241,8 +283,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("cycles role models backward from the current role", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const slowModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const slowModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const slowRoleValue = modelValue(slowModel);
 
@@ -289,8 +331,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("restores the last active role model when switching sessions", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const smolModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const smolModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const smolRoleValue = modelValue(smolModel);
 
@@ -307,8 +349,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("restores the last active role model during startup resume", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const smolModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const smolModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const smolRoleValue = modelValue(smolModel);
 		const targetSessionFile = await writeRoleModelSession(defaultRoleValue, smolRoleValue);
@@ -319,10 +361,10 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("falls back to the saved default model when switch-session role restore is unavailable", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const previousModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const previousModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
-		const targetSessionFile = await writeRoleModelSession(defaultRoleValue, "anthropic/not-loaded-anymore");
+		const targetSessionFile = await writeRoleModelSession(defaultRoleValue, "storoslop/not-loaded-anymore");
 
 		const created = await createSession({
 			initialModel: previousModel,
@@ -335,8 +377,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("restores the saved default model when switch-session last role is fallback", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const fallbackModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const fallbackModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const targetSessionFile = await writeRoleModelSession(
 			defaultRoleValue,
@@ -355,10 +397,10 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("falls back to the saved default model when startup role restore is unavailable", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const settingsFallbackModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const settingsFallbackModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
-		const targetSessionFile = await writeRoleModelSession(defaultRoleValue, "anthropic/not-loaded-anymore");
+		const targetSessionFile = await writeRoleModelSession(defaultRoleValue, "storoslop/not-loaded-anymore");
 		const settings = Settings.isolated();
 		settings.setModelRole("default", modelValue(settingsFallbackModel));
 
@@ -368,8 +410,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("restores the saved default model when startup last role is fallback", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const fallbackModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const fallbackModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const targetSessionFile = await writeRoleModelSession(
 			defaultRoleValue,
@@ -385,8 +427,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("restores a temporary model when switching sessions", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const temporaryModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const temporaryModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const targetSessionFile = await writeRoleModelSession(defaultRoleValue, modelValue(temporaryModel), "temporary");
 
@@ -401,8 +443,8 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("restores a temporary model during startup resume", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
-		const temporaryModel = getAnthropicModelOrThrow("claude-sonnet-4-6");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
+		const temporaryModel = getSlopModelOrThrow("slop-v3-flash");
 		const defaultRoleValue = modelValue(defaultModel);
 		const targetSessionFile = await writeRoleModelSession(defaultRoleValue, modelValue(temporaryModel), "temporary");
 		const settings = Settings.isolated();
@@ -414,7 +456,7 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("activates auto thinking on startup resume when modelRoles.default carries an explicit :auto suffix", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
 		const targetSessionFile = await writeRoleModelSession(
 			modelValue(defaultModel),
 			modelValue(defaultModel),
@@ -488,7 +530,7 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("marks a first user-message process-exit tail aborted with the selected model", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
 		const settings = Settings.isolated();
 		settings.setModelRole("default", modelValue(defaultModel));
 		const sessionManager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), "interrupted-user"));
@@ -534,7 +576,7 @@ describe("AgentSession model persistence", () => {
 	});
 
 	it("marks an interrupted first turn aborted when switching sessions", async () => {
-		const defaultModel = getAnthropicModelOrThrow("claude-sonnet-4-5");
+		const defaultModel = getSlopModelOrThrow("slop-v3");
 		const created = await createSession({ initialModel: defaultModel, persist: true });
 		const targetFile = path.join(tempDir.path(), "switch-interrupted-user.jsonl");
 		const timestamp = "2026-07-11T02:20:08.800Z";
@@ -584,35 +626,35 @@ describe("AgentSession model persistence", () => {
 		expect(
 			getRestorableSessionModels(
 				{
-					default: "anthropic/claude-sonnet-4-5",
-					temporary: "anthropic/claude-sonnet-4-6",
+					default: "storoslop/slop-v3",
+					temporary: "storoslop/slop-v3-flash",
 				},
 				"temporary",
 			),
-		).toEqual(["anthropic/claude-sonnet-4-6", "anthropic/claude-sonnet-4-5"]);
+		).toEqual(["storoslop/slop-v3-flash", "storoslop/slop-v3"]);
 	});
 
 	it("lists only the default model for ephemeral fallback restores", () => {
 		expect(
 			getRestorableSessionModels(
 				{
-					default: "anthropic/claude-sonnet-4-5",
-					[EPHEMERAL_MODEL_CHANGE_ROLE]: "anthropic/claude-sonnet-4-6",
+					default: "storoslop/slop-v3",
+					[EPHEMERAL_MODEL_CHANGE_ROLE]: "storoslop/slop-v3-flash",
 				},
 				EPHEMERAL_MODEL_CHANGE_ROLE,
 			),
-		).toEqual(["anthropic/claude-sonnet-4-5"]);
+		).toEqual(["storoslop/slop-v3"]);
 	});
 
 	it("lists a named role model before the default fallback", () => {
 		expect(
 			getRestorableSessionModels(
 				{
-					default: "anthropic/claude-sonnet-4-5",
-					smol: "anthropic/claude-sonnet-4-6",
+					default: "storoslop/slop-v3",
+					smol: "storoslop/slop-v3-flash",
 				},
 				"smol",
 			),
-		).toEqual(["anthropic/claude-sonnet-4-6", "anthropic/claude-sonnet-4-5"]);
+		).toEqual(["storoslop/slop-v3-flash", "storoslop/slop-v3"]);
 	});
 });

@@ -283,7 +283,7 @@ describe("Settings.reloadForCwd", () => {
 		});
 		it("does not copy unedited roles from other project settings providers", async () => {
 			await Bun.write(
-				path.join(scopedProject, ".omp", "settings.json"),
+				path.join(getProjectAgentDir(scopedProject), "settings.json"),
 				JSON.stringify({ modelRoles: { default: "anthropic/external" } }),
 			);
 			const settings = await Settings.init({ cwd: scopedProject, agentDir });
@@ -360,7 +360,7 @@ describe("Settings.reloadForCwd", () => {
 		it("keeps JSON-backed project roles cleared across later assignments and reload", async () => {
 			await Bun.write(path.join(agentDir, "config.yml"), "modelRoles:\n  default: anthropic/global\n");
 			await Bun.write(
-				path.join(scopedProject, ".omp", "settings.json"),
+				path.join(getProjectAgentDir(scopedProject), "settings.json"),
 				JSON.stringify({ modelRoles: { default: "anthropic/project" } }),
 			);
 			const settings = await Settings.init({ cwd: scopedProject, agentDir });

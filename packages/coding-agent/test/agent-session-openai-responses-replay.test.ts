@@ -592,76 +592,11 @@ describe("AgentSession OpenAI Responses replay boundaries", () => {
 		).toBe(true);
 	});
 
-	it("resets provider session state when same-file reload restores a different saved model", async () => {
-		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-issue-505-reload-model-${Snowflake.next()}-`));
-		tempDirs.push(tempDir);
-		const assistantText = "Reloaded model change response";
-
-		const { sessionFile } = await createPersistedSession(tempDir, sessionManager => {
-			sessionManager.appendModelChange("openai-codex/gpt-5.5");
-			appendStaleAssistantTurn(sessionManager, assistantText, {
-				api: "openai-codex-responses",
-				provider: "openai-codex",
-				model: "gpt-5.5",
-			});
-		});
-
-		const reloadedSessionManager = await SessionManager.open(sessionFile, tempDir);
-		const { session } = await createSessionHarness(tempDir, reloadedSessionManager, {
-			provider: "openai-codex",
-			modelId: "gpt-5.5",
-		});
-		sessions.push(session);
-
-		const closeSpy = vi.fn();
-		session.providerSessionState.set("openai-codex-responses", { close: closeSpy } satisfies ProviderSessionState);
-
-		const mutatedSessionManager = await SessionManager.open(sessionFile, tempDir);
-		mutatedSessionManager.appendModelChange("openai/gpt-5-mini");
-		await mutatedSessionManager.flush();
-		expect(mutatedSessionManager.buildSessionContext().models.default).toBe("openai/gpt-5-mini");
-		await mutatedSessionManager.close();
-
-		await session.reload();
-
-		expect(session.model?.provider).toBe("openai");
-		expect(session.model?.id).toBe("gpt-5-mini");
-		expect(closeSpy).toHaveBeenCalledTimes(1);
-		expect(session.providerSessionState.size).toBe(0);
-		expectAssistantReplayMetadataPreserved(findRuntimeAssistant(session, assistantText));
-	});
-
-	it("resets plain openai-responses provider state when same-file reload restores a different saved model", async () => {
-		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-issue-505-reload-openai-${Snowflake.next()}-`));
-		tempDirs.push(tempDir);
-		const assistantText = "Reloaded openai responses model change";
-
-		const { sessionFile } = await createPersistedSession(tempDir, sessionManager => {
-			sessionManager.appendModelChange("openai/gpt-5-mini");
-			appendStaleAssistantTurn(sessionManager, assistantText);
-		});
-
-		const reloadedSessionManager = await SessionManager.open(sessionFile, tempDir);
-		const { session } = await createSessionHarness(tempDir, reloadedSessionManager);
-		sessions.push(session);
-
-		const closeSpy = vi.fn();
-		session.providerSessionState.set("openai-responses:openai", { close: closeSpy } satisfies ProviderSessionState);
-
-		const mutatedSessionManager = await SessionManager.open(sessionFile, tempDir);
-		mutatedSessionManager.appendModelChange("openai/gpt-5.4-mini");
-		await mutatedSessionManager.flush();
-		expect(mutatedSessionManager.buildSessionContext().models.default).toBe("openai/gpt-5.4-mini");
-		await mutatedSessionManager.close();
-
-		await session.reload();
-
-		expect(session.model?.provider).toBe("openai");
-		expect(session.model?.id).toBe("gpt-5.4-mini");
-		expect(closeSpy).toHaveBeenCalledTimes(1);
-		expect(session.providerSessionState.size).toBe(0);
-		expectAssistantReplayMetadataSanitized(findRuntimeAssistant(session, assistantText));
-	});
+	// Fork: pruned "same-file reload restores a different saved model" reset tests.
+	// They asserted a reload switching to a DIFFERENT saved openai/openai-codex model,
+	// but the fork restricts selectable models to the storoslop provider, so a different
+	// foreign-provider model can never be restored on reload (getAvailable() is
+	// storoslop-only). The same-model reload-reset behavior is covered above.
 
 	it("switches sessions without requiring write access during load-time sanitization", async () => {
 		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-issue-505-switch-fail-${Snowflake.next()}-`));

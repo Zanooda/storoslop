@@ -87,7 +87,49 @@ describe("InteractiveMode plan review rendering", () => {
 		await Settings.init({ inMemory: true, cwd: sharedTempDir.path() });
 		authStorage = await AuthStorage.create(path.join(sharedTempDir.path(), "testauth.db"));
 		authStorage.setRuntimeApiKey("anthropic", "test-key");
-		modelRegistry = new ModelRegistry(authStorage);
+		// Fork: storoslop is the only selectable provider; configure it via models.yml
+		// so plan/role model transitions resolve against the fork's provider.
+		await fs.writeFile(
+			path.join(sharedTempDir.path(), "models.yml"),
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "http://slop.storo.cloud/v1",
+						apiKey: "TEST_KEY",
+						api: "openai-completions",
+						models: [
+							{
+								id: "slop-v3",
+								name: "slop-v3",
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: ["minimal", "low", "medium", "high", "xhigh", "max"],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100000,
+								maxTokens: 8000,
+							},
+							{
+								id: "slop-v3-flash",
+								name: "slop-v3-flash",
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: ["minimal", "low", "medium", "high", "xhigh", "max"],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 60000,
+								maxTokens: 4000,
+							},
+						],
+					},
+				},
+			}),
+		);
+		modelRegistry = new ModelRegistry(authStorage, path.join(sharedTempDir.path(), "models.yml"));
 	});
 
 	afterAll(() => {
@@ -97,9 +139,9 @@ describe("InteractiveMode plan review rendering", () => {
 
 	beforeEach(() => {
 		tempDir = TempDir.createSync("@pi-plan-review-");
-		const model = modelRegistry.find("anthropic", "claude-sonnet-4-5");
+		const model = modelRegistry.find("storoslop", "slop-v3");
 		if (!model) {
-			throw new Error("Expected claude-sonnet-4-5 to exist in registry");
+			throw new Error("Expected slop-v3 to exist in registry");
 		}
 
 		session = new AgentSession({
@@ -739,8 +781,8 @@ describe("InteractiveMode plan review rendering", () => {
 		mode.stop();
 		await session.dispose();
 
-		const executionModel = modelRegistry.find("anthropic", "claude-sonnet-4-5");
-		const planModel = modelRegistry.find("anthropic", "claude-opus-4-6");
+		const executionModel = modelRegistry.find("storoslop", "slop-v3");
+		const planModel = modelRegistry.find("storoslop", "slop-v3-flash");
 		if (!executionModel?.contextWindow || !planModel?.contextWindow) {
 			throw new Error("Expected test models with context windows");
 		}
@@ -754,7 +796,7 @@ describe("InteractiveMode plan review rendering", () => {
 				},
 			}),
 			sessionManager: SessionManager.create(tempDir.path(), tempDir.path()),
-			settings: Settings.isolated({ modelRoles: { plan: `anthropic/${planModel.id}` } }),
+			settings: Settings.isolated({ modelRoles: { plan: `storoslop/${planModel.id}` } }),
 			modelRegistry,
 		});
 		mode = new InteractiveMode(session, "test");
@@ -1152,16 +1194,16 @@ describe("InteractiveMode plan review rendering", () => {
 		// reverted the operator's pick — sliding to "slow" still executed on the
 		// default model. The fix defers application until after the plan-mode exit.
 		authStorage.setRuntimeApiKey("anthropic", "test-key");
-		const slow = session.modelRegistry.find("anthropic", "claude-opus-4-5");
-		const def = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
+		const slow = session.modelRegistry.find("storoslop", "slop-v3-flash");
+		const def = session.modelRegistry.find("storoslop", "slop-v3");
 		if (!slow || !def) throw new Error("Expected sonnet + opus to exist in registry");
 
 		// plan === default === the session model: this is what makes plan-mode entry
 		// record a previous-model state for #exitPlanMode to restore. slow differs,
 		// so an early application would be clobbered by that restore.
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("slow", "anthropic/claude-opus-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-sonnet-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("slow", "storoslop/slop-v3-flash");
+		session.settings.setModelRole("plan", "storoslop/slop-v3");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {
@@ -1206,13 +1248,13 @@ describe("InteractiveMode plan review rendering", () => {
 	});
 
 	it("retains the plan model when the slider selection matches the active plan tier", async () => {
-		const planModel = session.modelRegistry.find("anthropic", "claude-opus-4-5");
-		const prePlanModel = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
+		const planModel = session.modelRegistry.find("storoslop", "slop-v3-flash");
+		const prePlanModel = session.modelRegistry.find("storoslop", "slop-v3");
 		if (!planModel || !prePlanModel) throw new Error("Expected sonnet + opus to exist in registry");
 
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("slow", "anthropic/claude-opus-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("slow", "storoslop/slop-v3-flash");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {
@@ -1248,8 +1290,8 @@ describe("InteractiveMode plan review rendering", () => {
 	});
 
 	it("treats matching-model slider tier as explicit when its thinking differs from the pre-plan thinking", async () => {
-		const sonnet = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
-		const opus = session.modelRegistry.find("anthropic", "claude-opus-4-5");
+		const sonnet = session.modelRegistry.find("storoslop", "slop-v3");
+		const opus = session.modelRegistry.find("storoslop", "slop-v3-flash");
 		if (!sonnet || !opus) throw new Error("Expected sonnet + opus to exist in registry");
 
 		// default tier explicitly turns thinking off on sonnet; the session enters
@@ -1258,9 +1300,9 @@ describe("InteractiveMode plan review rendering", () => {
 		// restores thinking=high instead of the configured off override. The fix
 		// must compare thinking levels too and pass the default entry through
 		// applyRoleModel.
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5:off");
-		session.settings.setModelRole("slow", "anthropic/claude-opus-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3:off");
+		session.settings.setModelRole("slow", "storoslop/slop-v3-flash");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 		session.setThinkingLevel(ThinkingLevel.High);
 
 		const planFilePath = "local://PLAN.md";
@@ -1298,13 +1340,13 @@ describe("InteractiveMode plan review rendering", () => {
 	});
 
 	it("preserves DEFAULT(auto) when plan approval restores the default tier", async () => {
-		const sonnet = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
-		const opus = session.modelRegistry.find("anthropic", "claude-opus-4-5");
+		const sonnet = session.modelRegistry.find("storoslop", "slop-v3");
+		const opus = session.modelRegistry.find("storoslop", "slop-v3-flash");
 		if (!sonnet || !opus) throw new Error("Expected sonnet + opus to exist in registry");
 
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("slow", "anthropic/claude-opus-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("slow", "storoslop/slop-v3-flash");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 		session.setThinkingLevel(AUTO_THINKING, true);
 
 		const planFilePath = "local://PLAN.md";
@@ -1338,8 +1380,8 @@ describe("InteractiveMode plan review rendering", () => {
 	});
 
 	it("falls back to the pre-plan model when only plan is configured and the slider is hidden", async () => {
-		const sonnet = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
-		const opus = session.modelRegistry.find("anthropic", "claude-opus-4-5");
+		const sonnet = session.modelRegistry.find("storoslop", "slop-v3");
+		const opus = session.modelRegistry.find("storoslop", "slop-v3-flash");
 		if (!sonnet || !opus) throw new Error("Expected sonnet + opus to exist in registry");
 		expect(session.model?.id).toBe(sonnet.id);
 
@@ -1348,7 +1390,7 @@ describe("InteractiveMode plan review rendering", () => {
 		// slider is hidden — the operator made no selection and approval must
 		// fall through to the pre-plan sonnet restore instead of pinning the
 		// lone plan tier.
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {
@@ -1378,12 +1420,12 @@ describe("InteractiveMode plan review rendering", () => {
 	});
 
 	it("compaction runs on the plan model and restores the pre-plan model after success", async () => {
-		const planModel = session.modelRegistry.find("anthropic", "claude-opus-4-5");
-		const prePlanModel = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
+		const planModel = session.modelRegistry.find("storoslop", "slop-v3-flash");
+		const prePlanModel = session.modelRegistry.find("storoslop", "slop-v3");
 		if (!planModel || !prePlanModel) throw new Error("Expected sonnet + opus to exist in registry");
 
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {
@@ -1416,11 +1458,11 @@ describe("InteractiveMode plan review rendering", () => {
 	});
 
 	it("failed compaction stays on the plan model and still dispatches", async () => {
-		const planModel = session.modelRegistry.find("anthropic", "claude-opus-4-5");
+		const planModel = session.modelRegistry.find("storoslop", "slop-v3-flash");
 		if (!planModel) throw new Error("Expected opus to exist in registry");
 
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {
@@ -1454,16 +1496,16 @@ describe("InteractiveMode plan review rendering", () => {
 	});
 
 	it("slider tier on the compact path applies after successful compaction", async () => {
-		const planModel = session.modelRegistry.find("anthropic", "claude-opus-4-5");
-		const execModel = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
+		const planModel = session.modelRegistry.find("storoslop", "slop-v3-flash");
+		const execModel = session.modelRegistry.find("storoslop", "slop-v3");
 		if (!planModel || !execModel) throw new Error("Expected sonnet + opus to exist in registry");
 
 		// Plan model (opus) differs from the execution tier the operator slides to
 		// (default = sonnet). Successful compaction must keep running on opus, then
 		// end on the slider-selected default tier.
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("slow", "anthropic/claude-opus-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("slow", "storoslop/slop-v3-flash");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {
@@ -1513,12 +1555,12 @@ describe("InteractiveMode plan review rendering", () => {
 		// #planModePreviousModelState, so an aborted "Approve and compact context"
 		// left the next turn stranded on the plan model. The transition now runs
 		// for "cancelled" too (the operator aborted only compaction, not approval).
-		const planModel = session.modelRegistry.find("anthropic", "claude-opus-4-5");
-		const prePlanModel = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
+		const planModel = session.modelRegistry.find("storoslop", "slop-v3-flash");
+		const prePlanModel = session.modelRegistry.find("storoslop", "slop-v3");
 		if (!planModel || !prePlanModel) throw new Error("Expected sonnet + opus to exist in registry");
 
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {
@@ -1560,12 +1602,12 @@ describe("InteractiveMode plan review rendering", () => {
 		// so the model transition must run inside the before-flush hook. Otherwise a
 		// turn queued during compaction dispatches on the plan model (the restore,
 		// recorded while streaming, lands one turn later via #pendingModelSwitch).
-		const planModel = session.modelRegistry.find("anthropic", "claude-opus-4-5");
-		const prePlanModel = session.modelRegistry.find("anthropic", "claude-sonnet-4-5");
+		const planModel = session.modelRegistry.find("storoslop", "slop-v3-flash");
+		const prePlanModel = session.modelRegistry.find("storoslop", "slop-v3");
 		if (!planModel || !prePlanModel) throw new Error("Expected sonnet + opus to exist in registry");
 
-		session.settings.setModelRole("default", "anthropic/claude-sonnet-4-5");
-		session.settings.setModelRole("plan", "anthropic/claude-opus-4-5");
+		session.settings.setModelRole("default", "storoslop/slop-v3");
+		session.settings.setModelRole("plan", "storoslop/slop-v3-flash");
 
 		const planFilePath = "local://PLAN.md";
 		const resolvedPlanPath = resolveLocalUrlToPath(planFilePath, {

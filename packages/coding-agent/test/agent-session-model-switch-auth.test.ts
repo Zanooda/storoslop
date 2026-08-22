@@ -2,7 +2,6 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun
 import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { type Api, Effort, type Model } from "@oh-my-pi/pi-ai";
-import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
@@ -27,6 +26,48 @@ describe("AgentSession model switch auth pre-flight", () => {
 		sharedDir = TempDir.createSync("@pi-model-switch-auth-");
 		authStorage = await AuthStorage.create(path.join(sharedDir.path(), "auth.db"));
 		authStorage.setRuntimeApiKey("anthropic", "test-key");
+		// Fork: storoslop is the only selectable provider; configure it via models.yml
+		// so setModel/role-cycling resolve against the fork's provider.
+		await Bun.write(
+			path.join(sharedDir.path(), "models.yml"),
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "http://slop.storo.cloud/v1",
+						apiKey: "TEST_KEY",
+						api: "openai-completions",
+						models: [
+							{
+								id: "slop-v3",
+								name: "slop-v3",
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High, Effort.XHigh, Effort.Max],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100000,
+								maxTokens: 8000,
+							},
+							{
+								id: "slop-v3-flash",
+								name: "slop-v3-flash",
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High, Effort.XHigh, Effort.Max],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 60000,
+								maxTokens: 4000,
+							},
+						],
+					},
+				},
+			}),
+		);
 		registry = new ModelRegistry(authStorage, path.join(sharedDir.path(), "models.yml"));
 	});
 
@@ -44,8 +85,8 @@ describe("AgentSession model switch auth pre-flight", () => {
 	});
 
 	function modelOrThrow(id: string): Model<Api> {
-		const model = getBundledModel("anthropic", id);
-		if (!model) throw new Error(`Expected anthropic model ${id} to exist`);
+		const model = registry.find("storoslop", id);
+		if (!model) throw new Error(`Expected storoslop model ${id} to exist`);
 		return model;
 	}
 
@@ -73,8 +114,8 @@ describe("AgentSession model switch auth pre-flight", () => {
 	}
 
 	it("switches the active model via the synchronous auth check, not the resolver", async () => {
-		const from = modelOrThrow("claude-sonnet-4-5");
-		const to = modelOrThrow("claude-sonnet-4-6");
+		const from = modelOrThrow("slop-v3");
+		const to = modelOrThrow("slop-v3-flash");
 		const s = makeSession(from);
 
 		const getApiKeySpy = spyOn(registry, "getApiKey");
@@ -89,8 +130,8 @@ describe("AgentSession model switch auth pre-flight", () => {
 	});
 
 	it("cycles role models without invoking the resolver", async () => {
-		const from = modelOrThrow("claude-sonnet-4-5");
-		const slow = modelOrThrow("claude-sonnet-4-6");
+		const from = modelOrThrow("slop-v3");
+		const slow = modelOrThrow("slop-v3-flash");
 		const s = makeSession(from, {
 			default: `${from.provider}/${from.id}`,
 			slow: `${slow.provider}/${slow.id}`,
@@ -108,8 +149,8 @@ describe("AgentSession model switch auth pre-flight", () => {
 	});
 
 	it("temporary switch also avoids the resolver", async () => {
-		const from = modelOrThrow("claude-sonnet-4-5");
-		const to = modelOrThrow("claude-sonnet-4-6");
+		const from = modelOrThrow("slop-v3");
+		const to = modelOrThrow("slop-v3-flash");
 		const s = makeSession(from);
 
 		const getApiKeySpy = spyOn(registry, "getApiKey");
@@ -122,8 +163,8 @@ describe("AgentSession model switch auth pre-flight", () => {
 	});
 
 	it("rejects the switch synchronously when no credential is configured, without calling the resolver", async () => {
-		const from = modelOrThrow("claude-sonnet-4-5");
-		const to = modelOrThrow("claude-sonnet-4-6");
+		const from = modelOrThrow("slop-v3");
+		const to = modelOrThrow("slop-v3-flash");
 		const s = makeSession(from);
 
 		const getApiKeySpy = spyOn(registry, "getApiKey");
