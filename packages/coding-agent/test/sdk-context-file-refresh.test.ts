@@ -23,9 +23,35 @@ async function createContextSession(
 	const authStorage = await AuthStorage.create(`${cwd}/auth.db`);
 	const model = getBundledModel("openai", "gpt-4o-mini");
 	if (options.advisor) {
+		// Fork: getAvailable() is scoped to the storoslop provider, so the
+		// advisor role must resolve against a configured storoslop model. Seed the
+		// models config with a storoslop provider (key + model) the way `storoslop
+		// setup` does.
 		authStorage.setRuntimeApiKey("openai", "test-key");
 		settings.set("advisor.enabled", true);
-		settings.setModelRole("advisor", `${model.provider}/${model.id}`);
+		settings.setModelRole("advisor", "storoslop/deepseek-v4-flash");
+		await Bun.write(
+			`${cwd}/models.json`,
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "http://slop.storo.cloud:4000/v1",
+						apiKey: "test-key",
+						api: "openai-completions",
+						models: [
+							{
+								id: "deepseek-v4-flash",
+								name: "deepseek-v4-flash",
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 1048576,
+								maxTokens: 32768,
+							},
+						],
+					},
+				},
+			}),
+		);
 	}
 	const modelRegistry = new ModelRegistry(authStorage, `${cwd}/models.json`);
 	const sessionManager = SessionManager.inMemory(cwd);
