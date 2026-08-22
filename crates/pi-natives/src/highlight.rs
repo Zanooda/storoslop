@@ -474,7 +474,7 @@ fn highlight_into(
 			// Output text BEFORE this operation using current scope
 			if offset > prev_end {
 				let text = &line[prev_end..offset];
-				let color_idx = scope_to_color_index(&scope_stack);
+				let color_idx = scope_to_color_index(scope_stack);
 
 				if color_idx < palette.len() && !palette[color_idx].is_empty() {
 					result.push_str(palette[color_idx]);
@@ -503,7 +503,7 @@ fn highlight_into(
 		// Output remaining text with current scope
 		if prev_end < line.len() {
 			let text = &line[prev_end..];
-			let color_idx = scope_to_color_index(&scope_stack);
+			let color_idx = scope_to_color_index(scope_stack);
 
 			if color_idx < palette.len() && !palette[color_idx].is_empty() {
 				result.push_str(palette[color_idx]);
@@ -544,7 +544,7 @@ impl HighlightStream {
 
 	/// Whether the language resolved to a grammar; `false` means passthrough.
 	#[napi(getter)]
-	pub fn supported(&self) -> bool {
+	pub const fn supported(&self) -> bool {
 		self.state.is_some()
 	}
 
