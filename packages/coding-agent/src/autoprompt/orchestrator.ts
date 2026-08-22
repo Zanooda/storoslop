@@ -7,10 +7,10 @@
  * the `ap-*` bundled subagents via the task tool.
  */
 
+import autopromptSkillMd from "../prompts/autoprompt/skill.md" with { type: "text" };
 import type { AutopromptMode } from "./args";
 import type { AutopromptRunState } from "./governance";
 import { PROMPTS_FILE, ROADMAP_FILE } from "./governance";
-import autopromptSkillMd from "../prompts/autoprompt/skill.md" with { type: "text" };
 
 export interface AutopromptSeed {
 	state: AutopromptRunState;

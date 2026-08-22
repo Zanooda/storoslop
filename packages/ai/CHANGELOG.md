@@ -4824,8 +4824,6 @@
 
 Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
 
-## [1.1.4] - 2026-08-22
-
 ## [1.1.3] - 2026-08-21
 
 - Integrated upstream v17.4.1 into the fork: Codex Responses Code Mode support, plus data-residency/token-refresh/bedrock/oauth compatibility fixes for OpenAI, xAI, Amazon Bedrock, Antigravity, and OpenAI-compatible servers.

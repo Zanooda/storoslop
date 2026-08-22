@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-08-22
+
 ### Fixed
 
 - Fixed post-handoff identity confusion: the injected handoff document now tells the successor it was written by its own prior instance (first person = you, plan = your resumed plan, handoff already complete), and handoff generation now writes successor-addressed imperatives and never lists the handoff itself as progress or a next step.
@@ -1260,8 +1262,6 @@
 ## [1.337.0] - 2026-01-02
 
 Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
-
-## [1.1.4] - 2026-08-22
 
 ## [1.1.3] - 2026-08-21
 
