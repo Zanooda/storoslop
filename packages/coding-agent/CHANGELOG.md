@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Goal mode no longer stops auto-continuing after a single turn that ends without a tool call; an active goal keeps looping and only halts after several consecutive idle turns.
+
 ## [1.1.3] - 2026-08-21
 
 ### Added

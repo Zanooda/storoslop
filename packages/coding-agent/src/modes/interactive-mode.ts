@@ -334,6 +334,29 @@ function formatHudNoteMarker(count: number): string {
 type GoalSubcommand = "set" | "show" | "pause" | "resume" | "drop" | "budget";
 
 const GOAL_SUBCOMMANDS = new Set<GoalSubcommand>(["set", "show", "pause", "resume", "drop", "budget"]);
+/**
+ * Consecutive tool-less goal continuation turns allowed before the auto-loop halts.
+ * A single tool-less turn is not proof the goal is done — the goal stays active
+ * until `goal({op:"complete"})`/`drop` — so one passive turn must not stop
+ * the loop. Only a bounded idle streak trips the guard, so a stuck model can't
+ * burn tokens writing text forever.
+ */
+const MAX_IDLE_GOAL_CONTINUATIONS = 2;
+
+/**
+ * Advance the goal auto-continuation state machine across one turn boundary. A turn
+ * that ran tools made progress and resets the idle streak; a tool-less turn nudges
+ * the streak up and suppresses further continuations only once it reaches
+ * {@link MAX_IDLE_GOAL_CONTINUATIONS} consecutive passives.
+ */
+export function nextGoalContinuationState(
+	hadToolCalls: boolean,
+	idleContinuations: number,
+): { idleContinuations: number; suppress: boolean } {
+	if (hadToolCalls) return { idleContinuations: 0, suppress: false };
+	const nextIdle = idleContinuations + 1;
+	return { idleContinuations: nextIdle, suppress: nextIdle >= MAX_IDLE_GOAL_CONTINUATIONS };
+}
 const PLAN_KEEP_CONTEXT_OPTION_INDEX = 2;
 const PLAN_KEEP_CONTEXT_DISABLE_THRESHOLD_PERCENT = 95;
 
@@ -666,6 +689,7 @@ export class InteractiveMode implements InteractiveModeContext {
 	#goalTurnHadToolCalls = false;
 	#goalContinuationTurnInFlight = false;
 	#goalSuppressNextContinuation = false;
+	#idleGoalContinuations = 0;
 	#planModePreviousModelState: { model: Model; thinkingLevel?: ConfiguredThinkingLevel } | undefined;
 	#pendingModelSwitch: { model: Model; thinkingLevel?: ConfiguredThinkingLevel } | undefined;
 	/** Whether #pendingModelSwitch was queued by the live plan-role reconciler. */
@@ -2521,6 +2545,7 @@ export class InteractiveMode implements InteractiveModeContext {
 
 	#resetGoalContinuationSuppression(): void {
 		this.#goalSuppressNextContinuation = false;
+		this.#idleGoalContinuations = 0;
 	}
 
 	#getPausedGoalState(): GoalModeState | undefined {
@@ -2594,8 +2619,13 @@ export class InteractiveMode implements InteractiveModeContext {
 			return;
 		}
 		if (this.#goalContinuationTurnInFlight) {
-			this.#goalSuppressNextContinuation = !this.#goalTurnHadToolCalls;
 			this.#goalContinuationTurnInFlight = false;
+			const { idleContinuations, suppress } = nextGoalContinuationState(
+				this.#goalTurnHadToolCalls,
+				this.#idleGoalContinuations,
+			);
+			this.#idleGoalContinuations = idleContinuations;
+			this.#goalSuppressNextContinuation = suppress;
 		}
 		if (this.session.getGoalModeState()?.mode === "exiting") {
 			await this.#exitGoalMode({ reason: "completed", silent: true });
@@ -2728,6 +2758,7 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.#goalTurnHadToolCalls = false;
 			this.#goalContinuationTurnInFlight = false;
 			this.#goalSuppressNextContinuation = false;
+			this.#idleGoalContinuations = 0;
 			this.#cancelGoalContinuation();
 			this.#updateGoalModeStatus();
 		}

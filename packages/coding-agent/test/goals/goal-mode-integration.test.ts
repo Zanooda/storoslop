@@ -5,7 +5,7 @@ import type { ImageContent, Model } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { GoalTool } from "@oh-my-pi/pi-coding-agent/goals/tools/goal-tool";
-import { InteractiveMode } from "@oh-my-pi/pi-coding-agent/modes/interactive-mode";
+import { InteractiveMode, nextGoalContinuationState } from "@oh-my-pi/pi-coding-agent/modes/interactive-mode";
 import { initTheme } from "@oh-my-pi/pi-coding-agent/modes/theme/theme";
 import type { SubmittedUserInput } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
@@ -492,6 +492,19 @@ describe("InteractiveMode goal mode integration", () => {
 		streaming = false;
 		harness.mode.onInputCallback?.(harness.mode.startPendingSubmission({ text: "cleanup" }));
 		await waiter.inputPromise;
+	});
+
+	it("keeps an active goal looping through a single tool-less turn, halting only after consecutive passives", () => {
+		// Regression: a goal-continuation turn that ends without any tool call used
+		// to suppress the next continuation regardless of goal status, so the auto-loop
+		// stopped after one passive turn while the goal was still active. The decision
+		// boundary now tolerates a bounded idle streak before halting.
+		expect(nextGoalContinuationState(false, 0)).toEqual({ idleContinuations: 1, suppress: false });
+		expect(nextGoalContinuationState(true, 1)).toEqual({ idleContinuations: 0, suppress: false });
+		// Two consecutive tool-less turns means the model is stuck idling — halt.
+		expect(nextGoalContinuationState(false, 1)).toEqual({ idleContinuations: 2, suppress: true });
+		// A progress-making turn resets the streak from any depth.
+		expect(nextGoalContinuationState(true, 2)).toEqual({ idleContinuations: 0, suppress: false });
 	});
 
 	it("refuses /goal while plan mode is active", async () => {
