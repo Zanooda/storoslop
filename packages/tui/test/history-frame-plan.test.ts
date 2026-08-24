@@ -241,6 +241,9 @@ describe("terminal frame plans", () => {
 		expect(plainBuffer(terminal)).toContain("history-one@20");
 
 		terminal.resize(30, 2);
+		// KEEP-FORK: fork's ghostty-web resize replay needs an extra settle round to commit
+		// (upstream wraps kitty-vt-wasm and settles after a single advance(160)).
+		await renderScheduler.advance(terminal, 160);
 		await renderScheduler.advance(terminal, 160);
 
 		const resized = plainBuffer(terminal);
@@ -262,6 +265,9 @@ describe("terminal frame plans", () => {
 		await renderScheduler.settle(terminal);
 
 		terminal.resize(30, 2);
+		// KEEP-FORK: fork's ghostty-web resize replay needs an extra settle round to commit
+		// (upstream wraps kitty-vt-wasm and settles after a single advance(160)).
+		await renderScheduler.advance(terminal, 160);
 		await renderScheduler.advance(terminal, 160);
 
 		const resized = plainBuffer(terminal);

@@ -590,6 +590,27 @@ Key ideas:
 - Keep interactive terminal-first UX for real coding work
 - Include practical built-ins (tools, sessions, branching, subagents, extensibility)
 - Make advanced behavior configurable rather than hidden
+### Upstream baseline & reconciliation
+
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `4854db856c`**, merged 2026-08-24. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+
+**Keep-fork** (preserved where the fork intentionally diverges):
+
+- storoslop rebrand and hosted capture assets
+- `1.1.5` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_1_5` native sentinel
+- `bun@1.3.14` + `@types/bun` pin
+- ghostty-web TUI engine
+- single-provider model registry
+- GitHub-release update flow (no npm / canary / `updateViaManager`)
+- fork CI and pruned test suite
+
+**Took-upstream** (adopted in full):
+
+- `bench-cli` messages refactor
+- `getAvailableForProviders` model-registry API
+- native `spelling` / `tty_writer` modules and regenerated bindings
+- `[profile.profiling]` Cargo profile
+- upstream doc/test deletions
 
 ---
 

@@ -30,6 +30,10 @@ Unless user tells you exactly what to write:
 - **Never comment on GitHub** (issues, PRs, discussions).
 - **Never create issues on GitHub**.
 
+## Upstream
+
+This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`4854db856c`**, merged alongside the fork's own `1.1.5` lineage on 2026-08-24 (branch `integrate/oh-my-pi-4854db85`, merge `23e8b216e0`). Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
+
 ## Code Quality
 
 - No `any` unless absolutely necessary.

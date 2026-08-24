@@ -41,7 +41,8 @@
     "@oh-my-pi/pi-utils": "catalog:"
   },
   "devDependencies": {
-    "ghostty-web": "catalog:"
+    "ghostty-web": "catalog:",
+    "kitty-vt-wasm": "catalog:"
   },
   "engines": {
     "bun": ">=1.3.14"

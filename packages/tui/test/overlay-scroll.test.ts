@@ -136,9 +136,11 @@ async function flushRender(term: VirtualTerminal): Promise<void> {
 	await term.flush();
 }
 
-// Resize frames use the alternate buffer until the 120 ms quiet window settles.
+// Resize frames use the alternate buffer until the quiet window settles. KEEP-FORK:
+// the fork's ghostty-web engine takes longer than the kitty-backed upstream to commit
+// its resize replay, so wait well past the 120 ms quiet window before restoring.
 async function settleResize(term: VirtualTerminal): Promise<void> {
-	await Bun.sleep(160);
+	await Bun.sleep(700);
 	await flushRender(term);
 }
 
@@ -266,7 +268,8 @@ describe("TUI overlays", () => {
 		term.resize(80, 10);
 		await settleResize(term);
 
-		// availHeight = 10 - 6 = 4 → overlay re-clamped to ov-0..ov-3.
+		// availHeight = 10 - 6 = 4 → overlay re-clamped to ov-0..ov-3. KEEP-FORK: the
+		// fork's ghostty-web engine re-clamps to the same ov-0..ov-3, just slower to settle.
 		expect(maxVisibleOverlayIndex()).toBeGreaterThanOrEqual(0);
 		expect(maxVisibleOverlayIndex()).toBeLessThan(10 - marginBottom);
 
