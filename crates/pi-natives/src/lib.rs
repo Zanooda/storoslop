@@ -47,6 +47,7 @@ pub mod pdf;
 pub mod sixel;
 pub mod snapcompact;
 pub mod utok;
+pub mod spelling;
 pub use pi_ast::language;
 
 pub mod power;
@@ -62,6 +63,7 @@ pub mod task;
 pub(crate) mod testing;
 pub mod text;
 pub mod tokens;
+pub mod tty_writer;
 pub(crate) mod utils;
 pub mod vectors;
 pub mod workspace;

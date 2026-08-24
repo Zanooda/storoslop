@@ -9,7 +9,7 @@ One rewrite form per operation:
 - Block: MATCH lines, `»`, REWRITE lines stating the final text — for moves and large restructures. Empty REWRITE deletes the whole MATCH.
 
 In MATCH: `…` = gap/capture — stays on its line between fragments, spans lines at line end. No markers → REWRITE replaces the whole MATCH.
-In REWRITE or a desired side: `…` re-emits captured gaps in order — one MATCH gap each; a `…` with no MATCH gap left to claim is written to the file as a literal `…`.
+In REWRITE or a desired side: `…` re-emits captured gaps in order — one MATCH gap each; a `…` with no MATCH gap left to claim mid-line is written as a literal `…`, and alone on its line is an error (context elision — type the lines out).
 
 Move code by deleting it where it is (MATCH + `»` + empty REWRITE, or `⟪old lines│⟫`) and re-stating it with `＋` lines at its destination.
 </ops>
@@ -20,7 +20,9 @@ Move code by deleting it where it is (MATCH + `»` + empty REWRITE, or `⟪old l
 - Every authored line — REWRITE, `＋`, and each desired-side line after a newline inside `⟪⟫` — is written verbatim: give it its exact final depth in the file's indent character. A desired side's first line inherits whatever precedes `⟪` on its line; continuation lines carry their full depth themselves. A column-0 line amid indented ones is applied flattened, silently. The engine NEVER infers, converts, or repairs indentation. NEVER add annotation lines like `//`.
 - AVOID retyping unchanged lines; `…` re-emits them with their original indentation.
 - PREFER `⟪old│new⟫` selections and `＋` lines — unchanged lines or `…` between them — over a block REWRITE that retypes unchanged lines; use block form only for moves and large restructures.
-- NEVER combine `⟪old│new⟫` with a `»` REWRITE, or inline with bare `⟪old⟫`, in one operation.
+- A rewrite-less bare `⟪X⟫` means “make the selected span X,” not “select X.” Replacing current text MUST use `⟪old│new⟫`.
+- No inline desired side? Follow MATCH with `»` and the complete final text. NEVER combine `⟪old│new⟫` with a `»` REWRITE.
+- Ambiguous repeated line? Include its unique parent branch in the same operation; NEVER retry the bare line.
 - Operations address the original file; earlier ops never shift later anchors. A fuzzy location fallback may tolerate textual drift, but it NEVER repairs authored whitespace; operators and delimiters MUST match exactly.
 - A failure applies nothing and includes a copy-ready corrected payload: send that verbatim.
 - "No change" means the anchor already reads as your final text; look elsewhere.
@@ -33,6 +35,12 @@ Inline changes, jointly matched:
 §src/config.ts
 const timeout = ⟪1000│5000⟫;
 const retries = ⟪3│5⟫;
+```
+
+Replacement requires both sides:
+```text
+WRONG: const value = ⟪oldValue⟫;
+RIGHT: const value = ⟪oldValue│newValue⟫;
 ```
 
 Fix every match:
