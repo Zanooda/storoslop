@@ -2127,21 +2127,6 @@ export const SETTINGS_SCHEMA = {
 			description: "Check for storoslop updates on startup",
 		},
 	},
-	"update.channel": {
-		type: "enum",
-		values: ["stable", "canary"] as const,
-		default: "stable",
-		ui: {
-			tab: "interaction",
-			group: "Startup & Updates",
-			label: "Update Channel",
-			description: "Update channel used by omp update and the startup update check",
-			options: [
-				{ value: "stable", label: "Stable" },
-				{ value: "canary", label: "Canary" },
-			],
-		},
-	},
 
 	"marketplace.autoUpdate": {
 		type: "enum",

@@ -58,10 +58,6 @@
 
 ## [18.0.2] - 2026-08-23
 
-### Added
-
-- Added update channels: `omp update --canary` installs canary prereleases from the npm `canary` dist-tag and `omp update --stable` switches back; the chosen channel persists and drives the startup update check.
-
 ### Changed
 
 - Unexpected Stops now offers None, Mechanical (default), and Smart modes; Smart adds small-model classification to recover text-only stops.
