@@ -216,4 +216,3 @@
 
 - Fixed frame rendering at archive chunk boundaries to reopen dim spans when a chunk ends inside a dimmed tool-result segment
 - Fixed message serialization to strip user- and assistant-provided dim markers so only renderer-generated dim spans can be applied
-
