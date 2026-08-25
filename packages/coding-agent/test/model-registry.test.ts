@@ -1726,6 +1726,26 @@ describe("ModelRegistry", () => {
 			expect(available.map(model => model.id)).toContain("deepseek-v4-flash");
 		});
 
+		test("bundled storoslop models are merged into an already-configured provider", () => {
+			// An upgraded install's models.yml predates the bundled qwen3.8 entry, so
+			// it only lists deepseek-v4-flash. The bundled models must surface anyway,
+			// without the user re-running `storoslop setup`.
+			const available = readonlyRegistry({
+				providers: {
+					storoslop: providerConfig(
+						"http://slop.storo.cloud:4000/v1",
+						[{ id: "deepseek-v4-flash" }],
+						"openai-completions",
+					),
+				},
+			}).getAvailable();
+			const qwen3 = available.find(model => model.id === "qwen3.8");
+			expect(qwen3).toBeDefined();
+			expect(qwen3?.provider).toBe("storoslop");
+			expect(qwen3?.contextWindow).toBe(262144);
+			expect(qwen3?.maxTokens).toBe(32768);
+		});
+
 		test("implicit local providers are not discovered (#addImplicitDiscoverableProviders is a no-op)", () => {
 			const original: Record<string, string | undefined> = {
 				OLLAMA_BASE_URL: Bun.env.OLLAMA_BASE_URL,

@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+### Added
+
+- Added the bundled `storoslop/qwen3.8` reasoning model (262K context, 32K output). Bundled storoslop models are now merged into an already-configured `models.yml` at read time, so upgraded installs pick up newly bundled models without re-running `storoslop setup`.
 
 ## [1.1.6] - 2026-08-24
 

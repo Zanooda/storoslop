@@ -2,6 +2,8 @@ import * as path from "node:path";
 import { extractPrintableText, matchesKey } from "@oh-my-pi/pi-tui";
 import { getAgentDir } from "@oh-my-pi/pi-utils";
 import { YAML } from "bun";
+import type { StoroslopModelsConfig, StoroslopProviderConfig } from "../../../config/storoslop-provider";
+import { STOROSLOP_PROVIDER, storoslopProvider } from "../../../config/storoslop-provider";
 import { theme } from "../../theme/theme";
 import type { SetupScene, SetupSceneController, SetupSceneHost } from "./types";
 
@@ -12,70 +14,6 @@ import type { SetupScene, SetupSceneController, SetupSceneHost } from "./types";
  * models, compat) is baked in here and persisted to the models config together
  * with the key.
  */
-
-const STOROSLOP_PROVIDER = "storoslop";
-const STOROSLOP_BASE_URL = "http://slop.storo.cloud:4000/v1";
-
-interface StoroslopModelDef {
-	id: string;
-	name: string;
-	reasoning: boolean;
-	supportsTools: boolean;
-	input: string[];
-	contextWindow: number;
-	maxTokens: number;
-	cost: {
-		input: number;
-		output: number;
-		cacheRead: number;
-		cacheWrite: number;
-	};
-	compat: {
-		reasoningContentField: string;
-		extraBody: Record<string, unknown>;
-	};
-}
-
-interface StoroslopProviderConfig {
-	baseUrl: string;
-	api: string;
-	apiKey: string;
-	models: StoroslopModelDef[];
-}
-
-interface StoroslopModelsConfig {
-	providers?: Record<string, StoroslopProviderConfig>;
-}
-
-/** The bundled storoslop provider/model definition, minus the API key. */
-export function storoslopProvider(apiKey: string): StoroslopProviderConfig {
-	return {
-		baseUrl: STOROSLOP_BASE_URL,
-		api: "openai-completions",
-		apiKey,
-		models: [
-			{
-				id: "deepseek-v4-flash",
-				name: "deepseek-v4-flash",
-				reasoning: true,
-				supportsTools: true,
-				input: ["text"],
-				contextWindow: 1048576,
-				maxTokens: 32768,
-				cost: { input: 0.22, output: 0.66, cacheRead: 0.007, cacheWrite: 0 },
-				compat: {
-					reasoningContentField: "reasoning",
-					extraBody: {
-						chat_template_kwargs: {
-							thinking: true,
-							reasoning_effort: "high",
-						},
-					},
-				},
-			},
-		],
-	};
-}
 
 /**
  * Persist the storoslop provider (with the given API key) into the models
