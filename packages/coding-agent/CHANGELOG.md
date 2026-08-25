@@ -4,12 +4,6 @@
 
 - Added the bundled `storoslop/qwen3.8` reasoning model (262K context, 32K output). Bundled storoslop models are now merged into an already-configured `models.yml` at read time, so upgraded installs pick up newly bundled models without re-running `storoslop setup`.
 
-## [1.1.6] - 2026-08-24
-
-### Changed
-
-- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `4854db856c` into the storoslop fork (2026-08-24, branch `integrate/oh-my-pi-4854db85`): upstream git TUI + `/git`, bash PTY support + terminal replay, extension inspector overhaul, parse-cache WAL eviction, and subagent artifact preservation now ship on the `1.1.5` fork lineage. Kept-fork deltas (storoslop rebrand, `1.1.5` version lineage, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry, GitHub-release update flow, fork CI) are preserved; see the README upstream-reconciliation notes.
-
 ## [18.0.4] - 2026-08-24
 
 ### Added
@@ -1505,5 +1499,11 @@
 ### Fixed
 
 - Fixed Portkey/gateway custom models whose ids start with `@` (e.g. `@modal/GLM-5-2-FP8`) being rewritten to unrelated bundled wire ids (e.g. `glm-5-2`), which caused `400` responses requiring `x-portkey-config` or `x-portkey-provider`.
+
+## [1.1.6] - 2026-08-24
+
+### Changed
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `4854db856c` into the storoslop fork (2026-08-24, branch `integrate/oh-my-pi-4854db85`): upstream git TUI + `/git`, bash PTY support + terminal replay, extension inspector overhaul, parse-cache WAL eviction, and subagent artifact preservation now ship on the `1.1.5` fork lineage. Kept-fork deltas (storoslop rebrand, `1.1.5` version lineage, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry, GitHub-release update flow, fork CI) are preserved; see the README upstream-reconciliation notes.
 
 Older entries are archived in [packages/coding-agent/CHANGELOG.md@49492ba14e76](https://github.com/can1357/oh-my-pi/blob/49492ba14e76b36853b2eb732f3137c6d47769d1/packages/coding-agent/CHANGELOG.md).

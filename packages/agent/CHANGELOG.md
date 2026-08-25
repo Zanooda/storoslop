@@ -2,12 +2,6 @@
 
 ## [Unreleased]
 
-## [1.1.6] - 2026-08-24
-
-### Fixed
-
-- Fixed agent identity confusion after session handoffs by clarifying context framing and ensuring successor instances seamlessly resume existing execution plans.
-
 ## [18.0.4] - 2026-08-24
 
 ### Changed
@@ -1278,6 +1272,12 @@
 ## [1.337.0] - 2026-01-02
 
 Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
+
+## [1.1.6] - 2026-08-24
+
+### Fixed
+
+- Fixed agent identity confusion after session handoffs by clarifying context framing and ensuring successor instances seamlessly resume existing execution plans.
 
 ## [1.1.3] - 2026-08-21
 
