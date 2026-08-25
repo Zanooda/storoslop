@@ -35,6 +35,10 @@ export function validateExplicitVersion(version: string): string | null {
 	return match ? match[1] : null;
 }
 
+function git(args: readonly string[]) {
+	return $`git -c core.fsmonitor=false -c core.untrackedCache=false -c fetch.pruneTags=false ${args}`;
+}
+
 // `gh` resolves its default repo from git config, which on a fork points at the
 // upstream (`can1357/oh-my-pi`), not the publish target — so the release's CI
 // watcher must scope every `gh run` call to the fork origin or it never sees the
