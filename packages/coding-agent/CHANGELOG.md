@@ -1,4 +1,14 @@
-# Changelog
+## [Unreleased]
+
+### Added
+
+- Added the bundled `storoslop/qwen3.8` reasoning model (262K context, 32K output). Bundled storoslop models are now merged into an already-configured `models.yml` at read time, so upgraded installs pick up newly bundled models without re-running `storoslop setup`.
+
+### Changed
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `b4e8e856` into the storoslop fork (2026-08-26, branch `integrate/oh-my-pi-b4e8e856`): foldable git TUI sidebar sections with persistent error status, conventional-commit generation with diff analysis, OpenRouter OAuth login, and the Yolo-Auto provider now ship on the `1.1.7` fork lineage. Kept-fork deltas (storoslop rebrand, `1.1.7` version lineage, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry, GitHub-release update flow, fork CI) are preserved; see the README upstream-reconciliation notes.
+
+## [18.0.6] - 2026-08-26
 
 ### Added
 

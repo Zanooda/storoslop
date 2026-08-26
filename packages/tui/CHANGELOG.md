@@ -1,6 +1,8 @@
-# Changelog
+### Changed
 
-## [Unreleased]
+- Git TUI sidebar sections now collapse and expand (with staged/unstaged staging shortcuts) and long streaming reasoning output continues into terminal scrollback; conventional-commit generation and foldable sections arrive from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
+
+## [18.0.6] - 2026-08-26
 
 ## [18.0.6] - 2026-08-26
 

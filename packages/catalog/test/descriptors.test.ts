@@ -38,7 +38,11 @@ describe("catalog provider descriptors", () => {
 		const deepinfra = PROVIDER_DESCRIPTORS.find(descriptor => descriptor.providerId === "deepinfra");
 		expect(deepinfra).toBeDefined();
 		expect(deepinfra?.defaultModel).toBe("deepseek-ai/DeepSeek-V4-Flash-0731");
-		expect(deepinfra?.catalogDiscovery).toEqual({ label: "DeepInfra", allowUnauthenticated: true, envVars: ["DEEPINFRA_API_KEY"] });
+		expect(deepinfra?.catalogDiscovery).toEqual({
+			label: "DeepInfra",
+			allowUnauthenticated: true,
+			envVars: ["DEEPINFRA_API_KEY"],
+		});
 		expect(DEFAULT_MODEL_PER_PROVIDER.deepinfra).toBe("deepseek-ai/DeepSeek-V4-Flash-0731");
 	});
 

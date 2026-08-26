@@ -1,6 +1,8 @@
-# Changelog
+### Added
 
-## [Unreleased]
+- Added OpenRouter OAuth login with automatic key provisioning, generic chat-template thinking support, and the Yolo-Auto provider /login flow from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
+
+## [18.0.6] - 2026-08-26
 
 ## [18.0.6] - 2026-08-26
 

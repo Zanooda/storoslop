@@ -542,7 +542,6 @@ describe("migrateRenamedInstall transaction", () => {
 		);
 		expect(calls).toEqual(["install", "removeOld", "verify", "install", "verify"]);
 	});
-
 });
 
 describe("update-cli bun install command", () => {
@@ -1187,7 +1186,6 @@ describe("update-cli script-shim takeover", () => {
 		const residue = (await fs.readdir(dir)).filter(name => name.endsWith(".bak") || name.endsWith(".new"));
 		expect(residue).toEqual([]);
 	});
-
 
 	it("restores the shims and removes the exe when the exe reports the wrong version", async () => {
 		const dir = await makeTempDir();

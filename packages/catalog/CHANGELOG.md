@@ -1,6 +1,6 @@
-# Changelog
+- Added the Yolo-Auto provider with curated metadata and live discovery from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
 
-## [Unreleased]
+## [18.0.5] - 2026-08-25
 
 ## [18.0.5] - 2026-08-25
 

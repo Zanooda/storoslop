@@ -592,7 +592,8 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `4854db856c`**, merged 2026-08-24. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `b4e8e856ad`**, merged 2026-08-26. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+- `1.1.7` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_1_7` native sentinel
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
