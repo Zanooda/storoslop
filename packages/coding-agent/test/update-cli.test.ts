@@ -16,6 +16,7 @@ import {
 	downloadVerifiedBinary,
 	isMuslLinuxForTest,
 	migrateRenamedInstall,
+	parseReportedVersion,
 	parseUpdateArgs,
 	pruneBunInstallCache,
 	type ReleaseInfo,
@@ -91,6 +92,17 @@ describe("update command plugin dispatch", () => {
 describe("parseUpdateArgs", () => {
 	it("preserves the legacy plugin update shorthand", () => {
 		expect(parseUpdateArgs(["update", "-l"])).toEqual({ force: false, check: false, plugins: true });
+	});
+});
+
+describe("parseReportedVersion", () => {
+	it("preserves the prerelease suffix so a canary launcher verifies as up to date", () => {
+		// Regression: dropping `-canary.1` made a correctly installed canary
+		// build look like a stale `X.Y.Z` launcher, triggering a binary repair
+		// that rejects the prerelease GitHub release.
+		expect(parseReportedVersion("omp/18.0.6-canary.1")).toBe("18.0.6-canary.1");
+		expect(parseReportedVersion("omp/18.0.5")).toBe("18.0.5");
+		expect(parseReportedVersion("not a version")).toBeUndefined();
 	});
 });
 
@@ -748,9 +760,12 @@ describe("update-cli release binary integrity", () => {
 		);
 	});
 
-	it("rejects release metadata that does not identify one exact stable asset", () => {
+	it("rejects a draft, a stable-channel prerelease, and metadata without one exact asset", () => {
+		expect(() => resolveReleaseBinaryAsset({ ...releaseAsset(), draft: true }, tag, binaryName)).toThrow(
+			"is a draft",
+		);
 		expect(() => resolveReleaseBinaryAsset({ ...releaseAsset(), prerelease: true }, tag, binaryName)).toThrow(
-			"is not a published stable release",
+			"is a prerelease",
 		);
 		expect(() => resolveReleaseBinaryAsset({ ...releaseAsset(), assets: [] }, tag, binaryName)).toThrow(
 			`has 0 assets named ${binaryName}`,
@@ -769,6 +784,18 @@ describe("update-cli release binary integrity", () => {
 				binaryName,
 			),
 		).toThrow("has an unexpected download URL");
+	});
+
+	it("installs a prerelease asset only when a canary update permits it", () => {
+		// Canary GitHub releases are marked prerelease; a canary update passes
+		// allowPrerelease so its exact-tag asset installs, while a draft stays
+		// rejected even then.
+		expect(
+			resolveReleaseBinaryAsset({ ...releaseAsset(), prerelease: true }, tag, binaryName, { allowPrerelease: true }),
+		).toEqual({ url, size: Buffer.byteLength(content), digest });
+		expect(() =>
+			resolveReleaseBinaryAsset({ ...releaseAsset(), draft: true }, tag, binaryName, { allowPrerelease: true }),
+		).toThrow("is a draft");
 	});
 
 	it("writes a download only after its size and digest match", async () => {
@@ -1099,7 +1126,7 @@ describe("update-cli script-shim takeover", () => {
 	const binaryName = "storoslop-windows-x64.exe";
 	const url = `https://github.com/Zanooda/storoslop/releases/download/v${version}/${binaryName}`;
 
-	function makeFetch(content: string): (input: string | URL | Request) => Promise<Response> {
+	function makeFetch(content: string, prerelease = false): (input: string | URL | Request) => Promise<Response> {
 		const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
 		return async (input: string | URL | Request): Promise<Response> => {
 			const requestUrl = String(input);
@@ -1108,7 +1135,7 @@ describe("update-cli script-shim takeover", () => {
 					JSON.stringify({
 						tag_name: `v${version}`,
 						draft: false,
-						prerelease: false,
+						prerelease,
 						assets: [
 							{
 								name: binaryName,
