@@ -4977,11 +4977,7 @@ dependencies = [
 
 [[package]]
 name = "pi-ast"
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 dependencies = [
  "anyhow",
  "ast-grep-core",
@@ -5051,11 +5047,7 @@ dependencies = [
 
 [[package]]
 name = "pi-builtins"
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 dependencies = [
  "ansi-width",
  "anyhow",
@@ -5142,11 +5134,7 @@ dependencies = [
 
 [[package]]
 name = "pi-iso"
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 dependencies = [
  "async-trait",
  "libc",
@@ -5158,11 +5146,7 @@ dependencies = [
 
 [[package]]
 name = "pi-natives"
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 dependencies = [
  "anyhow",
  "arboard",
@@ -5238,11 +5222,7 @@ dependencies = [
 
 [[package]]
 name = "pi-shell"
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 dependencies = [
  "anyhow",
  "brush-core",
@@ -5270,11 +5250,7 @@ dependencies = [
 
 [[package]]
 name = "pi-voice"
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 dependencies = [
  "audiopus_sys",
  "bytes",
@@ -5289,11 +5265,7 @@ dependencies = [
 
 [[package]]
 name = "pi-walker"
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 dependencies = [
  "dashmap",
  "globset",

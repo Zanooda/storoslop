@@ -644,9 +644,6 @@ export class InteractiveMode implements InteractiveModeContext {
 	#nextAppearanceRequestToken = 1;
 	#appearanceRefreshRequest: { token: TerminalAppearanceRequestToken; deadline: number } | undefined;
 	todoPhases: TodoPhase[] = [];
-<<<<<<< HEAD
-	hideThinkingBlock = true;
-=======
 	/**
 	 * Session that owns the plan currently in {@link todoPhases}. Subagent
 	 * reconciliation persists back to this session — never blindly to
@@ -656,8 +653,7 @@ export class InteractiveMode implements InteractiveModeContext {
 	 * destination's canonical todos (#9575 review).
 	 */
 	#todoPhasesOwner?: AgentSession;
-	hideThinkingBlock = false;
->>>>>>> upstream/main
+	hideThinkingBlock = true;
 	#sessionsWithDisplayableThinkingContent = new WeakSet<AgentSession>();
 	/** Whether the visible session has produced thinking content the user can reveal. */
 	get hasDisplayableThinkingContent(): boolean {

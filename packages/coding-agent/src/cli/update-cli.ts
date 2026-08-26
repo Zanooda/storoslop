@@ -1404,11 +1404,7 @@ export async function migrateRenamedInstall(release: ReleaseInfo, steps: RenameM
 	}
 	if (!verification.ok) {
 		throw new Error(
-<<<<<<< HEAD
 			`${formatVerificationFailure(verification, release.version)}; reinstall with: curl -fsSL https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.sh | sh`,
-=======
-			`${formatVerificationFailure(verification, release.version)}; reinstall with: ${installerHint()}`,
->>>>>>> upstream/main
 		);
 	}
 	printVerifiedVersion(release.version);
@@ -1451,111 +1447,7 @@ async function updateViaNpm(release: ReleaseInfo): Promise<void> {
 		throw new Error(`npm install failed with exit code ${result.exitCode}`);
 	}
 
-<<<<<<< HEAD
 	await printVerification(release.version);
-=======
-	return await verifyInstalledVersion(release.version);
-}
-/** Injectable steps for {@link updateViaManager}; mirrors {@link RenameMigrationSteps}. */
-export interface ManagerUpdateSteps {
-	/** Manager name used in progress and recovery messages. */
-	manager: string;
-	/**
-	 * Run the manager's global install. Resolves to the PATH-resolved launcher
-	 * check, or `undefined` when a rename migration already verified and
-	 * reported its own result.
-	 */
-	install(): Promise<InstalledVersionVerification | undefined>;
-	/** Re-check the PATH-resolved launcher after the install threw. */
-	verify(): Promise<InstalledVersionVerification>;
-	/** Take `launcherPath` over with the standalone release binary. */
-	repair(launcherPath: string): Promise<void>;
-}
-
-/** Production {@link ManagerUpdateSteps}: a bun/npm global install plus an in-place binary takeover. */
-function packageManagerUpdateSteps(
-	manager: "bun" | "npm",
-	release: ReleaseInfo,
-	allowPrerelease: boolean,
-): ManagerUpdateSteps {
-	return {
-		manager,
-		install: () => (manager === "bun" ? updateViaBun(release) : updateViaNpm(release)),
-		verify: () => verifyInstalledVersion(release.version),
-		repair: async launcherPath => {
-			// npm's script shims outrank `.exe` in PowerShell and Git Bash, so
-			// they must be retired rather than merely shadowed.
-			if (isWindowsScriptLauncherPath(launcherPath)) {
-				await updateViaShimTakeover(launcherPath, release.version, { allowPrerelease });
-			} else {
-				await updateViaBinaryAt(launcherPath, release.version, { allowPrerelease });
-			}
-		},
-	};
-}
-
-/**
- * Run a package-manager self-update, repairing the launcher when the manager
- * succeeds without updating it or leaves no working launcher behind.
- *
- * A global reinstall has to replace files the running process still holds open.
- * On Windows that is unavoidable — the launcher image, the loaded native addon,
- * and the package tree being executed are all locked. Bun writes the new
- * `.bunx` metadata before ignoring EBUSY from the launcher replacement, while
- * npm can retire its shims before an install fails.
- *
- * A successful install whose PATH launcher still reports an older version
- * means the manager no longer controls that launcher, so it is taken over with
- * the standalone binary. A newer launcher may have been installed by a
- * concurrent update and is left untouched. If the install itself failed, a
- * launcher that still reports a version is preserved and the manager error is
- * surfaced; only a missing or unusable launcher is repaired.
- */
-export async function updateViaManager(
-	release: ReleaseInfo,
-	launcherPath: string | undefined,
-	steps: ManagerUpdateSteps,
-): Promise<void> {
-	let installError: unknown;
-	let verification: InstalledVersionVerification | undefined;
-	try {
-		verification = await steps.install();
-		// A rename migration verifies and reports on its own.
-		if (!verification) return;
-	} catch (err) {
-		installError = err;
-	}
-	const result = verification ?? (await steps.verify());
-	const launcherIsBroken = result.path === undefined || result.actual === undefined;
-	const launcherIsOlder =
-		installError === undefined && result.actual !== undefined && compareVersions(result.actual, release.version) < 0;
-	const launcherNeedsRepair = !result.ok && (launcherIsBroken || launcherIsOlder);
-	if (!launcherNeedsRepair) {
-		if (installError) throw installError;
-		printVerificationResult(result, release.version);
-		return;
-	}
-	if (!launcherPath) {
-		throw installError ?? new Error(formatVerificationFailure(result, release.version));
-	}
-	console.log(
-		chalk.yellow(
-			`\n${steps.manager} did not install a working ${APP_NAME} ${release.version} launcher (${formatVerificationFailure(result, release.version)}); installing the standalone binary at ${launcherPath}.`,
-		),
-	);
-	try {
-		await steps.repair(launcherPath);
-	} catch (err) {
-		throw new Error(`${steps.manager} update did not produce a working launcher and binary repair failed: ${err}`, {
-			cause: installError ?? err,
-		});
-	}
-	console.log(
-		chalk.yellow(
-			`This install is no longer managed by ${steps.manager}. Removing the old global package may delete this launcher; if it does, reinstall with: ${installerHint()}`,
-		),
-	);
->>>>>>> upstream/main
 }
 
 async function updateViaHomebrew(expectedVersion: string, force: boolean): Promise<void> {
@@ -1856,7 +1748,7 @@ export async function runUpdateCommand(opts: { force: boolean; check: boolean })
 	// same PATH entry live.
 	try {
 		const forceBinary = shouldForceBinaryUpdate(release);
-		const allowPrerelease = channel === "canary";
+		const allowPrerelease = false;
 		const target = await resolveUpdateTarget({ allowPackageManagers: !forceBinary });
 		if (target.method === "nix") {
 			console.log(chalk.yellow("This installation is managed by Nix and cannot update itself."));
@@ -1881,15 +1773,7 @@ export async function runUpdateCommand(opts: { force: boolean; check: boolean })
 			} else if (target.method === "bun") {
 				await updateViaBun(release);
 			} else {
-<<<<<<< HEAD
 				await updateViaNpm(release);
-=======
-				await updateViaManager(
-					release,
-					target.path,
-					packageManagerUpdateSteps(target.method, release, allowPrerelease),
-				);
->>>>>>> upstream/main
 			}
 		} else {
 			if (forceBinary && target.replacesSymlink) {

@@ -16,11 +16,7 @@ members = [
 resolver = "3"
 
 [workspace.package]
-<<<<<<< HEAD
 version = "1.1.7"
-=======
-version = "18.0.6"
->>>>>>> upstream/main
 edition = "2024"
 license = "MIT"
 authors = ["Stencil Labs, Inc."]

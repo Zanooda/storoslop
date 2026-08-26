@@ -21,11 +21,7 @@
     },
     "packages/agent": {
       "name": "@oh-my-pi/pi-agent-core",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "dependencies": {
         "@oh-my-pi/pi-ai": "catalog:",
         "@oh-my-pi/pi-catalog": "catalog:",
@@ -44,11 +40,7 @@
     },
     "packages/ai": {
       "name": "@oh-my-pi/pi-ai",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "dependencies": {
         "@oh-my-pi/omptype": "catalog:",
         "@oh-my-pi/pi-catalog": "catalog:",
@@ -69,11 +61,7 @@
     },
     "packages/catalog": {
       "name": "@oh-my-pi/pi-catalog",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "dependencies": {
         "@oh-my-pi/omptype": "catalog:",
         "@oh-my-pi/pi-utils": "catalog:",
@@ -85,11 +73,7 @@
     },
     "packages/coding-agent": {
       "name": "@oh-my-pi/pi-coding-agent",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "bin": {
         "storoslop": "src/cli.ts",
       },
@@ -146,11 +130,7 @@
     },
     "packages/hashline": {
       "name": "@oh-my-pi/hashline",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "dependencies": {
         "@oh-my-pi/pi-natives": "catalog:",
         "@oh-my-pi/pi-utils": "catalog:",
@@ -194,11 +174,7 @@
     },
     "packages/mnemopi": {
       "name": "@oh-my-pi/pi-mnemopi",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "bin": {
         "mnemopi": "src/cli.ts",
       },
@@ -224,11 +200,7 @@
     },
     "packages/natives": {
       "name": "@oh-my-pi/pi-natives",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "devDependencies": {
         "@napi-rs/cli": "catalog:",
         "@types/bun": "catalog:",
@@ -243,11 +215,7 @@
     },
     "packages/omptype": {
       "name": "@oh-my-pi/omptype",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "devDependencies": {
         "@ark/attest": "0.56.3",
         "@ark/schema": "0.56.2",
@@ -260,11 +228,7 @@
     },
     "packages/snapcompact": {
       "name": "@oh-my-pi/snapcompact",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "dependencies": {
         "@oh-my-pi/pi-ai": "catalog:",
         "@oh-my-pi/pi-catalog": "catalog:",
@@ -278,11 +242,7 @@
     },
     "packages/stats": {
       "name": "@oh-my-pi/omp-stats",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "bin": {
         "omp-stats": "./src/index.ts",
       },
@@ -307,11 +267,7 @@
     },
     "packages/tui": {
       "name": "@oh-my-pi/pi-tui",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "dependencies": {
         "@oh-my-pi/pi-natives": "catalog:",
         "@oh-my-pi/pi-utils": "catalog:",
@@ -348,11 +304,7 @@
     },
     "packages/utils": {
       "name": "@oh-my-pi/pi-utils",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "dependencies": {
         "@oh-my-pi/pi-natives": "catalog:",
       },
@@ -362,11 +314,7 @@
     },
     "packages/wire": {
       "name": "@oh-my-pi/pi-wire",
-<<<<<<< HEAD
       "version": "1.1.7",
-=======
-      "version": "18.0.6",
->>>>>>> upstream/main
       "devDependencies": {
         "@types/bun": "catalog:",
       },
@@ -402,7 +350,6 @@
     "@biomejs/biome": "^2.5.3",
     "@huggingface/transformers": "^4.2.0",
     "@napi-rs/cli": "3.7.2",
-<<<<<<< HEAD
     "@oh-my-pi/hashline": "1.1.7",
     "@oh-my-pi/omp-stats": "1.1.7",
     "@oh-my-pi/omptype": "1.1.7",
@@ -416,21 +363,6 @@
     "@oh-my-pi/pi-utils": "1.1.7",
     "@oh-my-pi/pi-wire": "1.1.7",
     "@oh-my-pi/snapcompact": "1.1.7",
-=======
-    "@oh-my-pi/hashline": "18.0.6",
-    "@oh-my-pi/omp-stats": "18.0.6",
-    "@oh-my-pi/omptype": "18.0.6",
-    "@oh-my-pi/pi-agent-core": "18.0.6",
-    "@oh-my-pi/pi-ai": "18.0.6",
-    "@oh-my-pi/pi-catalog": "18.0.6",
-    "@oh-my-pi/pi-coding-agent": "18.0.6",
-    "@oh-my-pi/pi-mnemopi": "18.0.6",
-    "@oh-my-pi/pi-natives": "18.0.6",
-    "@oh-my-pi/pi-tui": "18.0.6",
-    "@oh-my-pi/pi-utils": "18.0.6",
-    "@oh-my-pi/pi-wire": "18.0.6",
-    "@oh-my-pi/snapcompact": "18.0.6",
->>>>>>> upstream/main
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.220.0",
     "@opentelemetry/context-async-hooks": "^2.9.0",

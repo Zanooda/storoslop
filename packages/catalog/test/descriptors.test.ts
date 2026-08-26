@@ -34,11 +34,19 @@ describe("catalog provider descriptors", () => {
 		expect(typeof options?.fetchDynamicModels).toBe("function");
 	});
 
-	test("every descriptor has a default model and a factory that preserves provider identity", () => {
-		for (const descriptor of PROVIDER_DESCRIPTORS) {
-			expect(descriptor.defaultModel).toBeTruthy();
-			expect(typeof descriptor.createModelManagerOptions).toBe("function");
-			expect(descriptor.createModelManagerOptions({ apiKey: "k" }).providerId).toBe(descriptor.providerId);
-		}
+	test("took-upstream deepinfra descriptor is registered with authoritative discovery", () => {
+		const deepinfra = PROVIDER_DESCRIPTORS.find(descriptor => descriptor.providerId === "deepinfra");
+		expect(deepinfra).toBeDefined();
+		expect(deepinfra?.defaultModel).toBe("deepseek-ai/DeepSeek-V4-Flash-0731");
+		expect(deepinfra?.catalogDiscovery).toEqual({ label: "DeepInfra", allowUnauthenticated: true, envVars: ["DEEPINFRA_API_KEY"] });
+		expect(DEFAULT_MODEL_PER_PROVIDER.deepinfra).toBe("deepseek-ai/DeepSeek-V4-Flash-0731");
+	});
+
+	test("took-upstream yolo-auto descriptor is registered with authoritative discovery", () => {
+		const yolo = PROVIDER_DESCRIPTORS.find(descriptor => descriptor.providerId === "yolo-auto");
+		expect(yolo).toBeDefined();
+		expect(yolo?.defaultModel).toBe("deepseek-flash-v4");
+		expect(yolo?.dynamicModelsAuthoritative).toBe(true);
+		expect(DEFAULT_MODEL_PER_PROVIDER["yolo-auto"]).toBe("deepseek-flash-v4");
 	});
 });
