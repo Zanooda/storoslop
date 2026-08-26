@@ -1,7 +1,11 @@
 {
   "type": "module",
   "name": "@oh-my-pi/pi-catalog",
+<<<<<<< HEAD
   "version": "1.1.7",
+=======
+  "version": "18.0.6",
+>>>>>>> upstream/main
   "description": "Model catalog for omp: bundled model database, provider discovery descriptors, model identity, classification, and equivalence",
   "homepage": "https://omp.sh",
   "author": "Stencil Labs, Inc.",

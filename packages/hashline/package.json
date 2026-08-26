@@ -1,7 +1,11 @@
 {
   "type": "module",
   "name": "@oh-my-pi/hashline",
+<<<<<<< HEAD
   "version": "1.1.7",
+=======
+  "version": "18.0.6",
+>>>>>>> upstream/main
   "description": "Hashline: a compact, line-anchored patch language and applier. Pluggable FS/IO so it works over disk, in-memory, or any custom backend.",
   "homepage": "https://omp.sh",
   "author": "Stencil Labs, Inc.",

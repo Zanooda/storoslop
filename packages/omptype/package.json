@@ -1,7 +1,11 @@
 {
   "type": "module",
   "name": "@oh-my-pi/omptype",
+<<<<<<< HEAD
   "version": "1.1.7",
+=======
+  "version": "18.0.6",
+>>>>>>> upstream/main
   "description": "ArkType-compatible runtime schema validation with lazy JIT compilation",
   "homepage": "https://omp.sh",
   "author": "Stencil Labs, Inc.",
