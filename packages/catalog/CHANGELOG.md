@@ -1,9 +1,3 @@
-## [1.2.0] - 2026-08-31
-
-### Added
-
-- Merged upstream `65f79e76`: KDL compat rule tree (`src/compat/rules/`) with compiled `rules.json`, the native `cline-pass` provider, `discovery.injectV1` for `openai-models-list`, and the Yolo-Auto provider (from the earlier `b4e8e856` integration) — on the `1.1.7` fork lineage.
-
 ## [18.0.11] - 2026-08-29
 
 ### Fixed
@@ -1300,6 +1294,12 @@
 ### Removed
 
 - Removed the runtime enrichment layer: `enrichModelThinking` (and its non-enumerable memo-slot cache), `refreshModelThinking`, `modelOmitsReasoningEffort`, and the `model-thinking` re-exports of generator-only policies. Thinking metadata is resolved exactly once inside `buildModel`; runtime helpers (`getSupportedEfforts`, `clampThinkingLevelForModel`, `requireSupportedEffort`, the effort mappers) are pure field reads.
+
+## [1.2.0] - 2026-08-31
+
+### Added
+
+- Merged upstream `65f79e76`: KDL compat rule tree (`src/compat/rules/`) with compiled `rules.json`, the native `cline-pass` provider, `discovery.injectV1` for `openai-models-list`, and the Yolo-Auto provider (from the earlier `b4e8e856` integration) — on the `1.1.7` fork lineage.
 
 ## [1.1.3] - 2026-08-21
 

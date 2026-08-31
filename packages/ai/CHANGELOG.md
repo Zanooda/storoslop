@@ -1,10 +1,3 @@
-## [1.2.0] - 2026-08-31
-
-### Added
-
-- Merged upstream `65f79e76`: provider compat opt-outs resolved from the KDL rule tree, shared Responses reasoning-summary gating, the native `cline-pass` provider surface (API-key login, live discovery, inference semantics, quota usage), z.ai OAuth on the registered `9999` callback port, and reasoning-summary/context-management wire axes — on the `1.1.7` fork lineage.
-- Added OpenRouter OAuth login with automatic key provisioning, generic chat-template thinking support, and the Yolo-Auto provider /login flow from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
-
 ## [18.0.11] - 2026-08-29
 
 ### Fixed
@@ -2059,5 +2052,12 @@
 ### Removed
 
 - Removed the dead `iterateUntilAbort` helper (superseded by `iterateWithIdleTimeout`); it leaked the upstream iterator when the consumer abandoned mid-yield and had no production call sites.
+
+## [1.2.0] - 2026-08-31
+
+### Added
+
+- Merged upstream `65f79e76`: provider compat opt-outs resolved from the KDL rule tree, shared Responses reasoning-summary gating, the native `cline-pass` provider surface (API-key login, live discovery, inference semantics, quota usage), z.ai OAuth on the registered `9999` callback port, and reasoning-summary/context-management wire axes — on the `1.1.7` fork lineage.
+- Added OpenRouter OAuth login with automatic key provisioning, generic chat-template thinking support, and the Yolo-Auto provider /login flow from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
 
 Older entries are archived in [packages/ai/CHANGELOG.md@23e8b216e0a6](https://github.com/can1357/oh-my-pi/blob/23e8b216e0a6a34d10e1318d87ac9c6494be4787/packages/ai/CHANGELOG.md).

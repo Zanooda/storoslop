@@ -2,14 +2,6 @@
 
 - Git TUI sidebar sections now collapse and expand (with staged/unstaged staging shortcuts) and long streaming reasoning output continues into terminal scrollback; conventional-commit generation and foldable sections arrive from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
 
-## [1.2.0] - 2026-08-31
-
-### Fixed
-
-- Fixed graceful shutdown so finalized output is correctly retired before handing control back to the shell.
-- Fixed terminal scrollback corruption during shutdown, tmux pane zoom and resize, and destructive screen resets, preventing duplicated frames, lost history, and stale transcript re-streaming.
-- Fixed streaming Markdown rendering at chunk boundaries to preserve CommonMark emphasis behavior for Unicode text and correctly recognize GFM tables as they are completed.
-
 ## [18.0.11] - 2026-08-29
 
 ### Added
@@ -2200,6 +2192,14 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 ### Added
 
 - Added `getText()` method to Text component for retrieving current text content
+
+## [1.2.0] - 2026-08-31
+
+### Fixed
+
+- Fixed graceful shutdown so finalized output is correctly retired before handing control back to the shell.
+- Fixed terminal scrollback corruption during shutdown, tmux pane zoom and resize, and destructive screen resets, preventing duplicated frames, lost history, and stale transcript re-streaming.
+- Fixed streaming Markdown rendering at chunk boundaries to preserve CommonMark emphasis behavior for Unicode text and correctly recognize GFM tables as they are completed.
 
 ## [1.1.3] - 2026-08-21
 

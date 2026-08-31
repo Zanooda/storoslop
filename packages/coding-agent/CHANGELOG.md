@@ -1,4 +1,4 @@
-## [Unreleased]
+## [1.2.1] - 2026-08-31
 
 ### Added
 
@@ -7,13 +7,6 @@
 ### Removed
 
 - Removed the orphaned `prompts/ponytail/AGENTS.md` file; the Ponytail guidance lives only in the system-prompt template.
-
-## [1.2.0] - 2026-08-31
-
-### Added
-
-- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `65f79e76` into the storoslop fork (2026-08-31, branch `integrate/oh-my-pi-65f79e76`): the KDL compat taxonomy (`bun run gen:compat`), the native `pi-vcs` crate behind `@oh-my-pi/pi-natives/vcs` (in-process git/jj replacing `utils/git.ts`/`utils/jj.ts`), the native `cline-pass` provider, V2 streaming Responses compaction, PR-checkout worktrees via vcs natives, and the PTY bridge backpressure rework now ship on the `1.1.7` fork lineage. Kept-fork deltas (storoslop rebrand, `1.1.7` version lineage, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry, GitHub-release update flow, fork CI) are preserved; see the README upstream-reconciliation notes.
-- The prior integration's `b4e8e856` entry (foldable git TUI sidebar sections, conventional-commit diff analysis, OpenRouter OAuth login, Yolo-Auto provider) ships in the same release train.
 
 ## [18.0.11] - 2026-08-29
 
@@ -1679,5 +1672,12 @@
 - Fixed spilled tool-output artifact descriptors leaking on error/abort paths. `OutputSink.dump()` was the only path that closed the spill `Bun.FileSink`, but the bash and Python executors re-throw on failure and their `finally` blocks never closed the sink, so a large-output command that errored leaked the artifact descriptor until an unrelated read (e.g. a `SKILL.md` load) hit `EMFILE`. `OutputSink` now exposes an idempotent `dispose()` that closes the sink exactly once, wired into every executor's `finally` ([#6463](https://github.com/can1357/oh-my-pi/issues/6463)).
 - Fixed the first submitted prompt stalling while the local tiny-title worker started: the interactive submit handler now paints the pending user row before starting title generation, and startup prewarms an idle, unref'd worker so the first submit reuses a live subprocess instead of paying spawn latency ahead of the first frame ([#6462](https://github.com/can1357/oh-my-pi/issues/6462)).
 - Fixed legacy Pi extensions failing validation when importing the upstream `keyText` keybinding helper ([#6470](https://github.com/can1357/oh-my-pi/issues/6470)).
+
+## [1.2.0] - 2026-08-31
+
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `65f79e76` into the storoslop fork (2026-08-31, branch `integrate/oh-my-pi-65f79e76`): the KDL compat taxonomy (`bun run gen:compat`), the native `pi-vcs` crate behind `@oh-my-pi/pi-natives/vcs` (in-process git/jj replacing `utils/git.ts`/`utils/jj.ts`), the native `cline-pass` provider, V2 streaming Responses compaction, PR-checkout worktrees via vcs natives, and the PTY bridge backpressure rework now ship on the `1.1.7` fork lineage. Kept-fork deltas (storoslop rebrand, `1.1.7` version lineage, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry, GitHub-release update flow, fork CI) are preserved; see the README upstream-reconciliation notes.
+- The prior integration's `b4e8e856` entry (foldable git TUI sidebar sections, conventional-commit diff analysis, OpenRouter OAuth login, Yolo-Auto provider) ships in the same release train.
 
 Older entries are archived in [packages/coding-agent/CHANGELOG.md@77b40f367508](https://github.com/can1357/oh-my-pi/blob/77b40f36750839e1a6d057d5d83e04ce642cc462/packages/coding-agent/CHANGELOG.md).

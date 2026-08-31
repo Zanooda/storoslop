@@ -2,12 +2,6 @@
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-08-31
-
-### Added
-
-- Merged upstream `65f79e76`: runtime-install hardening tests, postmortem/ptree test coverage, and worktree-directory resolution helpers (`getWorktreesDir` with `OMP_WORKTREE_DIR` / override / XDG data-root fallback) — on the `1.1.7` fork lineage.
-
 ## [18.0.11] - 2026-08-29
 
 ### Fixed
@@ -582,6 +576,12 @@
 ### Added
 
 - Added an XDG-aware tiny-title model cache directory helper for coding-agent local title models.
+
+## [1.2.0] - 2026-08-31
+
+### Added
+
+- Merged upstream `65f79e76`: runtime-install hardening tests, postmortem/ptree test coverage, and worktree-directory resolution helpers (`getWorktreesDir` with `OMP_WORKTREE_DIR` / override / XDG data-root fallback) — on the `1.1.7` fork lineage.
 
 ## [1.1.3] - 2026-08-21
 
