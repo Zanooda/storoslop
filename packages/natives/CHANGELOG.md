@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Merged upstream `65f79e76`: new in-process VCS surface (`VcsGitRepo`, `VcsJjWorkspace`, `VcsRepo`, `vcsDiscover`/`vcsGitDiscover`/`vcsGitClone`/patch application) exposed via the `@oh-my-pi/pi-natives/vcs` subpath, backed by the new `pi-vcs` Rust crate. PTY bridge reworked for reader→JS backpressure (64-chunk queue, pump task) and stuck-slave drain handling.
+
 ## [18.0.11] - 2026-08-29
 
 ### Fixed

@@ -1,4 +1,8 @@
-- Added the Yolo-Auto provider with curated metadata and live discovery from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
+## [Unreleased]
+
+### Added
+
+- Merged upstream `65f79e76`: KDL compat rule tree (`src/compat/rules/`) with compiled `rules.json`, the native `cline-pass` provider, `discovery.injectV1` for `openai-models-list`, and the Yolo-Auto provider (from the earlier `b4e8e856` integration) — on the `1.1.7` fork lineage.
 
 ## [18.0.5] - 2026-08-25
 

@@ -1,5 +1,8 @@
+## [Unreleased]
+
 ### Added
 
+- Merged upstream `65f79e76`: provider compat opt-outs resolved from the KDL rule tree, shared Responses reasoning-summary gating, the native `cline-pass` provider surface (API-key login, live discovery, inference semantics, quota usage), z.ai OAuth on the registered `9999` callback port, and reasoning-summary/context-management wire axes — on the `1.1.7` fork lineage.
 - Added OpenRouter OAuth login with automatic key provisioning, generic chat-template thinking support, and the Yolo-Auto provider /login flow from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
 
 ## [18.0.6] - 2026-08-26
