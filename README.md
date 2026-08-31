@@ -592,26 +592,28 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `b4e8e856ad`**, merged 2026-08-26. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `65f79e76fc`**, merged 2026-08-31. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 - `1.1.7` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_1_7` native sentinel
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.1.5` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_1_5` native sentinel
+- `1.1.7` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_1_7` native sentinel
 - `bun@1.3.14` + `@types/bun` pin
 - ghostty-web TUI engine
-- single-provider model registry
-- GitHub-release update flow (no npm / canary / `updateViaManager`)
-- fork CI and pruned test suite
+- single-provider model registry with bundled storoslop models merged at read time
+- GitHub-release update flow (binary-only installer; no npm / canary / `updateViaManager`)
+- fork CI (pruned clippy scope, binary release pipeline) and pruned test suite
+- terminal title brand `S` and welcome-surface logo/gradient art
 
 **Took-upstream** (adopted in full):
 
-- `bench-cli` messages refactor
-- `getAvailableForProviders` model-registry API
-- native `spelling` / `tty_writer` modules and regenerated bindings
-- `[profile.profiling]` Cargo profile
-- upstream doc/test deletions
+- KDL compat taxonomy (`packages/catalog/src/compat/rules/` + compiled `rules.json`, `bun run gen:compat`)
+- native `pi-vcs` crate and `pi-natives` `vcs` module (`VcsGitRepo`/`VcsJjWorkspace`/`VcsRepo`), with `utils/git.ts`/`utils/jj.ts` replaced by `utils/github.ts` + vcs natives
+- `cline-pass` provider, `discovery.injectV1` openai-models-list option
+- V2 streaming Responses compaction and V1 `/responses/compact` fallback chain
+- `ompPr*` worktree metadata keys via vcs natives; z.ai OAuth callback port `9999`
+- PTY bridge backpressure rework and `katex` catalog entry for collab-web
 
 ---
 
