@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-31
+
 ### Added
 
 - Added compat-compiler CLI to manage model identity and capability rules via KDL configuration files

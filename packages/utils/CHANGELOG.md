@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-31
+
 ### Added
 
 - Merged upstream `65f79e76`: runtime-install hardening tests, postmortem/ptree test coverage, and worktree-directory resolution helpers (`getWorktreesDir` with `OMP_WORKTREE_DIR` / override / XDG data-root fallback) — on the `1.1.7` fork lineage.
