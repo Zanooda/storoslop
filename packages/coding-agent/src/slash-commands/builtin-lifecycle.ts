@@ -534,7 +534,10 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 						runtime,
 					);
 				default:
-					return usage("Usage: /memory-backend <view|stats|diagnose|clear|reset|enqueue|rebuild|queue|sync>", runtime);
+					return usage(
+						"Usage: /memory-backend <view|stats|diagnose|clear|reset|enqueue|rebuild|queue|sync>",
+						runtime,
+					);
 			}
 		},
 		handleTui: async (command, runtime) => {

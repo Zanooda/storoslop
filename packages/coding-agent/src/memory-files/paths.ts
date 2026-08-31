@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { remote as gitRemote, repo as gitRepo } from "../utils/git";
+import * as vcs from "@oh-my-pi/pi-natives/vcs";
 
 /**
  * Root of the file-based (Claude-Code-style) memory.
@@ -53,9 +53,10 @@ export function projectMemoryPath(key: ProjectKey, env?: NodeJS.ProcessEnv): str
  */
 export async function deriveProjectKey(cwd: string): Promise<ProjectKey> {
 	try {
-		const root = await gitRepo.root(cwd);
-		if (root) {
-			const origin = await gitRemote.url(cwd, "origin");
+		const repository = vcs.git(cwd);
+		if (repository) {
+			const root = (await repository.info()).repoRoot;
+			const origin = (await repository.remoteUrl("origin")) ?? undefined;
 			const parsed = parseGitHubSlug(origin);
 			if (parsed) return parsed;
 			return { owner: "_local", repo: `bypath-${shortHash(root)}` };

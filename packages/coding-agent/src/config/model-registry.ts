@@ -2122,7 +2122,7 @@ export class ModelRegistry {
 					providerName,
 					providerConfig.baseUrl!,
 					providerConfig.api as Api | undefined,
-					providerConfig.headers,
+					resolvedProviderHeaders,
 					providerConfig.apiKey,
 					providerConfig.authHeader,
 					providerCompat,
