@@ -1,3 +1,13 @@
+## [Unreleased]
+
+### Added
+
+- The `memory` tool is now used proactively: a dedicated always-on system-prompt section instructs the agent to save durable preferences, conventions, and decisions unprompted (like Claude Code), recall when prior context plausibly exists, and forget contradicted entries.
+
+### Removed
+
+- Removed the orphaned `prompts/ponytail/AGENTS.md` file; the Ponytail guidance lives only in the system-prompt template.
+
 ## [1.2.0] - 2026-08-31
 
 ### Added
