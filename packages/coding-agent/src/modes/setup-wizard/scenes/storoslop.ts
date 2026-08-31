@@ -2,37 +2,50 @@ import * as path from "node:path";
 import { extractPrintableText, matchesKey } from "@oh-my-pi/pi-tui";
 import { getAgentDir } from "@oh-my-pi/pi-utils";
 import { YAML } from "bun";
-import type { StoroslopModelsConfig, StoroslopProviderConfig } from "../../../config/storoslop-provider";
-import { STOROSLOP_PROVIDER, storoslopProvider } from "../../../config/storoslop-provider";
+import { STOROSLOP_BASE_URL, STOROSLOP_PROVIDER } from "../../../config/storoslop-provider";
 import { theme } from "../../theme/theme";
 import type { SetupScene, SetupSceneController, SetupSceneHost } from "./types";
 
 /**
  * Fork: the single onboarding step. This tool only talks to the bundled
  * "storoslop" provider, so instead of a provider/model picker the user just
- * brings their own storoslop API key. The provider itself (baseUrl, api,
- * models, compat) is baked in here and persisted to the models config together
- * with the key.
+ * brings their own storoslop API key. The provider identity and the model
+ * roster are bundled (see `config/storoslop-provider.ts`); the models config
+ * persists only the credential, so model updates ship with the build.
  */
 
 /**
- * Persist the storoslop provider (with the given API key) into the models
- * config, merging with any existing providers so unrelated user entries survive.
+ * Persist the storoslop credential into the models config, merging with any
+ * existing providers so unrelated user entries survive. Any previous
+ * full-provider definition (old builds wrote baseUrl/api/models here) is
+ * reduced to the credential: baseUrl/api remain only as explicit user
+ * overrides, and the stale per-model list is dropped — the bundled catalog
+ * is the model roster now.
  */
 export async function saveStoroslopProvider(apiKey: string, agentDir: string = getAgentDir()): Promise<void> {
 	const filePath = path.join(agentDir, "models.yml");
-	let existing: StoroslopModelsConfig = { providers: {} };
+	let existing: { providers?: Record<string, Record<string, unknown>> } = { providers: {} };
 	try {
 		const raw = await Bun.file(filePath).text();
 		if (raw.trim()) {
 			const parsed = YAML.parse(raw);
-			if (parsed && typeof parsed === "object") existing = parsed as StoroslopModelsConfig;
+			if (parsed && typeof parsed === "object") existing = parsed as typeof existing;
 		}
 	} catch {
 		// No existing models config — start fresh.
 	}
-	const providers: Record<string, StoroslopProviderConfig> = { ...(existing.providers ?? {}) };
-	providers[STOROSLOP_PROVIDER] = storoslopProvider(apiKey);
+	const providers = { ...(existing.providers ?? {}) };
+	const previous = providers[STOROSLOP_PROVIDER];
+	// Old builds persisted the full provider definition (baseUrl/api/models).
+	// Reduce it to the credential: keep a user-pinned mirror baseUrl/api only
+	// when it differs from the bundled defaults (a matching pin is noise and
+	// would block future default moves); drop the stale per-model list — the
+	// bundled catalog is the model roster now.
+	const keepBaseUrl = previous?.baseUrl && previous.baseUrl !== STOROSLOP_BASE_URL;
+	const entry: Record<string, unknown> = { apiKey };
+	if (keepBaseUrl) entry.baseUrl = previous.baseUrl;
+	if (previous?.api && previous.api !== "openai-completions") entry.api = previous.api;
+	providers[STOROSLOP_PROVIDER] = entry;
 	await Bun.write(filePath, YAML.stringify({ ...existing, providers }, null, 2));
 }
 

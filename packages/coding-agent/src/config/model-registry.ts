@@ -117,7 +117,6 @@ export {
 import { ModelsConfigFile, type ProviderValidationModel, validateProviderConfiguration } from "./models-config";
 import type { ModelOverride, ModelsConfig, ProviderAuthMode } from "./models-config-schema";
 import { type Settings, settings } from "./settings";
-import { STOROSLOP_BUNDLED_MODELS } from "./storoslop-provider";
 
 // DeviceCheck attestation (`x-oai-attestation`) for ChatGPT-OAuth Codex
 // requests; the pi-ai provider resolves it just-in-time per request.
@@ -2098,23 +2097,12 @@ export class ModelRegistry {
 		const models: CustomModelOverlay[] = [];
 		for (const [providerName, providerConfig] of Object.entries(config.providers ?? {})) {
 			const modelDefs = providerConfig.models ?? [];
-			// Fork: the bundled storoslop models are always merged into an already-
-			// configured provider at read time, so an upgraded install picks up newly
-			// bundled models (e.g. qwen3.8) without re-running `storoslop setup`.
-			// User-defined models of the same id win over the bundled default.
-			const modelDefsToUse =
-				providerName === "storoslop"
-					? [
-							...modelDefs,
-							...STOROSLOP_BUNDLED_MODELS.filter(bundled => !modelDefs.some(model => model.id === bundled.id)),
-						]
-					: modelDefs;
-			if (modelDefsToUse.length === 0) continue; // Override-only, no custom models
+			if (modelDefs.length === 0) continue; // Override-only, no custom models
 			const resolvedProviderHeaders = resolveConfigHeaders(providerConfig.headers);
 			if (providerConfig.apiKey) {
 				this.#installProviderApiKey(providerName, providerConfig.apiKey);
 			}
-			for (const modelDef of modelDefsToUse) {
+			for (const modelDef of modelDefs) {
 				const providerCompat = providerConfig.disableStrictTools
 					? mergeCompat(providerConfig.compat, { disableStrictTools: true })
 					: providerConfig.compat;

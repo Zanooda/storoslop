@@ -1,0 +1,22 @@
+// Provider-wire compat for "storoslop"; the fork's single-provider gateway.
+// Deployment contract authored by hand: the gateway is fork-private, so no
+// frozen census covers it and this file is the authoritative wire contract.
+
+provider "storoslop" {
+	// The gateway serves GLM-5.3-Flash behind LiteLLM on an
+	// OpenAI-chat-completions surface with a chat-template reasoning contract:
+	// only `low`/`high`/`max` carry a real `reasoning_effort` on the wire
+	// (minimal/medium/xhigh remap onto the nearest supported rung), and
+	// reasoning round-trips in the DeepSeek-style `reasoning_content` field.
+	class "glm" {
+		family "flash" {
+			reasoning-effort-map {
+				minimal "low"
+				medium "high"
+				xhigh "max"
+			}
+			supports-reasoning-effort #true
+			thinking-mode "effort"
+		}
+	}
+}

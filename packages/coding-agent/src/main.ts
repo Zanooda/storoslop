@@ -6,16 +6,19 @@
  */
 import * as fsSync from "node:fs";
 import * as os from "node:os";
+import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { EventLoopKeepalive, type ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import type { ImageContent, Model } from "@oh-my-pi/pi-ai";
 import {
 	$env,
 	directoryIsMissing,
+	getAgentDir,
 	getLogPath,
 	getProjectDir,
 	isBunTestRuntime,
 	logger,
+	MAIN_CONFIG_FILENAMES,
 	normalizePathForComparison,
 	postmortem,
 	setInteractiveHost,
@@ -46,6 +49,7 @@ import {
 import { ModelsConfigFile } from "./config/models-config";
 import { serviceTierSettingToTier } from "./config/service-tier";
 import { getDefault, type SettingPath, Settings, type SettingValue, settings } from "./config/settings";
+import { migrateStoroslopModelConfigFiles } from "./config/storoslop-model-migration";
 import { initializeWithSettings } from "./discovery";
 import {
 	clearPluginRootsAndCaches,
@@ -1509,6 +1513,14 @@ export async function runRootCommand(
 		} else if (parsedArgs.mode === "acp") {
 			applyAcpDefaultSettingOverrides(settingsInstance);
 		}
+
+		// One-time storoslop model-swap migration: strip the retired user-side
+		// model roster from models.yml and repoint a stale default role at the
+		// bundled glm-5.3-flash, BEFORE the registry reads models.yml. Idempotent.
+		migrateStoroslopModelConfigFiles({
+			agentDir: getAgentDir(),
+			configPaths: MAIN_CONFIG_FILENAMES.map(name => path.join(getAgentDir(), name)),
+		});
 
 		// The registry composes policy-dependent metadata synchronously, including
 		// extended-context window caps, so it must receive the finalized settings.

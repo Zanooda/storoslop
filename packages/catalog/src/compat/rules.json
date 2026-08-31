@@ -64,6 +64,7 @@
 		"providers/openrouter.kdl",
 		"providers/qianfan.kdl",
 		"providers/sakana.kdl",
+		"providers/storoslop.kdl",
 		"providers/synthetic.kdl",
 		"providers/together.kdl",
 		"providers/umans.kdl",
@@ -11331,6 +11332,25 @@
 				"wire": {
 					"includeEncryptedReasoning": false,
 					"streamIdleTimeoutMs": 0
+				}
+			},
+			{
+				"source": "providers/storoslop.kdl:12",
+				"class": "glm",
+				"providers": [
+					"storoslop"
+				],
+				"family": "flash",
+				"wire": {
+					"reasoningEffortMap": {
+						"minimal": "low",
+						"medium": "high",
+						"xhigh": "max"
+					},
+					"supportsReasoningEffort": true
+				},
+				"thinking": {
+					"mode": "effort"
 				}
 			},
 			{

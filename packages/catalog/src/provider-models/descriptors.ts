@@ -48,6 +48,7 @@ import {
 	sakanaModelManagerOptions,
 	siliconflowCnModelManagerOptions,
 	siliconflowModelManagerOptions,
+	storoslopModelManagerOptions,
 	syntheticModelManagerOptions,
 	togetherModelManagerOptions,
 	umansModelManagerOptions,
@@ -554,6 +555,12 @@ export const CATALOG_PROVIDERS = [
 		envVars: ["ZAI_API_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => zaiModelManagerOptions(config),
 		catalogDiscovery: { label: "zAI" },
+	},
+	{
+		id: "storoslop",
+		defaultModel: "glm-5.3-flash",
+		envVars: ["STOROSLOP_API_KEY"],
+		createModelManagerOptions: (config: ModelManagerConfig) => storoslopModelManagerOptions(config),
 	},
 	{
 		id: "zenmux",

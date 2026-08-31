@@ -27,7 +27,7 @@ import {
 	getOpenAICodexTransportDetails,
 	prewarmOpenAICodexResponses,
 } from "@oh-my-pi/pi-ai/providers/openai-codex-responses";
-import { classifyModel, FALLBACK_DIALECT, preferredDialect } from "@oh-my-pi/pi-catalog/identity";
+import { FALLBACK_DIALECT, preferredDialect } from "@oh-my-pi/pi-catalog/identity";
 import type { Component } from "@oh-my-pi/pi-tui";
 import {
 	$env,
@@ -664,17 +664,11 @@ export function resolveDialect(
 	model: (Pick<Model, "supportsTools"> & Partial<Pick<Model, "id">>) | undefined,
 ): Dialect | undefined {
 	if (format === "native") return undefined;
-	if (format === "auto") {
-		// storoslop fork: deepseek-v4-flash always uses provider-native tool calls,
-		// even when its metadata marks supportsTools:false (which would otherwise pick
-		// the owned deepseek in-band dialect). Explicit dialects still win.
-		if (model?.id && classifyModel("", model.id, { lenient: true }).family === "flash") return undefined;
-		if (model?.supportsTools !== false) return undefined;
-		if (!model.id) return "glm";
-		const preferred = preferredDialect(model.id);
-		return preferred === FALLBACK_DIALECT ? "glm" : preferred;
-	}
-	return format;
+	if (format !== "auto") return format;
+	if (model?.supportsTools !== false) return undefined;
+	if (!model.id) return "glm";
+	const preferred = preferredDialect(model.id);
+	return preferred === FALLBACK_DIALECT ? "glm" : preferred;
 }
 
 // Re-exports

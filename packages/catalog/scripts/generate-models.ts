@@ -52,6 +52,7 @@ import {
 	OPENAI_DAYBREAK_CURATED_FALLBACK_MODELS,
 	projectOpenAIProReasoningAliases,
 	SAKANA_FUGU_STATIC_MODELS,
+	STOROSLOP_STATIC_MODELS,
 	stripFireworksDeepSeekThinkingToggle,
 	YOLO_AUTO_STATIC_MODELS,
 } from "../src/provider-models/openai-compat";
@@ -609,6 +610,11 @@ async function generateModels() {
 	if (!authoritativeCatalogProviders.has("yolo-auto")) {
 		allModels.push(...YOLO_AUTO_STATIC_MODELS);
 	}
+	// Seed the fork's storoslop gateway catalog. The gateway is fork-private:
+	// no upstream source lists it and it can never be authoritative, so the
+	// curated seed is the entire roster in every bundle and mirrors the
+	// single-provider contract (user config carries only the API key).
+	allModels.push(...STOROSLOP_STATIC_MODELS);
 	// Seed the GMI Cloud default model so a fresh install (and a regen without a
 	// `GMI_API_KEY`) still resolves the descriptor's `defaultModel` synchronously
 	// at boot. If live `/v1/models` discovery succeeds, it is authoritative.

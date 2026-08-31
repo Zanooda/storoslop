@@ -5000,6 +5000,63 @@ export function yoloAutoModelManagerOptions(
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// 16b. Storoslop (fork single-provider gateway)
+// ---------------------------------------------------------------------------
+
+/** The storoslop gateway's OpenAI-compatible endpoint. */
+export const STOROSLOP_BASE_URL = "http://slop.storo.cloud:4000/v1";
+
+/**
+ * Fork-curated static seed for the bundled `storoslop` provider, so a fresh
+ * install (and every regen, since the gateway is fork-private and upstream
+ * catalog sources never list it) resolves `storoslop/glm-5.3-flash`
+ * synchronously at boot from the user's models.yml API key alone. The
+ * thinking metadata mirrors the local gateway's chat-template contract:
+ * only `low`/`high`/`max` carry a real `reasoning_effort` on the wire
+ * (minimal/medium/xhigh remap onto the nearest supported rung), and the
+ * deepseek-style `reasoning_content` field round-trips in assistant replies.
+ */
+export const STOROSLOP_STATIC_MODELS: readonly ModelSpec<"openai-completions">[] = [
+	{
+		id: "glm-5.3-flash",
+		name: "glm-5.3-flash",
+		api: "openai-completions",
+		provider: "storoslop",
+		baseUrl: STOROSLOP_BASE_URL,
+		reasoning: true,
+		input: ["text", "image"],
+		thinking: {
+			mode: "effort",
+			efforts: [Effort.Low, Effort.High, Effort.Max],
+		},
+		cost: { input: 0.15, output: 0.5, cacheRead: 0.03, cacheWrite: 0 },
+		contextWindow: 1_048_576,
+		maxTokens: 32_768,
+		compat: {
+			reasoningContentField: "reasoning_content",
+			supportsReasoningEffort: true,
+		},
+	},
+];
+
+export function storoslopModelManagerOptions(config?: {
+	apiKey?: string;
+	baseUrl?: string;
+}): ModelManagerOptions<"openai-completions"> {
+	return {
+		...createOpenAICompatibleModelManagerOptions({
+			api: "openai-completions",
+			providerId: "storoslop",
+			defaultBaseUrl: STOROSLOP_BASE_URL,
+			config,
+			requireApiKey: true,
+			mapModel: mapWithBundledReference,
+		}),
+		// the curated seed is the entire roster and nothing may replace it.
+		staticModels: STOROSLOP_STATIC_MODELS,
+	};
+}
+// ---------------------------------------------------------------------------
 // 17. Qwen Portal
 // ---------------------------------------------------------------------------
 

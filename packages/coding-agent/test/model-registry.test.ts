@@ -1718,21 +1718,18 @@ describe("ModelRegistry", () => {
 		test("only storoslop models are available when storoslop carries a models.yml API key", () => {
 			const available = readonlyRegistry({
 				providers: {
-					storoslop: providerConfig(
-						"http://slop.storo.cloud:4000/v1",
-						[{ id: "deepseek-v4-flash" }],
-						"openai-completions",
-					),
+					// Key-only entry: the bundled catalog owns the model roster.
+					storoslop: { apiKey: "TEST_KEY" },
 				},
 			}).getAvailable();
 			expect(new Set(available.map(model => model.provider))).toEqual(new Set(["storoslop"]));
-			expect(available.map(model => model.id)).toContain("deepseek-v4-flash");
+			expect(available.map(model => model.id)).toContain("glm-5.3-flash");
 		});
 
-		test("bundled storoslop models are merged into an already-configured provider", () => {
-			// An upgraded install's models.yml predates the bundled qwen3.8 entry, so
-			// it only lists deepseek-v4-flash. The bundled models must surface anyway,
-			// without the user re-running `storoslop setup`.
+		test("bundled storoslop model metadata ships with the build, not the user config", () => {
+			// A stale user-side definition (old builds persisted deepseek-v4-flash
+			// into models.yml) must not shadow the bundled glm-5.3-flash roster:
+			// model updates ride the build, exactly like upstream built-ins.
 			const available = readonlyRegistry({
 				providers: {
 					storoslop: providerConfig(
@@ -1742,11 +1739,28 @@ describe("ModelRegistry", () => {
 					),
 				},
 			}).getAvailable();
-			const qwen3 = available.find(model => model.id === "qwen3.8");
-			expect(qwen3).toBeDefined();
-			expect(qwen3?.provider).toBe("storoslop");
-			expect(qwen3?.contextWindow).toBe(262144);
-			expect(qwen3?.maxTokens).toBe(32768);
+			const flash = available.find(model => model.id === "glm-5.3-flash");
+			expect(flash).toBeDefined();
+			expect(flash?.provider).toBe("storoslop");
+			expect(flash?.contextWindow).toBe(1_048_576);
+			expect(flash?.maxTokens).toBe(32_768);
+			expect(flash?.input).toContain("image");
+		});
+
+		test("bundled glm-5.3-flash resolves its gateway thinking contract", () => {
+			const model = readonlyRegistry({ providers: { storoslop: { apiKey: "TEST_KEY" } } })
+				.getAvailable()
+				.find(model => model.id === "glm-5.3-flash");
+			expect(model?.thinking?.efforts).toEqual<Effort[]>([Effort.Low, Effort.High, Effort.Max]);
+			// minimal/medium/xhigh remap onto the nearest supported rung on the wire.
+			const compat = model?.compat as OpenAICompat | undefined;
+			expect(compat?.reasoningEffortMap).toEqual({
+				minimal: "low",
+				medium: "high",
+				xhigh: "max",
+			});
+			expect(compat?.reasoningContentField).toBe("reasoning_content");
+			expect(compat?.supportsReasoningEffort).toBe(true);
 		});
 
 		test("implicit local providers are not discovered (#addImplicitDiscoverableProviders is a no-op)", () => {

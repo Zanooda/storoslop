@@ -59,6 +59,7 @@ import { qwenPortalProvider } from "./qwen-portal";
 import { sakanaProvider } from "./sakana";
 import { siliconflowProvider } from "./siliconflow";
 import { siliconflowCnProvider } from "./siliconflow-cn";
+import { storoslopProvider } from "./storoslop";
 import { syntheticProvider } from "./synthetic";
 import { tavilyProvider } from "./tavily";
 import { togetherProvider } from "./together";
@@ -144,9 +145,10 @@ const ALL = [
 	cloudflareAiGatewayProvider,
 	litellmProvider,
 	kiloProvider,
-	zenmuxProvider,
 	opencodeZenProvider,
 	opencodeGoProvider,
+	storoslopProvider,
+	zenmuxProvider,
 	yoloAutoProvider,
 	tavilyProvider,
 	kagiProvider,
