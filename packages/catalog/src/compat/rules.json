@@ -11335,6 +11335,23 @@
 				}
 			},
 			{
+				"source": "providers/storoslop.kdl:17",
+				"class": "glm",
+				"providers": [
+					"storoslop"
+				],
+				"family": "flash",
+				"models": [
+					{
+						"kind": "glob",
+						"value": "*glm-5.3-flash"
+					}
+				],
+				"thinking": {
+					"defaultLevel": "high"
+				}
+			},
+			{
 				"source": "providers/storoslop.kdl:12",
 				"class": "glm",
 				"providers": [

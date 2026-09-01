@@ -10,6 +10,13 @@ provider "storoslop" {
 	// reasoning round-trips in the DeepSeek-style `reasoning_content` field.
 	class "glm" {
 		family "flash" {
+			// The class rule (classes/glm.kdl) pins `thinking-default-level "max"`
+			// across all hosts at rank (glob, 3 dims, priority 10); this rule must
+			// carry a models selector to outrank it on dimensions and win the
+			// defaultLevel axis for this gateway.
+			models "*glm-5.3-flash" {
+				thinking-default-level "high"
+			}
 			reasoning-effort-map {
 				minimal "low"
 				medium "high"

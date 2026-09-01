@@ -305193,7 +305193,7 @@
 					"high",
 					"max"
 				],
-				"defaultLevel": "max",
+				"defaultLevel": "high",
 				"requiresEffort": true
 			},
 			"cost": {
