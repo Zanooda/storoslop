@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Changed
+
+- The bundled `storoslop/glm-5.3-flash` model now defaults to `high` thinking effort instead of `max`.
+
 ## [18.0.11] - 2026-08-29
 
 ### Fixed
