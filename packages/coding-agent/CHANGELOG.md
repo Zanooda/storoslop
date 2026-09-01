@@ -1,13 +1,3 @@
-## [1.2.1] - 2026-08-31
-
-### Added
-
-- The `memory` tool is now used proactively: a dedicated always-on system-prompt section instructs the agent to save durable preferences, conventions, and decisions unprompted (like Claude Code), recall when prior context plausibly exists, and forget contradicted entries.
-
-### Removed
-
-- Removed the orphaned `prompts/ponytail/AGENTS.md` file; the Ponytail guidance lives only in the system-prompt template.
-
 ## [18.0.11] - 2026-08-29
 
 ### Added
@@ -1672,6 +1662,16 @@
 - Fixed spilled tool-output artifact descriptors leaking on error/abort paths. `OutputSink.dump()` was the only path that closed the spill `Bun.FileSink`, but the bash and Python executors re-throw on failure and their `finally` blocks never closed the sink, so a large-output command that errored leaked the artifact descriptor until an unrelated read (e.g. a `SKILL.md` load) hit `EMFILE`. `OutputSink` now exposes an idempotent `dispose()` that closes the sink exactly once, wired into every executor's `finally` ([#6463](https://github.com/can1357/oh-my-pi/issues/6463)).
 - Fixed the first submitted prompt stalling while the local tiny-title worker started: the interactive submit handler now paints the pending user row before starting title generation, and startup prewarms an idle, unref'd worker so the first submit reuses a live subprocess instead of paying spawn latency ahead of the first frame ([#6462](https://github.com/can1357/oh-my-pi/issues/6462)).
 - Fixed legacy Pi extensions failing validation when importing the upstream `keyText` keybinding helper ([#6470](https://github.com/can1357/oh-my-pi/issues/6470)).
+
+## [1.2.1] - 2026-08-31
+
+### Added
+
+- The `memory` tool is now used proactively: a dedicated always-on system-prompt section instructs the agent to save durable preferences, conventions, and decisions unprompted (like Claude Code), recall when prior context plausibly exists, and forget contradicted entries.
+
+### Removed
+
+- Removed the orphaned `prompts/ponytail/AGENTS.md` file; the Ponytail guidance lives only in the system-prompt template.
 
 ## [1.2.0] - 2026-08-31
 

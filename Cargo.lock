@@ -3117,9 +3117,9 @@ dependencies = [
 
 [[package]]
 name = "gix-path"
-version = "0.12.5"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b075e730586bba7341304d6fc1b4efc1d10cf64532622521c0e07f30e661046"
+checksum = "38fc6f029ea67de83cbcbd33fd98c05a48360d2932b39d9fdacbc6eae802d475"
 dependencies = [
  "bstr",
  "gix-trace",
@@ -6032,7 +6032,7 @@ dependencies = [
 
 [[package]]
 name = "pi-ast"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "anyhow",
  "ast-grep-core",
@@ -6102,7 +6102,7 @@ dependencies = [
 
 [[package]]
 name = "pi-builtins"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "ansi-width",
  "anyhow",
@@ -6189,7 +6189,7 @@ dependencies = [
 
 [[package]]
 name = "pi-iso"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "async-trait",
  "libc",
@@ -6201,7 +6201,7 @@ dependencies = [
 
 [[package]]
 name = "pi-natives"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "anyhow",
  "arboard",
@@ -6278,7 +6278,7 @@ dependencies = [
 
 [[package]]
 name = "pi-shell"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "anyhow",
  "brush-core",
@@ -6306,7 +6306,7 @@ dependencies = [
 
 [[package]]
 name = "pi-vcs"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "gix",
  "jj-lib",
@@ -6319,7 +6319,7 @@ dependencies = [
 
 [[package]]
 name = "pi-voice"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "audiopus_sys",
  "bytes",
@@ -6334,7 +6334,7 @@ dependencies = [
 
 [[package]]
 name = "pi-walker"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "dashmap",
  "globset",
