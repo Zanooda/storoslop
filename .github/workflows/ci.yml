@@ -215,8 +215,8 @@ jobs:
    # Main (kata, cluster remote cache) builds all Linux-hosted targets with
    # bazel. Job name says "bazel" for continuity with required checks.
    native_addons:
-      name: Build native addons (bazel)
       if: github.event_name != 'pull_request'
+      name: Build native addons (bazel)
       runs-on: ubuntu-22.04
       steps:
          - uses: actions/checkout@v4
@@ -274,11 +274,10 @@ jobs:
               retention-days: 1
 
    test_workspace:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Test TS workspace fast
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 20
       steps:
          - uses: actions/checkout@v4
@@ -298,11 +297,10 @@ jobs:
               bun test scripts/ci-test-ts.test.ts scripts/release.test.ts
 
    test_coding_agent_singleton:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Test coding-agent singleton/global-state (TS)
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 20
       steps:
          - uses: actions/checkout@v4
@@ -317,11 +315,10 @@ jobs:
            run: bun run ci:test:coding-agent:singleton
 
    test_ts_native:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Test TS native/integration packages
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
       steps:
          - uses: actions/checkout@v4
@@ -336,11 +333,10 @@ jobs:
            run: bun run ci:test:ts:native
 
    test_coding_agent_ui:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Test coding-agent UI/TUI (TS)
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
       steps:
          - uses: actions/checkout@v4
@@ -355,11 +351,10 @@ jobs:
            run: bun run ci:test:coding-agent:ui
 
    test_coding_agent_runtime:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Test coding-agent runtime/session (TS)
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
       steps:
          - uses: actions/checkout@v4
@@ -376,11 +371,10 @@ jobs:
            run: bun run ci:test:coding-agent:runtime
 
    test_coding_agent_native:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Test coding-agent native/unit (TS)
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 25
       steps:
          - uses: actions/checkout@v4
@@ -395,11 +389,10 @@ jobs:
            run: bun run ci:test:coding-agent:native
 
    test_smoke:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Test CLI smoke (TS)
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       timeout-minutes: 15
       steps:
          - uses: actions/checkout@v4
@@ -412,11 +405,10 @@ jobs:
            run: bun run ci:test:smoke
 
    install_methods:
+      if: ${{ github.event_name != 'pull_request' && !cancelled() && needs.native_addons.result == 'success' }}
       name: Install method smoke tests
-      if: github.event_name != 'pull_request'
       runs-on: ubuntu-22.04
       needs: [native_addons]
-      if: ${{ !cancelled() && needs.native_addons.result == 'success' }}
       steps:
          - uses: actions/checkout@v4
          - uses: ./.github/actions/setup-system-deps
