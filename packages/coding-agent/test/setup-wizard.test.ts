@@ -267,17 +267,17 @@ describe("setup wizard storoslop scene", () => {
 		return parsed.providers?.[name] ?? {};
 	}
 
-	it("persists the bundled storoslop provider and the api key", async () => {
+	it("persists only the storoslop credential, reducing stale full-provider entries", async () => {
 		const dir = await tempAgentDir();
 		try {
 			await saveStoroslopProvider("sk-test-key", dir);
 			const provider = await readProvider(dir, "storoslop");
-			expect(provider.baseUrl).toBe("http://slop.storo.cloud:4000/v1");
-			expect(provider.api).toBe("openai-completions");
 			expect(provider.apiKey).toBe("sk-test-key");
-			expect(provider.models![0]!.id).toBe("deepseek-v4-flash");
-			expect(provider.models![0]!.contextWindow).toBe(1048576);
-			expect(provider.models![0]!.compat?.reasoningContentField).toBe("reasoning");
+			// The bundled catalog is the model roster; baseUrl/api are bundled
+			// defaults and a matching pin is noise, so neither is persisted.
+			expect(provider.baseUrl).toBeUndefined();
+			expect(provider.api).toBeUndefined();
+			expect(provider.models).toBeUndefined();
 		} finally {
 			await fs.rm(dir, { recursive: true, force: true });
 		}
