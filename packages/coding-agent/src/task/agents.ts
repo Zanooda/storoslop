@@ -31,10 +31,8 @@ import apSweepCoordinatorMd from "../prompts/agents/autoprompt/ap-sweep-coordina
 import apSweeperMd from "../prompts/agents/autoprompt/ap-sweeper.md" with { type: "text" };
 import apSynthesizerMd from "../prompts/agents/autoprompt/ap-synthesizer.md" with { type: "text" };
 import apVerifierMd from "../prompts/agents/autoprompt/ap-verifier.md" with { type: "text" };
-import designerMd from "../prompts/agents/designer.md" with { type: "text" };
 // Embed agent markdown files at build time
 import agentFrontmatterTemplate from "../prompts/agents/frontmatter.md" with { type: "text" };
-import librarianMd from "../prompts/agents/librarian.md" with { type: "text" };
 import reviewerMd from "../prompts/agents/reviewer.md" with { type: "text" };
 import scoutMd from "../prompts/agents/scout.md" with { type: "text" };
 import securityReviewerMd from "../prompts/agents/security-reviewer.md" with { type: "text" };
@@ -69,10 +67,8 @@ function buildAgentContent(def: EmbeddedAgentDef): string {
 
 const EMBEDDED_AGENT_DEFS: EmbeddedAgentDef[] = [
 	{ fileName: "scout.md", template: scoutMd },
-	{ fileName: "designer.md", template: designerMd },
 	{ fileName: "reviewer.md", template: reviewerMd },
 	{ fileName: "security-reviewer.md", template: securityReviewerMd },
-	{ fileName: "librarian.md", template: librarianMd },
 	{
 		fileName: "task.md",
 		frontmatter: {

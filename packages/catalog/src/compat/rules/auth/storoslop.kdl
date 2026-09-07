@@ -1,0 +1,10 @@
+auth "storoslop" {
+	name "storoslop"
+	// Fork-private gateway (http://slop.storo.cloud:4000/v1, OpenAI
+	// chat-completions compatible): no public "who am I" endpoint to validate
+	// against from an arbitrary network position, so the key paste is accepted
+	// as-is. A wrong key surfaces on the first request.
+	login "api-key" {
+		prompt "Paste your storoslop API key" placeholder="sk-..."
+	}
+}

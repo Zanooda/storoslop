@@ -8,3 +8,4 @@
  * `storoslop` provider only, so extension-registered providers are not surfaced as
  * selectable/honored default-role models. See the fork comment on `getAvailable()`.
  */
+export {};

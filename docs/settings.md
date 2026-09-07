@@ -1,6 +1,6 @@
 # Settings
 
-`storoslop` resolves settings from built-in defaults, a persistent global config file, optional project-local config, one-shot CLI overlays, and in-memory runtime overrides. Reach for project settings when one repository needs a different provider set, model role, tool policy, memory backend, or UI behavior than your global defaults — without touching your machine-wide configuration.
+`omp` resolves settings from built-in defaults, a persistent global config file, optional project-local config, one-shot CLI overlays, and in-memory runtime overrides. Reach for project settings when one repository needs a different provider set, model role, tool policy, memory backend, or UI behavior than your global defaults — without touching your machine-wide configuration.
 
 Settings are stored as plain YAML mappings. Every key, its type, default, and enum values come from the settings schema. `storoslop config` exposes the complete schema; the interactive `/settings` panel exposes the schema entries that have UI metadata.
 
@@ -23,7 +23,7 @@ Settings are stored as plain YAML mappings. Every key, its type, default, and en
 
 `PI_CODING_AGENT_DIR` relocates the `~/.storoslop/agent` base directory. When it is set, the global `config.yml`, the auth store (`agent.db`), and everything else under the agent directory move with it. Use `storoslop config path` to print the active agent directory.
 
-Native project settings are intentionally scoped to the process working directory's `.storoslop/` folder — settings discovery does **not** walk ancestor directories looking for the nearest `.storoslop/`. Other discovery providers (Claude, Codex, Gemini, Cursor, OpenCode) can also contribute project-level settings from their own files; those are read-only from `storoslop` settings commands and can be turned off by provider id (see [Provider and source disabling](#provider-and-source-disabling)).
+Native project settings are intentionally scoped to the process working directory's `.storoslop/` folder — settings discovery does **not** walk ancestor directories looking for the nearest `.storoslop/`. Other discovery providers (Claude, Codex, Gemini, Cursor, OpenCode) can also contribute project-level settings from their own files; those are read-only from `omp` settings commands and can be turned off by provider id (see [Provider and source disabling](#provider-and-source-disabling)).
 
 ## Config file formats
 
@@ -31,27 +31,27 @@ The canonical global file is YAML at `config.yml`; `config.yaml` is accepted as 
 
 - When a `.yml`/`.yaml` path is requested and only a sibling `.json` exists, it is migrated to YAML automatically (idempotent, once per process).
 - `.json` and `.jsonc` configs are read as-is, with no migration.
-- A settings YAML file whose top level is not a mapping is invalid. On writable startup, `storoslop` moves an invalid persistent settings file to a uniquely named `.broken-*` backup and exits with the original error and backup path. A `--config` overlay with a bare array/scalar is also a hard error, but is not moved.
+- A settings YAML file whose top level is not a mapping is invalid. On writable startup, `omp` moves an invalid persistent settings file to a uniquely named `.broken-*` backup and exits with the original error and backup path. A `--config` overlay with a bare array/scalar is also a hard error, but is not moved.
 
 ## Reading and writing settings
 
 Use the interactive `/settings` panel inside a session, or the `storoslop config` command from a shell. Both read merged effective settings. Ordinary persistent writes land in the **global** file; model-selector role changes are the exception when `modelRoleStorage: project` (see [Where writes go](#where-writes-go)).
 
 ```bash
-storoslop config list                 # all settings with current effective values
-storoslop config list --json          # same, machine-readable
-storoslop config get theme.dark       # one value
-storoslop config get theme.dark --json
-storoslop config set compaction.enabled false
-storoslop config set defaultThinkingLevel medium
-storoslop config reset steeringMode   # restore a key to its schema default
-storoslop config path                 # print the active agent directory
+omp config list                 # all settings with current effective values
+omp config list --json          # same, machine-readable
+omp config get theme.dark       # one value
+omp config get theme.dark --json
+omp config set compaction.enabled false
+omp config set defaultThinkingLevel medium
+omp config reset steeringMode   # restore a key to its schema default
+omp config path                 # print the active agent directory
 ```
 
 For users who want the full first-run animation on normal launches, set `startup.showSplash`:
 
 ```bash
-storoslop config set startup.showSplash true
+omp config set startup.showSplash true
 ```
 
 This only controls the startup splash animation. It does not rerun setup or change setup state, and `startup.quiet: true` still suppresses all startup chrome including the splash.
@@ -118,10 +118,10 @@ Environment variables are **not** a single settings layer. Each is read by the f
 | `PI_NO_PTY=1`           | (disables PTY bash)         | Equivalent to `--no-pty` for the process.                                                         |
 | `PI_PY`                 | `eval.py`                   | `PI_PY=0` disables the Python eval backend.                                                       |
 | `PI_JS`                 | `eval.js`                   | `PI_JS=0` disables the JavaScript eval backend.                                                   |
-| `PI_TINY_DEVICE`        | `providers.tinyModelDevice` | ONNX execution provider for local tiny models.                                                    |
+| `PI_TINY_DEVICE`        | `providers.tinyModelDevice` | ONNX execution provider or `mlx` backend for local tiny models.                                   |
 | `PI_TINY_DTYPE`         | `providers.tinyModelDtype`  | ONNX precision for local tiny models.                                                             |
-| `OMP_AUTH_BROKER_URL`   | `auth.broker.url`           | Env value takes precedence over config.                                                           |
-| `OMP_AUTH_BROKER_TOKEN` | `auth.broker.token`         | Env value takes precedence over config.                                                           |
+| `storoslop_AUTH_BROKER_URL`   | `auth.broker.url`           | Env value takes precedence over config.                                                           |
+| `storoslop_AUTH_BROKER_TOKEN` | `auth.broker.token`         | Env value takes precedence over config.                                                           |
 | `PI_CODING_AGENT_DIR`   | (relocates agent dir)       | Moves `config.yml`, `agent.db`, and the whole agent base.                                         |
 | `PI_CONFIG_FILES`       | CLI config overlays         | Platform path-list (`:` on Unix, `;` on Windows); files load in order before `--config` overlays. |
 
@@ -150,7 +150,9 @@ tools:
 
 ### Bash command approval patterns
 
-`tools.approval` sets default policy by tool name. For bash, you can add ordered command rules with `bash.patterns`; the first matching rule wins. Patterns support literal text plus `*` as a wildcard.
+`tools.approval` is a record keyed by tool name; dotted forms such as `tools.approval.eval` and `tools.approval.computer` identify entries in that record, not separate settings-schema paths. Each entry sets that tool's default policy. For bash, you can add ordered command rules with `bash.patterns`; the first matching rule wins. Patterns support literal text plus `*` as a wildcard.
+
+By default, an `allow` rule must match the entire command and cannot approve a compound line. Set `bash.allowCompoundCommands: true` to also evaluate conservative chains of two or more literal commands joined only by `&&`:
 
 ```yaml
 tools:
@@ -159,20 +161,25 @@ tools:
     bash: allow
 
 bash:
+  allowCompoundCommands: true
   patterns:
-    - match: "git *"
-      approval: allow
-    - match: "rm -rf *"
-      approval: deny
-    - match: "*"
+    - match: "rm -f *"
       approval: allow
 ```
 
-Valid rule approvals are `allow`, `prompt`, and `deny`. Critical bash commands still require confirmation unless a matching rule explicitly denies them; broad allow rules such as `match: "*"` do not bypass the critical-command guard.
+With this configuration, `cmp tmp/result.json artifacts/result.json && rm -f tmp/result.json` can run without a prompt. storoslop resolves the ordered rules independently for each original segment: `rm` is explicitly allowed, while the unmatched `cmp` segment inherits the normal standalone bash policy. When any segment is unmatched, the command retains the `exec` tier with no explicit policy, so the generic resolver applies `tools.approval.bash` and then the active approval mode. An unmatched segment therefore prompts only if that tool-wide policy or mode requires it.
 
-Matching is asymmetric so that rules mean what they appear to: `deny` and `prompt` rules fire when the glob matches the whole command **or any single segment** of a compound line (split on `&&`, `||`, `;`, `|`, a single `&`, subshells, and newlines), so `match: "rm -rf *"` still denies `cd /tmp && rm -rf build` and `sleep 1 & rm -rf build`. `allow` rules must match the **entire** command and never apply to a compound line, so a narrow allow such as `match: "git *"` cannot vouch for `git status && rm -rf /`.
+Explicit restrictions are combined conservatively across the chain: a resolved `deny` wins, otherwise a resolved `prompt` wins. A `deny` or `prompt` rule that matches the complete chain but no individual segment remains a whole-chain restriction (for example, `cmp * && rm *`). All matching whole-chain restrictions are considered: a later whole-chain `deny` overrides an earlier whole-chain `prompt`. Otherwise, segment rules retain first-match ordering: an earlier `git status` allow is not overridden by a later `git *` deny when evaluating `git status && git status`.
 
-`bash.patterns` gates the `bash` tool only. It does not cover shells started through `eval`, which can spawn one via subprocess, so a `deny` rule here is bypassed when the same command runs through `eval`. To close that path, add a `tools.approval.eval` policy (`prompt` or `deny`) as well; see [Tool approval mode](./approval-mode.md).
+Enabling this setting can therefore allow a compound command that the default policy denied when an earlier narrow segment allow precedes a broad catch-all deny. Put segment denies that must always apply before overlapping allows.
+
+The opt-in accepts only a flat `&&` chain with literal arguments, including quoted literal arguments. It rejects expansions, variable assignments, other control flow, redirections, globbing, newlines, malformed syntax, and shell-state-changing commands such as `cd`, `source`, and `eval`. Rejected forms keep the legacy approval behavior; enabling the setting never broadens which non-chain commands an `allow` pattern can approve. Explicit chain and segment restrictions resolve before the existing raw and canonical critical-command checks, which still inspect the whole command and every segment so a broad allow cannot hide a critical later segment.
+
+The opt-in requires a positively identified POSIX-quoting shell: `sh`, `bash`, `dash`, `ash`, `ksh`, or `zsh`, including their `.exe` names. The centralized classifier checks the executable basename across Windows and POSIX paths. Other shells, including cmd, PowerShell, fish, and unknown wrappers, retain legacy approval behavior. Their quoting can differ from the recognizer: fish treats `\'` inside single quotes as an escaped quote, while POSIX shells do not.
+
+Valid rule approvals are `allow`, `prompt`, and `deny`. Regardless of the opt-in, `deny` and `prompt` rules can match the whole command or a tokenized segment of other compound forms (split on `&&`, `||`, `;`, `|`, a single `&`, subshells, and newlines). This lets `match: "rm -rf *"` deny `cd /tmp && rm -rf build` and `sleep 1 & rm -rf build`.
+
+`bash.patterns` is an approval policy, not containment. An allowed program still has the bash process's filesystem, network, and subprocess access, and a seemingly narrow program can perform broader actions through its own options or configuration. The rules govern the `bash` tool only; they do not cover shells started through `eval`. To close that path, add a `tools.approval.eval` policy (`prompt` or `deny`) as well; see [Tool approval mode](./approval-mode.md).
 
 ### Bash interceptor patterns
 
@@ -242,7 +249,7 @@ tools:
     bash: prompt
 
 compaction:
-  strategy: snapcompact
+  methodOrder: [snapcompact, remote, soft]
   thresholdPercent: 80
 
 theme:
@@ -256,8 +263,8 @@ Keep secrets out of committed project config unless your repository policy allow
 Use `--config` for a temporary layer that should not persist:
 
 ```bash
-storoslop --config ./local/ci-settings.yml "check this failure"
-storoslop --config ./base.yml --config ./experiment.yml "try this model"
+omp --config ./local/ci-settings.yml "check this failure"
+omp --config ./base.yml --config ./experiment.yml "try this model"
 ```
 
 `--config` is accepted by the default launch command, `acp`, and `models`.
@@ -268,7 +275,7 @@ Overlay paths are resolved relative to the process working directory (and `~` is
 
 ## Path-scoped arrays
 
-Two array settings — `enabledModels` and `disabledProviders` — accept path-scoped entries in addition to bare strings, so a single global config can behave differently per directory:
+Three array settings — `enabledModels`, `enabledProviders`, and `disabledProviders` — accept path-scoped entries in addition to bare strings, so a single global config can behave differently per directory:
 
 ```yaml
 enabledModels:
@@ -293,12 +300,14 @@ Accepted **path** keys (any of them, combined): `path`, `paths`, `pathPrefix`, `
 
 Accepted **value** keys:
 
-- `models` (for `enabledModels`) or `providers` (for `disabledProviders`)
-- `values` or `items` (for either setting)
+- `models` (for `enabledModels`) or `providers` (for `enabledProviders` and `disabledProviders`)
+- `values` or `items` (for any setting)
 
 Only string values are kept; malformed scoped entries are ignored. Path scoping is resolved **after** the layer merge, so it reads the final effective array.
 
 ## Provider and source disabling
+
+`enabledProviders` opts foreign user-level configuration sources into discovery. Its default is empty, so user roots from Cursor, Codex, Claude, Claude marketplace plugins, Gemini, OpenCode, Windsurf, and GitHub do not load until their provider id is listed (or `*`/`all` is listed). Project roots remain enabled. Native storoslop roots—including marketplace plugins registered under `~/.storoslop/plugins`—are not foreign and do not require an entry.
 
 `disabledProviders` is a single shared id namespace that gates two different subsystems, before any credential check:
 
@@ -326,7 +335,7 @@ The default is an empty array (nothing disabled). For the two subsystems' provid
 
 ## Settings catalog
 
-Every key below is defined in the settings schema; `storoslop config list` shows the full set with current values. Defaults and enum values are taken from the schema. Settings that accept an env or flag override are noted; those overrides are process-local and not persisted.
+The catalog below highlights common settings; it is not the complete schema. `storoslop config list` is the authoritative reference for every key, current value, type, and description. Defaults and enum values shown here come from the schema. Settings that accept an env or flag override are noted; those overrides are process-local and not persisted.
 
 ### Models
 
@@ -356,12 +365,13 @@ enabledModels:
 
 | Key                    | Type    | Default                     | Notes                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ---------------------- | ------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `modelRoles`           | record  | `{}`                        | Map of role name -> model id. Built-in roles: `default`, `smol`, `slow`, `vision`, `plan`, `designer`, `commit`, `tiny`, `task`, `advisor`. The `tiny` role overrides the online model for lightweight background tasks (titles, memory, auto-thinking, unexpected-stop), else `@smol`. Per-role env/flags exist only for `--model`/`--smol`/`--slow`/`--plan`; configure the advisor with `modelRoles.advisor`. |
+| `modelRoles`           | record  | `{}`                        | Map of role name -> model id. Built-in roles: `default`, `smol`, `slow`, `vision`, `plan`, `commit`, `tiny`, `task`, `advisor`. The `tiny` role overrides the online model for lightweight background tasks (titles, memory, auto-thinking, unexpected-stop), else `@smol`. Per-role env/flags exist only for `--model`/`--smol`/`--slow`/`--plan`; configure the advisor with `modelRoles.advisor`. |
 | `modelRoleStorage`     | enum    | `global`                    | `global` saves model-selector role assignments in the active global/profile config; `project` saves only those role assignments in `<cwd>/.storoslop/config.yml`. Missing project roles fall back to global roles.                                                                                                                                                                                                     |
 | `modelTags`            | record  | `{}`                        | Custom role/tag metadata; can introduce additional roles.                                                                                                                                                                                                                                                                                                                                                        |
 | `modelProviderOrder`   | array   | `[]`                        | Preferred provider order when a model id is ambiguous.                                                                                                                                                                                                                                                                                                                                                           |
 | `cycleOrder`           | array   | `["smol","default","slow"]` | Roles cycled by the model switcher.                                                                                                                                                                                                                                                                                                                                                                              |
 | `enabledModels`        | array   | `[]`                        | Allow-list of models; supports [path-scoped entries](#path-scoped-arrays). Empty means all available models.                                                                                                                                                                                                                                                                                                     |
+| `enabledProviders`     | array   | `[]`                        | Foreign user-level discovery sources to load; supports path-scoped entries. See [above](#provider-and-source-disabling).                                                                                                                                                                                                                                                                                          |
 | `disabledProviders`    | array   | `[]`                        | Disabled model/discovery providers; supports path-scoped entries. See [above](#provider-and-source-disabling).                                                                                                                                                                                                                                                                                                   |
 | `includeModelInPrompt` | boolean | `true`                      | Include the active model name in the system prompt.                                                                                                                                                                                                                                                                                                                                                              |
 
@@ -404,11 +414,11 @@ thinkingBudgets:
 | `thinkingBudgets.high`            | number  | `16384` | Token budget for `high`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `thinkingBudgets.xhigh`           | number  | `32768` | Token budget for `xhigh`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `thinkingBudgets.max`             | number  | `32768` | Token budget for `max`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `providers.autoThinkingMaxEffort` | enum    | `xhigh` | Highest effort `defaultThinkingLevel: auto` may resolve. `xhigh` keeps the classifier one tier below the top, so only `ultrathink` reaches `max`; `max` lets the classifier bill the top tier on models that expose it. The local on-device classifier stays capped at `xhigh` either way. This governs what `auto` _resolves_: a model whose ladder offers nothing under the ceiling gets no auto level at all, and one that also sets `thinking.requiresEffort` still receives its lowest supported effort from the transport — on a `["max"]` ladder that is `max`, because the model accepts nothing else. |
+| `providers.autoThinkingMaxEffort` | enum    | `xhigh` | Highest effort `defaultThinkingLevel: auto` may resolve. `xhigh` keeps the classifier one tier below the top, so only `ultrathink` reaches `max`; `max` lets the classifier bill the top tier on models that expose it. The local on-device classifier stays capped at `xhigh` either way. This governs what `auto` _resolves_: a model whose ladder offers nothing under the ceiling gets no auto level at all, and one whose metadata requires explicit effort still receives its lowest supported effort from the transport — on a `["max"]` ladder that is `max`, because the model accepts nothing else. |
 
 ### Sampling
 
-A value of `-1` means "use the provider/model default" — `storoslop` does not send that parameter.
+A value of `-1` means "use the provider/model default" — `omp` does not send that parameter.
 
 | Key                 | Type   | Default   | Notes                                                                                                                                                                                                                                                                          |
 | ------------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -508,11 +518,11 @@ tools:
 | `tools.artifactTailBytes`      | number  | `20`    | KB of tail kept inline on spill.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `tools.artifactTailLines`      | number  | `500`   | Max tail lines kept inline on spill.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
-Individual built-in tools are toggled by their own keys, e.g. `bash.enabled`, `launch.enabled`, `eval.py`, `eval.js`, `glob.enabled`, `grep.enabled`, `fetch.enabled`, `browser.enabled`, `computer.enabled`, `astEdit.enabled`, `astGrep.enabled`, and `web_search.enabled`. The `inspect_image` tool is controlled by the tri-state `inspect_image.mode` (`auto`|`on`|`off`, default `auto`): `auto` exposes it only when the active model lacks native image input, and the `/vision` slash command overrides the mode per session.
+Individual built-in tools and Eval preludes are toggled by their own keys, e.g. `bash.enabled`, `launch.enabled`, `eval.py`, `eval.js`, `glob.enabled`, `grep.enabled`, `fetch.enabled`, `browser.enabled`, `computer.enabled`, `astEdit.enabled`, `astGrep.enabled`, and `web_search.enabled`. Image questions use `read <image>?q=<question>` and honor `images.questionTimeoutMs`.
 
 ### Window-scoped computer use
 
-The disabled-by-default `computer` essential tool captures and controls one real host window through native OS APIs. Numeric targets isolate an application without focusing it or moving the real pointer; the synthetic `desktop` target preserves the previous selected-display composite and global input behavior. It remains separate from `browser`, which manages Chromium/CDP tabs and structured page automation.
+The disabled-by-default `computer` Eval prelude captures and controls real host windows through native OS APIs. Window handles isolate an application without focusing it or moving the real pointer; the `desktop` object preserves selected-display composite and global input behavior. It remains separate from the `browser` Eval prelude, which manages Chromium/CDP tabs and structured page automation.
 
 ```yaml
 computer:
@@ -524,18 +534,19 @@ computer:
 
 | Key                  | Type    | Default | Notes                                                                                                                                                                                                                                                        |
 | -------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `computer.enabled`   | boolean | `false` | Enable the window-aware computer function tool. Every result lists current numeric window ids plus `desktop`; the `/computer` slash command toggles the tool for the current session only.                                                                   |
+| `computer.enabled`   | boolean | `false` | Enable the window-aware `computer` Eval prelude; the `/computer` slash command toggles it for the current session only.                                                                        |
 | `computer.display`   | string  | `all`   | Controls the `desktop` target only: composite all active displays, or use one numeric display ID.                                                                                                                                                            |
 | `computer.maxWidth`  | number  | `3840`  | Maximum composite screenshot width in pixels. Image transports that cannot preserve original detail, including GitHub Copilot Responses and xAI OAuth, cap the effective width at `1280`; Claude-family models use the same cap as a compatibility fallback. |
 | `computer.maxHeight` | number  | `2400`  | Maximum composite screenshot height in pixels. Those coordinate-safe transports cap the effective height at `896`; other models retain the configured limit.                                                                                                 |
 
-Computer settings are captured when the desktop controller is created. A model switch that crosses the coordinate-safe sizing boundary recreates the controller and resnapshots those settings; changing config alone does not, so start a new session after a settings change. Every call must name `desktop` or a numeric id from the preceding window list. Switching targets invalidates the prior coordinate frame, so capture the new target before pointer input. Before enabling input, configure `tools.approvalMode` or `tools.approval.computer` and grant platform permissions. See [Window-scoped computer use](computer-use.md).
+Computer settings and the active model's coordinate-safe image limits are read for every call; edits to settings files require a new session, while runtime setting changes apply to the next call. Direct `computer` helpers and code passed to `computer.run(fnOrCode, options)` select a target through the desktop root or `window(...)`. Switching targets invalidates the prior coordinate frame, so capture the new target before pointer input. Before enabling input, configure `tools.approvalMode` or `tools.approval.computer` and grant platform permissions. See [Window-scoped computer use](computer-use.md).
 
 ### Shell, eval, and LSP
 
 ```yaml
 bash:
   enabled: true
+  allowCompoundCommands: false
   autoBackground:
     enabled: true
     thresholdMs: 60000
@@ -559,16 +570,19 @@ lsp:
 | Key                               | Type    | Default   | Notes                                                                                                                                                       |
 | --------------------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bash.enabled`                    | boolean | `true`    | Enable the bash tool.                                                                                                                                       |
+| `bash.allowCompoundCommands`      | boolean | `false`   | Evaluate flat, literal `&&` chains per segment; unmatched segments inherit normal bash approval policy and mode.                                            |
 | `launch.enabled`                  | boolean | `true`    | Enable the launch tool for shared long-running project processes.                                                                                           |
 | `bash.autoBackground.enabled`     | boolean | `true`   | Auto-background long-running commands.                                                                                                                      |
 | `bash.autoBackground.thresholdMs` | number  | `60000`   | Threshold before auto-backgrounding.                                                                                                                        |
 | `eval.py`                         | boolean | `true`    | Python eval backend. `PI_PY=0` disables for the process.                                                                                                    |
 | `eval.js`                         | boolean | `true`    | JavaScript eval backend. `PI_JS=0` disables for the process.                                                                                                |
+| `eval.tools.enabled`              | boolean | `true`    | Expose kernel-defined `@tool` / `tool(fn)` functions to `task`, `agent()`, and `workpool()` subagents.                                                      |
+| `eval.workpool.freshAgents`       | boolean | `false`   | Spawn a new workpool agent for every item instead of reusing idle workers or batching queued items.                                                        |
 | `python.kernelMode`               | enum    | `session` | `session` (persistent kernel) or `per-call`.                                                                                                                |
 | `python.interpreter`              | string  | `""`      | Path to a Python interpreter; empty = auto-detect.                                                                                                          |
 | `lsp.enabled`                     | boolean | `true`    | Language-server integration. `--no-lsp` disables for the run.                                                                                               |
 | `lsp.lazy`                        | boolean | `true`    | Start servers on demand.                                                                                                                                    |
-| `lsp.shared`                      | boolean | `true`    | Share one language server per project across local `storoslop` processes through the daemon broker; falls back to private servers when the broker is unavailable. |
+| `lsp.shared`                      | boolean | `true`    | Share one language server per project across local `omp` processes through the daemon broker; falls back to private servers when the broker is unavailable. |
 | `lsp.diagnosticsOnWrite`          | boolean | `true`    | Run diagnostics after a write.                                                                                                                              |
 | `lsp.diagnosticsOnEdit`           | boolean | `false`   | Run diagnostics after an edit.                                                                                                                              |
 | `lsp.formatOnWrite`               | boolean | `false`   | Format files on write.                                                                                                                                      |
@@ -685,19 +699,21 @@ tui:
 | `tui.hyperlinks`            | enum    | `auto`           | `off`, `auto`, `always`.                                                  |
 | `tui.resizeScrollback`      | enum    | `rebuild`        | How a settled width resize refreshes transcript rows kept in terminal scrollback: `append` replays the transcript at the new width below retained history, `rebuild` erases pane scrollback then replays one current-width copy, `preserve` repaints only the viewport. |
 
-For a custom status line, set `statusLine.preset: custom` and configure `statusLine.leftSegments`, `statusLine.rightSegments`, and `statusLine.segmentOptions`.
+For a custom status line, set `statusLine.preset: custom` and configure `statusLine.leftSegments`, `statusLine.rightSegments`, and `statusLine.segmentOptions`. Include `status` in either segment list to render extension statuses registered through `ctx.ui.setStatus()`, ordered by key and joined inline. Set `statusLine.showHookStatus: false` to suppress the same statuses in the footer.
 
 ### Interaction
 
-| Key                  | Type    | Default         | Values                                                                                                  |
-| -------------------- | ------- | --------------- | ------------------------------------------------------------------------------------------------------- |
-| `steeringMode`       | enum    | `one-at-a-time` | `all`, `one-at-a-time`. How queued steering messages are delivered.                                     |
-| `followUpMode`       | enum    | `one-at-a-time` | `all`, `one-at-a-time`.                                                                                 |
-| `interruptMode`      | enum    | `immediate`     | `immediate`, `wait`.                                                                                    |
-| `doubleEscapeAction` | enum    | `tree`          | `branch`, `tree`, `none`.                                                                               |
-| `autoResume`         | boolean | `false`         | Auto-resume the most recent session in the cwd.                                                         |
-| `ask.timeout`        | number  | `0`             | Seconds before an `ask` prompt times out; `0` = no timeout. (Legacy ms values are migrated to seconds.) |
-| `ask.notify`         | enum    | `on`            | `on`, `off`.                                                                                            |
+| Key                    | Type    | Default         | Values                                                                                                  |
+| ---------------------- | ------- | --------------- | ------------------------------------------------------------------------------------------------------- |
+| `steeringMode`         | enum    | `one-at-a-time` | `all`, `one-at-a-time`. How queued steering messages are delivered.                                     |
+| `followUpMode`         | enum    | `one-at-a-time` | `all`, `one-at-a-time`.                                                                                 |
+| `interruptMode`        | enum    | `immediate`     | `immediate`, `wait`.                                                                                    |
+| `doubleEscapeAction`   | enum    | `rewind`          | `rewind`, `none`.                                                                               |
+| `autoResume`           | boolean | `false`         | Auto-resume the most recent session in the cwd.                                                         |
+| `plan.enabled`         | boolean | `true`          | Enable plan mode.                                                                                       |
+| `plan.defaultOnStartup` | boolean | `false`         | Start each fresh interactive session in plan mode when plan mode is enabled. Print/JSON (`--print`) mode ignores this and prints a note; use `--plan-yolo` for a headless plan flow. |
+| `ask.timeout`          | number  | `0`             | Seconds before an `ask` prompt times out; `0` = no timeout. (Legacy ms values are migrated to seconds.) |
+| `ask.notify`           | enum    | `on`            | `on`, `off`.                                                                                            |
 
 ### Providers and services
 
@@ -722,9 +738,7 @@ provider:
 
 exa:
   enabled: true
-  enableSearch: true
-  enableResearcher: false
-  enableWebsets: false
+  searchDelayMs: 1000
 
 searxng:
   endpoint: https://search.example.com
@@ -738,24 +752,22 @@ searxng:
 | `providers.webSearchTimeoutSeconds` | number  | `60`      | Hard timeout in seconds supplied to each `web_search` provider transport before the automatic chain advances to the next fallback. Use a larger value for slower model-backed providers; values above `300` are capped at five minutes. This is not a whole-chain deadline, and provider-specific upstream or aggregate limits may still be shorter.                                                                                   |
 | `providers.webSearchGeminiModel`    | string  | _(unset)_ | Gemini model ID for Google Search grounding when `web_search` uses Gemini; defaults to `gemini-2.5-flash`, overridden by `GEMINI_SEARCH_MODEL`.                                                                                                                                                                                                                                                                                        |
 | `providers.imageOrder`              | array   | `[]`      | Image-generation provider IDs in priority order (`openai`, `openai-codex`, `antigravity`, `xai`, `gemini`, `openrouter`). Unlisted providers follow the active session provider and the built-in order. Replaces the removed `providers.image` enum (a legacy value migrates to the head of this list).                                                                                                                                |
-| `providers.fetch`                   | enum    | `auto`    | `auto`, `native`, `trafilatura`, `lynx`, `parallel`, `jina`.                                                                                                                                                                                                                                                                                                                                                                           |
-| `providers.tinyModel`               | enum    | `online`  | `online` or a local model (`lfm2-350m`, `qwen3-0.6b`, `gemma-270m`, `qwen2.5-0.5b`, `lfm2-700m`).                                                                                                                                                                                                                                                                                                                                      |
-| `providers.tinyModelDevice`         | enum    | `default` | ONNX execution provider for local tiny models. Overridden by `PI_TINY_DEVICE`.                                                                                                                                                                                                                                                                                                                                                         |
-| `providers.maxInFlightRequests`     | record  | `{}`      | Positive per-provider concurrency limits for LLM HTTP requests, shared across local `storoslop` processes using the same config root. Omitted providers are unlimited. `storoslop config set` rejects non-positive or non-numeric values.                                                                                                                                                                                                          |
+| `providers.fetch`                   | enum    | `auto`    | `auto`, `native`, `trafilatura`, `lynx`, `parallel`, `firecrawl`, `jina`.                                                                                                                                                                                                                                                                                                                                                              |
+| `providers.tinyModel`               | enum    | `online`  | `online` or a local model (`lfm2.5-230m`, `lfm2.5-350m`, `falcon-h1-90m`).                                                                                                                                                                                                                                                                                                                                                              |
+| `providers.tinyModelDevice`         | enum    | `default` | ONNX execution provider, or `mlx` (Apple silicon, via mlx-lm), for local tiny models. Overridden by `PI_TINY_DEVICE`.                                                                                                                                                                                                                                                                                                                                                         |
+| `providers.maxInFlightRequests`     | record  | `{}`      | Positive per-provider concurrency limits for LLM HTTP requests, shared across local `omp` processes using the same config root. Omitted providers are unlimited. `storoslop config set` rejects non-positive or non-numeric values.                                                                                                                                                                                                          |
 | `providers.tinyModelDtype`          | enum    | `default` | ONNX precision for local tiny models. Overridden by `PI_TINY_DTYPE`.                                                                                                                                                                                                                                                                                                                                                                   |
 | `providers.openaiWebsockets`        | enum    | `auto`    | `auto`, `off`, `on`.                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `providers.openrouterVariant`       | enum    | `default` | `default`, `nitro`, `floor`, `online`, `exacto`.                                                                                                                                                                                                                                                                                                                                                                                       |
 | `providers.kimiApiFormat`           | enum    | `auto`    | `auto`, `openai`, `anthropic`. `auto` follows live model metadata.                                                                                                                                                                                                                                                                                                                                                                     |
 | `providers.cacheRetention`          | enum    | `auto`    | `auto`, `short`, `long`, `none`. Prompt-cache retention forwarded to providers that support it. `auto` keeps provider defaults (Anthropic: 5m entries + idle keep-alive refreshes) and honors `PI_CACHE_RETENTION`; `short` forces 5m; `long` uses 1h TTLs where supported and disables keep-alive refreshes; `none` disables prompt caching and cache-affinity routing.                                                                 |
 | `provider.appendOnlyContext`        | enum    | `auto`    | `auto`, `on`, `off`.                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `exa.enabled`                       | boolean | `true`    | Enable Exa integration.                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `exa.enableSearch`                  | boolean | `true`    | Exa search.                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `exa.enableResearcher`              | boolean | `false`   | Exa researcher.                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `exa.enableWebsets`                 | boolean | `false`   | Exa websets.                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `exa.enabled`                       | boolean | `true`    | Enable the Exa web search provider.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `exa.searchDelayMs`                 | number  | `1000`    | Minimum delay between Exa web search requests in milliseconds; set `0` to disable pacing.                                                                                                                                                                                                                                                                                                                                               |
 | `searxng.endpoint`                  | string  | _(unset)_ | SearXNG instance URL.                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `searxng.token`                     | string  | _(unset)_ | SearXNG token; also `searxng.basicUsername`/`searxng.basicPassword`/`searxng.categories`/`searxng.language`/`searxng.engines` (comma-separated engine names or bang shortcuts, e.g. `ddg, br, startpage`, sent as the API's `engines=` parameter)/`searxng.safesearch`.                                                                                                                                                                                                                                                                                                 |
-| `auth.broker.url`                   | string  | _(unset)_ | Auth-broker URL. Overridden by `OMP_AUTH_BROKER_URL`.                                                                                                                                                                                                                                                                                                                                                                                  |
-| `auth.broker.token`                 | string  | _(unset)_ | Auth-broker token. Overridden by `OMP_AUTH_BROKER_TOKEN`.                                                                                                                                                                                                                                                                                                                                                                              |
+| `auth.broker.url`                   | string  | _(unset)_ | Auth-broker URL. Overridden by `storoslop_AUTH_BROKER_URL`.                                                                                                                                                                                                                                                                                                                                                                                  |
+| `auth.broker.token`                 | string  | _(unset)_ | Auth-broker token. Overridden by `storoslop_AUTH_BROKER_TOKEN`.                                                                                                                                                                                                                                                                                                                                                                              |
 | `secrets.enabled`                   | boolean | `false`   | Enable configured secret obfuscation and built-in credential-shaped token redaction before provider requests. See [Secret obfuscation](./secrets.md).                                                                                                                                                                                                                                                                                  |
 
 Provider credentials and custom model definitions are configured separately — see [Providers](./providers.md) and [Models](./models.md).
@@ -774,7 +786,7 @@ These settings follow the same schema-defined type and default rules shown above
 
 ## Legacy migration
 
-`storoslop` migrates older config shapes automatically. None of these require action; they are listed so you know what changes you may see in `config.yml`.
+`omp` migrates older config shapes automatically. None of these require action; they are listed so you know what changes you may see in `config.yml`.
 
 ### Startup migration to `config.yml`
 
@@ -791,20 +803,22 @@ Applied whenever raw settings are loaded (global, project, overlays, and runtime
 
 | Old                                                                      | New                                                                                                          |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `inspect_image.enabled` boolean                                          | `inspect_image.mode` (`true` → `on`, `false` → `off`)                                                        |
+| `inspect_image.enabled` / `inspect_image.mode`                           | removed                                                                                                      |
+| `inspect_image.timeoutMs`                                                | `images.questionTimeoutMs`                                                                                   |
 | `queueMode`                                                              | `steeringMode`                                                                                               |
 | `ask.timeout` in milliseconds (value `> 1000`)                           | seconds (divided by 1000)                                                                                    |
 | flat `theme: "<name>"` string                                            | `theme.dark` / `theme.light` (slot chosen by luminance; built-in `light`/`dark` are dropped to use defaults) |
-| `task.isolation.enabled: true/false`                                     | `task.isolation.mode: auto/none`                                                                             |
+| legacy `task.isolation.mode: none`                                       | `task.isolation.enabled: false`                                                                              |
+| legacy `task.isolation.mode: <backend>`                                  | `task.isolation.enabled: true` + `isolation.backend: <backend>`                                              |
 | `task.simple`                                                            | removed                                                                                                      |
-| legacy `task.isolation.mode` (`worktree`, `fuse-overlay`, `fuse-projfs`) | `rcopy`, `overlayfs`, `projfs`                                                                               |
+| legacy isolation backends (`worktree`, `fuse-overlay`, `fuse-projfs`)    | `rcopy`, `overlayfs`, `projfs`                                                                               |
 | `lastChangelogVersion`                                                   | moved to a marker file and stripped from `config.yml`                                                        |
 
 ## Troubleshooting
 
 ### A project setting is not taking effect
 
-- Start `storoslop` from the directory that contains `.storoslop/config.yml`. Settings discovery only checks the current working directory's `.storoslop/`, not ancestor directories.
+- Start `omp` from the directory that contains `.storoslop/config.yml`. Settings discovery only checks the current working directory's `.storoslop/`, not ancestor directories.
 - Ensure `.storoslop/` is non-empty; empty config directories are ignored.
 - Confirm the file is valid YAML and its top level is a mapping.
 - Run `storoslop config get <key>` from that directory to see the effective value.
