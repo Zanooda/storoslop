@@ -2,17 +2,6 @@
 
 ## [Unreleased]
 
-## [1.2.3] - 2026-09-07
-
-### Added
-
-- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `a1b254047d` into the storoslop fork (2026-09-07, branch `integrate/oh-my-pi-a1b254047d`): the native Rust edit engine (`crates/pi-edit`/`crates/pi-diff` via `pi-natives`, replacing the `@oh-my-pi/hashline` package), the declarative KDL auth registry (per-provider login/policy now ships as compiled `rules/auth/*.kdl` rules, with a fork-private `auth/storoslop.kdl`), the Agent Hub activity view, Herdr/terminal-multiplexer notification routing, and the Muse Code provider. Kept-fork deltas are unchanged: storoslop rebrand, `1.2.x` version lineage and native sentinel, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry with bundled storoslop roster, GitHub-release update flow, and fork CI.
-- Added the oxlint/oxfmt lint-and-format toolchain (replacing biome) across all packages.
-
-### Removed
-
-- Eval no longer offers Ruby or Julia kernels; `py` and `js` remain.
-
 ## [18.1.12] - 2026-09-06
 
 - Fixed edit and write results to report the formatted bytes actually committed by LSP writethrough.
@@ -1889,5 +1878,16 @@
 - Fixed MiMo models using hashline edit mode by default despite needing the same replace-mode fallback as Kimi. ([#3772](https://github.com/can1357/oh-my-pi/issues/3772))
 - Fixed `omp` refusing to start on Windows when no `bash.exe` is discoverable — most visibly with scoop-installed Git, whose manifest shims `sh.exe`/`git.exe` but never `bash.exe`, so PATH lookup missed it. Startup threw `No bash shell found` while merely building the bash tool description, even though bash tool commands always execute in the embedded brush-core shell and need no host bash. Shell discovery now also checks `GIT_INSTALL_ROOT`, scoop and per-user Git for Windows install roots, and `sh.exe` on PATH, then falls back to `cmd.exe` for the spawn-only paths (interactive PTY, ACP client terminals) instead of failing; the cmd fallback is never used to wrap user-shell commands — brush runs the POSIX line directly.
 - Added a selectable voice setting for `/live` realtime sessions ([#6566](https://github.com/can1357/oh-my-pi/issues/6566)).
+
+## [1.2.3] - 2026-09-07
+
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `a1b254047d` into the storoslop fork (2026-09-07, branch `integrate/oh-my-pi-a1b254047d`): the native Rust edit engine (`crates/pi-edit`/`crates/pi-diff` via `pi-natives`, replacing the `@oh-my-pi/hashline` package), the declarative KDL auth registry (per-provider login/policy now ships as compiled `rules/auth/*.kdl` rules, with a fork-private `auth/storoslop.kdl`), the Agent Hub activity view, Herdr/terminal-multiplexer notification routing, and the Muse Code provider. Kept-fork deltas are unchanged: storoslop rebrand, `1.2.x` version lineage and native sentinel, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry with bundled storoslop roster, GitHub-release update flow, and fork CI.
+- Added the oxlint/oxfmt lint-and-format toolchain (replacing biome) across all packages.
+
+### Removed
+
+- Eval no longer offers Ruby or Julia kernels; `py` and `js` remain.
 
 Older entries are archived in [packages/coding-agent/CHANGELOG.md@90ed4d8ff217](https://github.com/can1357/oh-my-pi/blob/90ed4d8ff2175f05e409dc85a4e2876dfe966281/packages/coding-agent/CHANGELOG.md).
