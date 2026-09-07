@@ -674,7 +674,10 @@ describe("selector setting side effects", () => {
 		const testDir = path.join(os.tmpdir(), `selector-runtime-identical-${Snowflake.next()}`);
 		const projectDir = path.join(testDir, "project");
 		fs.mkdirSync(path.join(projectDir, ".storoslop"), { recursive: true });
-		fs.writeFileSync(path.join(projectDir, ".storoslop", "config.yml"), `modelRoles:\n  default: ${projectSelector}\n`);
+		fs.writeFileSync(
+			path.join(projectDir, ".storoslop", "config.yml"),
+			`modelRoles:\n  default: ${projectSelector}\n`,
+		);
 
 		try {
 			const settings = await Settings.loadIsolated({

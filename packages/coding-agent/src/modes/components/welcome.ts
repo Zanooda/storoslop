@@ -8,7 +8,7 @@ import {
 	wrapTextWithAnsi,
 } from "@oh-my-pi/pi-tui";
 import { APP_NAME } from "@oh-my-pi/pi-utils";
-import { theme } from "../../modes/theme/theme";
+import { getThemeEpoch, theme } from "../../modes/theme/theme";
 import tipsText from "./tips.txt" with { type: "text" };
 
 /** Tips embedded at build time, one per line; blanks dropped. */
@@ -143,6 +143,7 @@ export class WelcomeComponent implements Component {
 	#animTimer: Timer | null = null;
 	#requestRender: (() => void) | null = null;
 	#selectedTip: string | undefined;
+	#selectedTipEpoch = -1;
 	// Render cache: the welcome box is the first transcript-area component, so
 	// returning a stable array reference keeps the whole frame prefix stable.
 	// Bypassed while the intro animation runs (every frame differs).
@@ -156,7 +157,16 @@ export class WelcomeComponent implements Component {
 		private recentSessions: RecentSession[] = [],
 		private lspServers: LspServerInfo[] = [],
 	) {}
+
 	get tip(): string | undefined {
+		// The tip is stable across renders, but a symbol-preset switch (e.g. the
+		// startup unicode→nerd promotion) must re-roll it: a nag latched under
+		// the startup default used to survive into a nerd-font session.
+		const epoch = getThemeEpoch();
+		if (this.#selectedTipEpoch !== epoch) {
+			this.#selectedTipEpoch = epoch;
+			this.#selectedTip = undefined;
+		}
 		if (this.#selectedTip === undefined) {
 			if (theme.getSymbolPreset() === "unicode" && Math.random() < 0.1) {
 				this.#selectedTip = "Please use nerdfont 😭.";

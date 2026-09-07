@@ -1147,4 +1147,4 @@ describe("ModelHub", () => {
 			expect(normalize(hub.render(220))).not.toContain("refreshing model list");
 		});
 	});
-	});
+});
