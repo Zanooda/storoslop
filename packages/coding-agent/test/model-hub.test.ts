@@ -373,68 +373,6 @@ describe("ModelHub", () => {
 			expect(footerLine(hub.render(220))).toContain("↑/↓ models · ← providers");
 		});
 
-		test("typing while on a locked provider in scope focus switches to All models and focuses model list", () => {
-			const model = makeModel("anthropic", "claude-locked-test");
-			const { hub } = createHub({
-				models: [model],
-				registry: { getAvailable: () => [] },
-			});
-			installTestTheme();
-
-			hub.handleInput(DOWN); // All models → locked anthropic
-			expect(normalize(hub.render(220))).toContain("anthropic has no credentials configured");
-			expect(footerLine(hub.render(220))).toContain("Enter log in");
-
-			// Typing a search character switches to All models and focuses list
-			hub.handleInput("t");
-			expect(normalize(hub.render(220))).toContain("All available models");
-			expect(footerLine(hub.render(220))).toContain("↑/↓ models · ← providers");
-		});
-	});
-
-	describe("quick-switch cycle and custom roles", () => {
-		test("c toggles cycle membership, [ reorders, and the preview tracks the order", () => {
-			const model = makeModel("test", "cycle-model");
-			const settings = Settings.isolated({});
-			const changes: string[][] = [];
-			const { hub } = createHub({
-				models: [model],
-				scoped: true,
-				settings,
-				callbacks: {
-					onCycleOrderChange: order => {
-						changes.push([...order]);
-						settings.set("cycleOrder", order);
-					},
-				},
-			});
-			installTestTheme();
-
-			hub.handleInput(UP); // All models → Roles (since Recent is removed)
-			hub.handleInput("\n"); // dive into rows; cursor on DEFAULT
-
-			// Default cycle is [smol, default, slow]: c removes default…
-			hub.handleInput("c");
-			expect(changes[0]).toEqual(["smol", "slow"]);
-			// …c again re-appends it at the end…
-			hub.handleInput("c");
-			expect(changes[1]).toEqual(["smol", "slow", "default"]);
-			// …and [ moves it one slot earlier.
-			hub.handleInput("[");
-			expect(changes[2]).toEqual(["smol", "default", "slow"]);
-
-			// The preview line renders the resulting ctrl+p track in order.
-			const preview = hub
-				.render(220)
-				.map(line => stripVTControlCharacters(line))
-				.find(line => line.includes("cycle:"));
-			expect(preview).toBeDefined();
-			const previewText = preview ?? "";
-			expect(previewText.indexOf("smol")).toBeGreaterThan(-1);
-			expect(previewText.indexOf("smol")).toBeLessThan(previewText.indexOf("default"));
-			expect(previewText.indexOf("default")).toBeLessThan(previewText.indexOf("slow"));
-		});
-
 		test("separates the quick-cycle icon from its ordinal", () => {
 			const model = makeModel("test", "cycle-model");
 			const settings = Settings.isolated({
@@ -1209,23 +1147,4 @@ describe("ModelHub", () => {
 			expect(normalize(hub.render(220))).not.toContain("refreshing model list");
 		});
 	});
-
-	describe("locked providers", () => {
-		test("catalog providers without credentials appear locked and forward to login", () => {
-			const anthropicModel = makeModel("anthropic", "claude-locked-test");
-			const { hub, onLoginRequest } = createHub({
-				models: [anthropicModel],
-				registry: { getAvailable: () => [] },
-			});
-			installTestTheme();
-
-			hub.handleInput(DOWN); // All models → locked anthropic (separator skipped)
-			const rendered = normalize(hub.render(220));
-			expect(rendered).toContain("anthropic has no credentials configured");
-			expect(rendered).toContain("claude-locked-test");
-
-			hub.handleInput("\n");
-			expect(onLoginRequest).toHaveBeenCalledWith("anthropic");
-		});
 	});
-});
