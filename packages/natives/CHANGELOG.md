@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-09-07
+
 ### Added
 
 - Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `a1b254047d` (2026-09-07): the native Rust edit engine (`crates/pi-edit`/`crates/pi-diff` — hashline/patch/replace/sloppy edit modes, edit sessions, and streaming diff previews now run natively), OAuth callback servers for Linux/macOS/Windows in `pi-natives`, and `pi-builtins` gains the `bre` builtin.
