@@ -196,11 +196,11 @@ describe("structured subagent primitive", () => {
 
 		try {
 			await Bun.write(
-				path.join(projectDir, "storoslop", "config.yml"),
+				path.join(projectDir, ".storoslop", "config.yml"),
 				"modelRoles:\n  hot_worker: kimi-code/k3:max\n",
 			);
 			await Bun.write(
-				path.join(projectDir, "storoslop", "agents", "hot-worker.md"),
+				path.join(projectDir, ".storoslop", "agents", "hot-worker.md"),
 				'---\nname: hot-worker\ndescription: Newly added worker.\nmodel: "@hot_worker"\n---\n\nInspect the assignment.\n',
 			);
 
