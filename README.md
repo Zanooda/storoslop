@@ -591,13 +591,13 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `65f79e76fc`**, merged 2026-08-31. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
-- `1.1.7` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_1_7` native sentinel
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `a1b254047d`**, merged 2026-09-07. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+- `1.2.2` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_2_2` native sentinel
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.1.7` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_1_7` native sentinel
+- `1.2.2` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_2_2` native sentinel
 - `bun@1.3.14` + `@types/bun` pin
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time
@@ -613,6 +613,10 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - V2 streaming Responses compaction and V1 `/responses/compact` fallback chain
 - `ompPr*` worktree metadata keys via vcs natives; z.ai OAuth callback port `9999`
 - PTY bridge backpressure rework and `katex` catalog entry for collab-web
+- declarative KDL auth registry (`rules/auth/*.kdl` + `packages/ai/src/registry/build.ts`), with a fork-private `auth/storoslop.kdl` rule replacing the TS `storoslopProvider`
+- native Rust edit engine (`crates/pi-edit`/`crates/pi-diff` via `pi-natives`; `@oh-my-pi/hashline` package removed)
+- oxlint/oxfmt toolchain (replaces biome) and Eval Ruby/Julia runtime removal
+- Agent Hub activity view, Herdr/terminal-multiplexer notification routing, Muse Code provider
 
 ---
 
