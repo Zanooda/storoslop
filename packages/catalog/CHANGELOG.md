@@ -5,6 +5,10 @@
 - The bundled `storoslop/glm-5.3-flash` model now defaults to `high` thinking effort instead of `max`.
 ## [Unreleased]
 
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `a1b254047d` (2026-09-07): provider authentication moved to a declarative KDL registry (`rules/auth/*.kdl`, compiled into `rules.json`), with the fork-private `auth/storoslop.kdl` login rule replacing the TypeScript `storoslopProvider` definition. The bundled storoslop glm-5.3-flash roster and its effort-remap wire contract are unchanged.
+
 ## [18.1.12] - 2026-09-06
 
 ### Added

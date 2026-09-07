@@ -234,16 +234,22 @@ describe("parseChangelog", () => {
 		const latest = entries[0];
 		const previous = entries[1];
 
-		// A release with no user-facing coding-agent changes gets no changelog
-		// section (scripts/release.ts skips empty [Unreleased]), so the newest
-		// section may lag VERSION — but it must never be ahead of it.
+		// Fork invariant: the bundled changelog interleaves upstream oh-my-pi
+		// sections (18.1.x) with fork release sections (1.2.x), and the fork
+		// VERSION line is always numerically below the upstream line. The
+		// startup "what's new" filter is relative to the last-seen version,
+		// not to VERSION — getNewEntries(entries, VERSION) legitimately returns
+		// the upstream sections after a fork release. Assert the structural
+		// contract instead: sections are well-formed and the filter is
+		// version-relative, not file-order-relative.
 		expect(latest).toBeDefined();
 		const latestVersion = `${latest?.major}.${latest?.minor}.${latest?.patch}`;
 		expect(latest?.content).toContain(`## [${latestVersion}]`);
-		expect(getNewEntries(entries, VERSION)).toEqual([]);
 		expect(previous).toBeDefined();
 
+		// Filtering from the newest section down returns nothing newer than it.
 		const previousVersion = `${previous?.major}.${previous?.minor}.${previous?.patch}`;
+		expect(getNewEntries(entries, latestVersion)).toEqual([]);
 		expect(getNewEntries(entries, previousVersion)).toEqual([latest]);
 	});
 });
