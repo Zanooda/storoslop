@@ -23,13 +23,13 @@ import {
 	getAgentDir,
 	getLastChangelogVersionPath,
 	getProjectDir,
+	getProjectAgentDir,
 	isEnoent,
 	logger,
 	MAIN_CONFIG_FILENAMES,
 	procmgr,
 	setWorktreesDir,
 } from "@oh-my-pi/pi-utils";
-import { CONFIG_DIR_NAME } from "@oh-my-pi/pi-utils";
 import { withFileLock } from "@oh-my-pi/pi-utils/file-lock";
 import { JSONC, YAML } from "bun";
 import { invalidate as invalidateCapabilityFsCache } from "../capability/fs";
@@ -1810,6 +1810,10 @@ export class Settings {
 	}
 
 	async #readProjectSettings(quarantineInvalid: boolean): Promise<ProjectSettingsReadResult> {
+		const projectConfigDir = getProjectAgentDir(this.#cwd);
+		const projectConfigPath = path.join(projectConfigDir, "config.yml");
+		invalidateCapabilityFsCache(projectConfigPath);
+		invalidateCapabilityFsCache(path.join(projectConfigDir, "settings.json"));
 		let shellPathSource: string | undefined;
 		let merged: RawSettings = {};
 		try {
@@ -1825,7 +1829,6 @@ export class Settings {
 			// Capability discovery is best-effort; the native project config below
 			// remains authoritative for its model-role layer and must not be hidden.
 		}
-		const projectConfigPath = path.join(this.#cwd, CONFIG_DIR_NAME, "config.yml");
 		const nativeProject = quarantineInvalid
 			? await this.#loadYaml(projectConfigPath)
 			: (this.#unwrapYamlLoadResult(projectConfigPath, await this.#loadYamlIfPresent(projectConfigPath, false)) ??
@@ -2905,7 +2908,7 @@ export class Settings {
 	async #saveProjectNow(): Promise<void> {
 		if (this.#savesCancelled || !this.#persist || this.#modifiedProjectModelRoles.size === 0) return;
 
-		const projectConfigPath = path.join(this.#cwd, CONFIG_DIR_NAME, "config.yml");
+		const projectConfigPath = path.join(getProjectAgentDir(this.#cwd), "config.yml");
 		const modifiedModelRoles = [...this.#modifiedProjectModelRoles];
 		this.#modifiedProjectModelRoles.clear();
 

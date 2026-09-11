@@ -100,9 +100,14 @@ describe("parseReportedVersion", () => {
 		// Regression: dropping `-canary.1` made a correctly installed canary
 		// build look like a stale `X.Y.Z` launcher, triggering a binary repair
 		// that rejects the prerelease GitHub release.
-		expect(parseReportedVersion("omp/18.0.6-canary.1")).toBe("18.0.6-canary.1");
-		expect(parseReportedVersion("omp/18.0.5")).toBe("18.0.5");
+		expect(parseReportedVersion("storoslop/18.0.6-canary.1")).toBe("18.0.6-canary.1");
+		expect(parseReportedVersion("storoslop/18.0.5")).toBe("18.0.5");
 		expect(parseReportedVersion("not a version")).toBeUndefined();
+	});
+
+	it("rejects version output from a different executable", () => {
+		expect(parseReportedVersion("node/18.0.5")).toBeUndefined();
+		expect(parseReportedVersion("codex/18.0.5")).toBeUndefined();
 	});
 });
 
@@ -222,7 +227,12 @@ describe("update-cli install target detection", () => {
 			npmBinDir,
 		});
 
-		expect(target).toEqual({ method: "binary", path: standalonePath, replacesSymlink: false });
+		expect(target).toEqual({
+			method: "binary",
+			path: standalonePath,
+			replacesSymlink: false,
+			validateExistingTarget: true,
+		});
 		expect(await fs.readlink(aliasPath)).toBe(standalonePath);
 	});
 
@@ -264,7 +274,12 @@ describe("update-cli install target detection", () => {
 			allowPackageManagers: true,
 		});
 
-		expect(target).toEqual({ method: "binary", path: standalonePath, replacesSymlink: false });
+		expect(target).toEqual({
+			method: "binary",
+			path: standalonePath,
+			replacesSymlink: false,
+			validateExistingTarget: true,
+		});
 	});
 
 	it("resolves a foreign symlink to its real binary on a binary-only release instead of clobbering the launcher", async () => {
@@ -287,9 +302,66 @@ describe("update-cli install target detection", () => {
 			allowPackageManagers: false,
 		});
 
-		expect(target).toEqual({ method: "binary", path: standalonePath, replacesSymlink: false });
+		expect(target).toEqual({
+			method: "binary",
+			path: standalonePath,
+			replacesSymlink: false,
+			validateExistingTarget: true,
+		});
 		expect(await fs.readlink(launcherPath)).toBe(standalonePath);
 	});
+
+	it.skipIf(process.platform === "win32")(
+		"refuses to overwrite a shared shebang dispatcher behind a foreign symlink",
+		async () => {
+			const dir = await makeTempDir();
+			const dispatcherPath = path.join(dir, "launch");
+			const aliasPath = path.join(dir, "omp");
+			const dispatcher = "#!/bin/sh\necho dispatcher\n";
+			await Bun.write(dispatcherPath, dispatcher);
+			await fs.chmod(dispatcherPath, 0o755);
+			await fs.symlink("launch", aliasPath);
+			const fetchImpl = vi.fn(async () => new Response());
+
+			const target = resolveUpdateTargetFromPath(aliasPath, undefined, {
+				allowPackageManagers: true,
+			});
+			if (target.method !== "binary") throw new Error("Expected binary update target");
+
+			await expect(
+				updateViaBinaryAt(target.path, "18.1.13", {
+					binaryName: "omp-linux-x64",
+					fetchImpl,
+					validateExistingTarget: target.validateExistingTarget,
+				}),
+			).rejects.toThrow(`Refusing to replace ${dispatcherPath}`);
+			expect(fetchImpl).not.toHaveBeenCalled();
+			expect(await Bun.file(dispatcherPath).text()).toBe(dispatcher);
+		},
+	);
+
+	it.skipIf(process.platform === "win32")(
+		"refuses a foreign native target that does not report an OMP version",
+		async () => {
+			const dir = await makeTempDir();
+			const aliasPath = path.join(dir, "omp");
+			await fs.symlink(process.execPath, aliasPath);
+			const fetchImpl = vi.fn(async () => new Response());
+			const target = resolveUpdateTargetFromPath(aliasPath, undefined, {
+				allowPackageManagers: true,
+			});
+			if (target.method !== "binary") throw new Error("Expected binary update target");
+
+			await expect(
+				updateViaBinaryAt(target.path, "18.1.13", {
+					binaryName: "omp-linux-x64",
+					fetchImpl,
+					validateExistingTarget: target.validateExistingTarget,
+				}),
+			).rejects.toThrow("does not report an OMP version when run directly");
+			expect(fetchImpl).not.toHaveBeenCalled();
+		},
+	);
 
 	it("takes over a package-manager launcher in place on a binary-only release", async () => {
 		// A bun/npm-managed launcher symlinks into the manager's node_modules.
@@ -310,7 +382,12 @@ describe("update-cli install target detection", () => {
 			npmBinDir,
 		});
 
-		expect(target).toEqual({ method: "binary", path: aliasPath, replacesSymlink: true });
+		expect(target).toEqual({
+			method: "binary",
+			path: aliasPath,
+			replacesSymlink: true,
+			validateExistingTarget: false,
+		});
 	});
 
 	it("keeps a split-root Bun-linked checkout under Bun management instead of overwriting its script", async () => {
@@ -1185,6 +1262,53 @@ describe("update-cli script-shim takeover", () => {
 		}
 		const residue = (await fs.readdir(dir)).filter(name => name.endsWith(".bak") || name.endsWith(".new"));
 		expect(residue).toEqual([]);
+	});
+
+	it("installs a canary prerelease binary only when the caller opts in", async () => {
+		const dir = await makeTempDir();
+		await writeShims(dir);
+		const exe = `#!/bin/sh\necho storoslop/${version}\n`;
+
+		// A canary release is published as a prerelease: without opt-in the
+		// takeover refuses the asset and leaves the shims intact.
+		await expect(
+			updateViaShimTakeover(path.join(dir, "omp.cmd"), version, {
+				binaryName,
+				fetchImpl: makeFetch(exe, true),
+				githubToken: "test-token",
+			}),
+		).rejects.toThrow("is a prerelease");
+		expect(await Bun.file(path.join(dir, "storoslop.exe")).exists()).toBe(false);
+
+		// allowPrerelease threads through to the asset resolver, so the canary
+		// exe installs and the shims are retired.
+		await updateViaShimTakeover(path.join(dir, "omp.cmd"), version, {
+			binaryName,
+			fetchImpl: makeFetch(exe, true),
+			allowPrerelease: true,
+			githubToken: "test-token",
+		});
+		expect(await Bun.file(path.join(dir, "storoslop.exe")).text()).toBe(exe);
+	});
+
+	it.skipIf(process.platform === "win32")("reports the physical binary path verified after an update", async () => {
+		const dir = await makeTempDir();
+		const targetPath = path.join(dir, "omp");
+		const exe = `#!/bin/sh\necho storoslop/${version}\n`;
+		await Bun.write(targetPath, "old binary");
+		const logSpy = spyOn(console, "log").mockImplementation(() => {});
+
+		await updateViaBinaryAt(targetPath, version, {
+			binaryName,
+			fetchImpl: makeFetch(exe),
+			githubToken: "test-token",
+		});
+
+		expect(
+			logSpy.mock.calls.some(
+				([message]) => String(message).includes(targetPath) && String(message).includes(version),
+			),
+		).toBe(true);
 	});
 
 	it("restores the shims and removes the exe when the exe reports the wrong version", async () => {

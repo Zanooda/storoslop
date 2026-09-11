@@ -28,7 +28,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "bin": {
-    "storoslop": "src/cli.ts"
+    "omp": "src/cli.ts"
   },
   "scripts": {
     "build": "bun scripts/build-binary.ts",
@@ -245,10 +245,6 @@
     "./edit/*": {
       "types": "./src/edit/*.ts",
       "import": "./src/edit/*.ts"
-    },
-    "./edit/modes/*": {
-      "types": "./src/edit/modes/*.ts",
-      "import": "./src/edit/modes/*.ts"
     },
     "./exa": {
       "types": "./src/exa/index.ts",
@@ -499,6 +495,10 @@
       "import": "./src/plan-mode/*.ts"
     },
     "./prompts/*": "./src/prompts/*.md",
+    "./registry/*": {
+      "types": "./src/registry/*.ts",
+      "import": "./src/registry/*.ts"
+    },
     "./secrets": {
       "types": "./src/secrets/index.ts",
       "import": "./src/secrets/index.ts"

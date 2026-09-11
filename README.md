@@ -341,7 +341,7 @@ Auth tags below: `oauth` signs in with your provider account, `plan` routes thro
 
 Direct APIs and gateways. Mix providers per role.
 
-Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · Fireworks · Together · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless
+Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · Fireworks · Together · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless
 
 ### Coding plans
 
@@ -591,14 +591,13 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `a1b254047d`**, merged 2026-09-07. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
-- `1.2.2` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_2_2` native sentinel
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `8d01d3b790`**, merged 2026-09-11. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.2.2` version lineage across `package.json` / `Cargo.toml` / the `__piNativesV1_2_2` native sentinel
-- `bun@1.3.14` + `@types/bun` pin
+- `1.2.x` version lineage across `package.json` / `Cargo.toml` / `Cargo.lock` / `bun.lock` / the `__piNativesV1_2_4` native sentinel (upstream is on `18.1.x`)
+- `bun@1.3.14` + `@types/bun` pin (upstream moved to `bun@1.4.0`)
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time
 - GitHub-release update flow (binary-only installer; no npm / canary / `updateViaManager`)
@@ -617,6 +616,7 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - native Rust edit engine (`crates/pi-edit`/`crates/pi-diff` via `pi-natives`; `@oh-my-pi/hashline` package removed)
 - oxlint/oxfmt toolchain (replaces biome) and Eval Ruby/Julia runtime removal
 - Agent Hub activity view, Herdr/terminal-multiplexer notification routing, Muse Code provider
+- plan autosave (`plan.autosave`, saved under `<project>/.storoslop/plans/`), `tui.vimMode`, experimental notes-backed context windows, DeepSeek peak/off-peak pricing, Command Code provider, DeepSeek V4.1 Flash on OpenRouter, Anthropic decimation prompt-cache breakpoints (upstream `18.1.13`–`18.1.17`)
 
 ---
 
@@ -678,7 +678,6 @@ For architecture and contribution guidelines, see [packages/coding-agent/DEVELOP
 | **[@oh-my-pi/omptype](packages/omptype)**                                     | ArkType-compatible schema validation with lazy JIT compilation              |
 | **[@oh-my-pi/pi-utils](packages/utils)**                                      | Shared utilities (logging, streams, dirs/env/process helpers)               |
 | **[@oh-my-pi/pi-wire](packages/wire)**                                        | Shared collab live-session protocol types and relay constants               |
-| **[@oh-my-pi/hashline](packages/hashline)**                                   | Line-anchored patch language and applier behind the `edit` tool             |
 | **[@oh-my-pi/pi-mnemopi](packages/mnemopi)**                                  | Local SQLite memory engine for storoslop agents                              |
 | **[@oh-my-pi/snapcompact](packages/snapcompact)**                             | Bitmap-frame context compression package and SQuAD eval suite               |
 | **[@oh-my-pi/browser-relay](packages/browser-relay)**                         | Chrome extension that lets the Eval browser API drive your existing tabs    |
@@ -695,6 +694,7 @@ For architecture and contribution guidelines, see [packages/coding-agent/DEVELOP
 | **[pi-iso](crates/pi-iso)**                        | Task isolation backend resolver: APFS clones, btrfs/zfs reflinks, overlayfs, projfs, rcopy          |
 | **[pi-voice](crates/pi-voice)**                    | Audio capture/playback, Opus codecs, and live WebRTC streaming primitives                           |
 | **[pi-walker](crates/pi-walker)**                  | Parallel ignore-aware filesystem walker with the scan cache shared by grep, glob, and workspace     |
+| **[pi-edit](crates/pi-edit)**                      | Edit engine behind the `edit` tool: line-anchored patch/hashline modes, streaming previews, atomic apply |
 | **[brush-core](crates/vendor/brush-core)**         | Vendored fork of [brush-shell](https://github.com/reubeno/brush) for embedded bash execution        |
 | **[pi-builtins](crates/pi-builtins)**              | Bash builtins (cd, echo, test, printf, read, export, …) plus 67 in-process command-line utilities |
 

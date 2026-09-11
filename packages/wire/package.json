@@ -51,6 +51,5 @@
       "import": "./src/*.ts"
     },
     "./*.js": "./src/*.ts"
-  },
-  "dependencies": {}
+  }
 }
