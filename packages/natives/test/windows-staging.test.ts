@@ -198,9 +198,15 @@ describe("windows native addon staging", () => {
 		const futureVersion = `${currentMajor + 1}.0.0`;
 		// Older cousins of the loaded package version — must exist for the current
 		// lineage regardless of whether the fork tracks 1.x or upstream's 17.x, so
-		// both are strictly older than `packageJson.version`.
-		const staleVersion = `${currentMajor}.${currentMinor}.${Math.max(0, currentPatch - 2)}`;
-		const freshVersion = `${currentMajor}.${currentMinor}.${Math.max(0, currentPatch - 1)}`;
+		// both are strictly older than `packageJson.version`. Step down through
+		// minor/major when patch is already 0 (e.g. 1.3.0), otherwise clamping
+		// the patch would collapse both onto the current version.
+		const olderVersion = ([major, minor, patch]: readonly [number, number, number]): [number, number, number] =>
+			patch > 0 ? [major, minor, patch - 1] : minor > 0 ? [major, minor - 1, 99] : [major - 1, 99, 99];
+		const freshParts = olderVersion([currentMajor, currentMinor, currentPatch]);
+		const staleParts = olderVersion(freshParts);
+		const staleVersion = staleParts.join(".");
+		const freshVersion = freshParts.join(".");
 		try {
 			await fs.mkdir(path.join(nativesDir, staleVersion));
 			await fs.mkdir(path.join(nativesDir, freshVersion));
