@@ -574,7 +574,7 @@ export const CATALOG_PROVIDERS = [
 	},
 	{
 		id: "storoslop",
-		defaultModel: "glm-5.3-flash",
+		defaultModel: "deepseek-v4.1-flash",
 		envVars: ["STOROSLOP_API_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => storoslopModelManagerOptions(config),
 	},

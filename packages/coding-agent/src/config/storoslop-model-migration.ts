@@ -14,9 +14,11 @@
  *  1. models.yml `providers.storoslop`: drop the `models` list; drop
  *     `baseUrl`/`api` pins that merely repeat the bundled defaults (keeping
  *     genuine mirror overrides); keep the credential.
- *  2. config.yml `modelRoles.default`: rewrite a role pointing at a retired
- *     storoslop model (`deepseek-v4-flash`/`qwen3.8`) to the bundled
- *     `storoslop/glm-5.3-flash`. Roles naming other providers are untouched.
+ *  2. config.yml `modelRoles.*` (agent-dir and project-level): rewrite any
+ *     role pointing at a retired storoslop model (`deepseek-v4-flash`/
+ *     `qwen3.8`, and `glm-5.3-flash` from builds `1.1.8`–`1.2.4`) to the
+ *     bundled `storoslop/deepseek-v4.1-flash`, keeping a `:level` thinking
+ *     suffix. Roles naming other providers are untouched.
  */
 
 import * as fsSync from "node:fs";
@@ -28,8 +30,9 @@ import { STOROSLOP_BASE_URL, STOROSLOP_PROVIDER } from "./storoslop-provider";
 const RETIRED_STOROSLOP_MODEL_IDS: Record<string, true> = {
 	"deepseek-v4-flash": true,
 	"qwen3.8": true,
+	"glm-5.3-flash": true,
 };
-const BUNDLED_STOROSLOP_MODEL = "glm-5.3-flash";
+const BUNDLED_STOROSLOP_MODEL = "deepseek-v4.1-flash";
 const BUNDLED_STOROSLOP_API = "openai-completions";
 
 /** Rewrite stale storoslop state in one models.yml file. Returns true when changed. */
@@ -91,20 +94,17 @@ function migrateModelsYmlFile(filePath: string): boolean {
 	}
 }
 
-/** Rewrite a stale storoslop default model role in one config.yml file. */
-function migrateConfigRoles(content: string): { content: string; changed: boolean } {
-	const candidate: unknown = YAML.parse(content);
-	if (!isRecord(candidate)) return { content, changed: false };
-	const parsed = candidate;
-
-	if (!isRecord(parsed.modelRoles)) return { content, changed: false };
-	const roles = parsed.modelRoles;
-	const current = roles.default;
-	if (typeof current !== "string") return { content, changed: false };
-
-	// Accept `provider/model`, bare `model`, and `model:level` spellings that
-	// reference a retired storoslop model.
-	const bare = current.split(":")[0]?.toLowerCase() ?? "";
+/**
+ * Rewrite one role value when it names a retired storoslop model. Accepts
+ * `provider/model`, bare `model`, and `model:level` spellings; a thinking
+ * suffix is preserved (every retired ladder rung is served by the bundled
+ * model). Returns undefined when the value is not stale.
+ */
+function migrateRoleValue(value: string): string | undefined {
+	const colonIndex = value.indexOf(":");
+	const base = colonIndex === -1 ? value : value.slice(0, colonIndex);
+	const suffix = colonIndex === -1 ? "" : value.slice(colonIndex);
+	const bare = base.toLowerCase();
 	const slashIndex = bare.indexOf("/");
 	const providerPart = slashIndex === -1 ? undefined : bare.slice(0, slashIndex);
 	const modelPart = slashIndex === -1 ? bare : bare.slice(slashIndex + 1);
@@ -112,9 +112,37 @@ function migrateConfigRoles(content: string): { content: string; changed: boolea
 		(providerPart === STOROSLOP_PROVIDER || providerPart === undefined) &&
 		modelPart.length > 0 &&
 		RETIRED_STOROSLOP_MODEL_IDS[modelPart] === true;
-	if (!isRetired) return { content, changed: false };
+	if (!isRetired) return undefined;
+	return `${STOROSLOP_PROVIDER}/${BUNDLED_STOROSLOP_MODEL}${suffix}`;
+}
 
-	roles.default = `${STOROSLOP_PROVIDER}/${BUNDLED_STOROSLOP_MODEL}`;
+/** Rewrite stale storoslop model roles (every role, string or list form) in one config.yml file. */
+function migrateConfigRoles(content: string): { content: string; changed: boolean } {
+	const candidate: unknown = YAML.parse(content);
+	if (!isRecord(candidate)) return { content, changed: false };
+	const parsed = candidate;
+
+	if (!isRecord(parsed.modelRoles)) return { content, changed: false };
+	const roles = parsed.modelRoles;
+	let changed = false;
+	for (const role of Object.keys(roles)) {
+		const current = roles[role];
+		if (typeof current === "string") {
+			const next = migrateRoleValue(current);
+			if (next !== undefined) {
+				roles[role] = next;
+				changed = true;
+			}
+		} else if (Array.isArray(current)) {
+			const next = current.map(entry => (typeof entry === "string" ? (migrateRoleValue(entry) ?? entry) : entry));
+			if (next.some((entry, index) => entry !== current[index])) {
+				roles[role] = next;
+				changed = true;
+			}
+		}
+	}
+	if (!changed) return { content, changed: false };
+
 	try {
 		return { content: YAML.stringify(parsed, null, 2), changed: true };
 	} catch (error) {
@@ -125,7 +153,7 @@ function migrateConfigRoles(content: string): { content: string; changed: boolea
 
 export interface MigrateStoroslopModelConfigOptions {
 	agentDir: string;
-	/** config.yml candidates to scan for a stale default role. */
+	/** config.yml candidates (agent-dir and project-level) to scan for stale model roles. */
 	configPaths: readonly string[];
 }
 

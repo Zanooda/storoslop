@@ -12,6 +12,7 @@ import { EventLoopKeepalive, type ThinkingLevel } from "@oh-my-pi/pi-agent-core"
 import type { ImageContent, Model } from "@oh-my-pi/pi-ai";
 import {
 	$env,
+	CONFIG_DIR_NAME,
 	directoryIsMissing,
 	getAgentDir,
 	getLogPath,
@@ -1527,11 +1528,15 @@ export async function runRootCommand(
 		}
 
 		// One-time storoslop model-swap migration: strip the retired user-side
-		// model roster from models.yml and repoint a stale default role at the
-		// bundled glm-5.3-flash, BEFORE the registry reads models.yml. Idempotent.
+		// model roster from models.yml and repoint stale model roles (agent-dir
+		// and project config) at the bundled deepseek-v4.1-flash, BEFORE the
+		// registry reads models.yml. Idempotent.
 		migrateStoroslopModelConfigFiles({
 			agentDir: getAgentDir(),
-			configPaths: MAIN_CONFIG_FILENAMES.map(name => path.join(getAgentDir(), name)),
+			configPaths: [
+				...MAIN_CONFIG_FILENAMES.map(name => path.join(getAgentDir(), name)),
+				path.join(cwd, CONFIG_DIR_NAME, "config.yml"),
+			],
 		});
 
 		// The registry composes policy-dependent metadata synchronously, including

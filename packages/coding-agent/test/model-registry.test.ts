@@ -1826,12 +1826,12 @@ describe("ModelRegistry", () => {
 				},
 			}).getAvailable();
 			expect(new Set(available.map(model => model.provider))).toEqual(new Set(["storoslop"]));
-			expect(available.map(model => model.id)).toContain("glm-5.3-flash");
+			expect(available.map(model => model.id)).toContain("deepseek-v4.1-flash");
 		});
 
 		test("bundled storoslop model metadata ships with the build, not the user config", () => {
 			// A stale user-side definition (old builds persisted deepseek-v4-flash
-			// into models.yml) must not shadow the bundled glm-5.3-flash roster:
+			// into models.yml) must not shadow the bundled deepseek-v4.1-flash roster:
 			// model updates ride the build, exactly like upstream built-ins.
 			const available = readonlyRegistry({
 				providers: {
@@ -1842,28 +1842,38 @@ describe("ModelRegistry", () => {
 					),
 				},
 			}).getAvailable();
-			const flash = available.find(model => model.id === "glm-5.3-flash");
+			const flash = available.find(model => model.id === "deepseek-v4.1-flash");
 			expect(flash).toBeDefined();
 			expect(flash?.provider).toBe("storoslop");
 			expect(flash?.contextWindow).toBe(1_048_576);
-			expect(flash?.maxTokens).toBe(32_768);
+			expect(flash?.maxTokens).toBe(131_072);
 			expect(flash?.input).toContain("image");
+			expect(flash?.supportsTools).toBe(true);
 		});
 
-		test("bundled glm-5.3-flash resolves its gateway thinking contract", () => {
+		test("bundled deepseek-v4.1-flash resolves its gateway thinking contract", () => {
 			const model = readonlyRegistry({ providers: { storoslop: { apiKey: "TEST_KEY" } } })
 				.getAvailable()
-				.find(model => model.id === "glm-5.3-flash");
-			expect(model?.thinking?.efforts).toEqual<Effort[]>([Effort.Low, Effort.High, Effort.Max]);
-			// minimal/medium/xhigh remap onto the nearest supported rung on the wire.
+				.find(model => model.id === "deepseek-v4.1-flash");
+			expect(model?.thinking?.efforts).toEqual<Effort[]>([Effort.Low, Effort.High, Effort.XHigh, Effort.Max]);
+			expect(model?.thinking?.defaultLevel).toBe(Effort.High);
+			// minimal/medium remap onto the nearest supported rung on the wire;
+			// thinking-off is sent as `reasoning_effort: "none"`.
 			const compat = model?.compat as OpenAICompat | undefined;
 			expect(compat?.reasoningEffortMap).toEqual({
 				minimal: "low",
 				medium: "high",
-				xhigh: "max",
 			});
-			expect(compat?.reasoningContentField).toBe("reasoning_content");
+			expect(compat?.reasoningDisableMode).toBe("none-effort");
+			expect(compat?.reasoningContentField).toBe("reasoning");
+			expect(compat?.thinkingFormat).toBe("openai");
+			expect(compat?.maxTokensField).toBe("max_tokens");
 			expect(compat?.supportsReasoningEffort).toBe(true);
+			expect(compat?.supportsToolChoice).toBe(true);
+			expect(compat?.disableReasoningOnToolChoice).toBe(false);
+			// The deepseek class strips image input for the lineage; the gateway
+			// serves the vision-capable SKU, so the provider rule re-enables it.
+			expect(compat?.stripImageInput).toBe(false);
 		});
 
 		test("implicit local providers are not discovered (#addImplicitDiscoverableProviders is a no-op)", () => {

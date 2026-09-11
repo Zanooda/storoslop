@@ -12234,8 +12234,8 @@
 				}
 			},
 			{
-				"source": "providers/storoslop.kdl:17",
-				"class": "glm",
+				"source": "providers/storoslop.kdl:18",
+				"class": "deepseek",
 				"providers": [
 					"storoslop"
 				],
@@ -12243,16 +12243,25 @@
 				"models": [
 					{
 						"kind": "glob",
-						"value": "*glm-5.3-flash"
+						"value": "*deepseek-v4.1-flash"
 					}
 				],
+				"wire": {
+					"stripImageInput": false
+				},
 				"thinking": {
-					"defaultLevel": "high"
+					"defaultLevel": "high",
+					"efforts": [
+						"low",
+						"high",
+						"xhigh",
+						"max"
+					]
 				}
 			},
 			{
-				"source": "providers/storoslop.kdl:12",
-				"class": "glm",
+				"source": "providers/storoslop.kdl:13",
+				"class": "deepseek",
 				"providers": [
 					"storoslop"
 				],
@@ -12260,10 +12269,15 @@
 				"wire": {
 					"reasoningEffortMap": {
 						"minimal": "low",
-						"medium": "high",
-						"xhigh": "max"
+						"medium": "high"
 					},
-					"supportsReasoningEffort": true
+					"supportsReasoningEffort": true,
+					"reasoningDisableMode": "none-effort",
+					"thinkingFormat": "openai",
+					"reasoningContentField": "reasoning",
+					"maxTokensField": "max_tokens",
+					"supportsToolChoice": true,
+					"disableReasoningOnToolChoice": false
 				},
 				"thinking": {
 					"mode": "effort"

@@ -5208,32 +5208,37 @@ export const STOROSLOP_BASE_URL = "http://slop.storo.cloud:4000/v1";
 /**
  * Fork-curated static seed for the bundled `storoslop` provider, so a fresh
  * install (and every regen, since the gateway is fork-private and upstream
- * catalog sources never list it) resolves `storoslop/glm-5.3-flash`
+ * catalog sources never list it) resolves `storoslop/deepseek-v4.1-flash`
  * synchronously at boot from the user's models.yml API key alone. The
- * thinking metadata mirrors the local gateway's chat-template contract:
- * only `low`/`high`/`max` carry a real `reasoning_effort` on the wire
- * (minimal/medium/xhigh remap onto the nearest supported rung), and the
- * deepseek-style `reasoning_content` field round-trips in assistant replies.
+ * thinking metadata mirrors the gateway's vLLM serving contract
+ * (`--enable-auto-tool-choice --tool-call-parser deepseek_v41`): the wire
+ * accepts `reasoning_effort` low/high/xhigh/max (minimal/medium remap onto the
+ * nearest supported rung; `none` disables thinking), and reasoning
+ * round-trips in the plain `reasoning` field.
  */
 export const STOROSLOP_STATIC_MODELS: readonly ModelSpec<"openai-completions">[] = [
 	{
-		id: "glm-5.3-flash",
-		name: "glm-5.3-flash",
+		id: "deepseek-v4.1-flash",
+		name: "deepseek-v4.1-flash",
 		api: "openai-completions",
 		provider: "storoslop",
 		baseUrl: STOROSLOP_BASE_URL,
 		reasoning: true,
+		supportsTools: true,
 		input: ["text", "image"],
 		thinking: {
 			mode: "effort",
-			efforts: [Effort.Low, Effort.High, Effort.Max],
+			efforts: [Effort.Low, Effort.High, Effort.XHigh, Effort.Max],
 		},
-		cost: { input: 0.15, output: 0.5, cacheRead: 0.03, cacheWrite: 0 },
+		cost: { input: 0.14, output: 0.28, cacheRead: 0.028, cacheWrite: 0 },
 		contextWindow: 1_048_576,
-		maxTokens: 32_768,
+		maxTokens: 131_072,
 		compat: {
-			reasoningContentField: "reasoning_content",
+			reasoningContentField: "reasoning",
+			maxTokensField: "max_tokens",
+			supportsToolChoice: true,
 			supportsReasoningEffort: true,
+			thinkingFormat: "openai",
 		},
 	},
 ];

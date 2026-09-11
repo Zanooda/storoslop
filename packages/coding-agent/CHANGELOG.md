@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The bundled storoslop model is now `deepseek-v4.1-flash`; `glm-5.3-flash` is retired. The startup model-swap migration now repoints every `modelRoles.*` entry (not only `default`, string or list form, in both the agent-dir and project `.storoslop/config.yml`) that still names a retired storoslop model at `storoslop/deepseek-v4.1-flash`, keeping any `:level` thinking suffix; roles naming other providers are untouched. Sessions saved against the retired model fall back to the new default on resume.
+- The `smol` role priority chain now lists `storoslop/deepseek-v4.1-flash` in place of `glm-5.3-flash`.
+
 ## [18.1.12] - 2026-09-06
 
 - Fixed edit and write results to report the formatted bytes actually committed by LSP writethrough.

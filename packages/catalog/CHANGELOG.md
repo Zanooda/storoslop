@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Changed
+
+- Replaced the bundled `storoslop/glm-5.3-flash` model with `storoslop/deepseek-v4.1-flash` (1M-token context, 131,072-token output, text + image input, $0.14/$0.28 per 1M input/output tokens, $0.028 cache read). The gateway serves it behind vLLM (`--enable-auto-tool-choice --tool-call-parser deepseek_v41`): thinking levels are `low`/`high`/`xhigh`/`max` (default `high`; `minimal`/`medium` remap onto the nearest rung, thinking-off sends `reasoning_effort: "none"`), reasoning round-trips in the `reasoning` field, output is capped via `max_tokens`, and `tool_choice` no longer disables reasoning. The `providers/storoslop.kdl` compat rule now targets the `deepseek`/`flash` lineage and re-enables image input that the class default strips.
+
 ## [18.1.12] - 2026-09-06
 
 ### Added

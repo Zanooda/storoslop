@@ -7,11 +7,12 @@ import { YAML } from "bun";
 
 // Locks the storoslop single-provider model-swap migration: builds up to 1.1.7
 // persisted the full model roster (deepseek-v4-flash / qwen3.8) into the user's
-// models.yml and could point `modelRoles.default` at those ids. The roster now
-// ships in the compiled catalog only, so the migration strips the stale
-// user-side definition and repoints a stale default role at
-// storoslop/glm-5.3-flash. Idempotent: a second pass over migrated files must
-// not change them again.
+// models.yml and could point `modelRoles.default` at those ids; builds
+// 1.1.8–1.2.4 bundled glm-5.3-flash, since retired. The roster now ships in
+// the compiled catalog only, so the migration strips the stale user-side
+// definition and repoints a stale default role at
+// storoslop/deepseek-v4.1-flash. Idempotent: a second pass over migrated files
+// must not change them again.
 describe("storoslop model-swap migration", () => {
 	let tempDir: TempDir;
 	let agentDir: string;
@@ -111,7 +112,7 @@ describe("storoslop model-swap migration", () => {
 		expect(fs.readFileSync(filePath, "utf8")).toBe(before);
 	});
 
-	it("repoints a stale default model role at the bundled glm-5.3-flash", () => {
+	it("repoints a stale default model role at the bundled deepseek-v4.1-flash", () => {
 		const configPath = path.join(agentDir, "config.yml");
 		fs.writeFileSync(configPath, YAML.stringify({ modelRoles: { default: "storoslop/deepseek-v4-flash" } }, null, 2));
 
@@ -119,7 +120,64 @@ describe("storoslop model-swap migration", () => {
 
 		const parsed = YAML.parse(fs.readFileSync(configPath, "utf8")) as Record<string, unknown>;
 		const roles = parsed.modelRoles as Record<string, unknown>;
-		expect(roles.default).toBe("storoslop/glm-5.3-flash");
+		expect(roles.default).toBe("storoslop/deepseek-v4.1-flash");
+	});
+
+	it("repoints the retired glm-5.3-flash default at the bundled deepseek-v4.1-flash, keeping the level", () => {
+		const configPath = path.join(agentDir, "config.yml");
+		fs.writeFileSync(
+			configPath,
+			YAML.stringify({ modelRoles: { default: "storoslop/glm-5.3-flash:high" } }, null, 2),
+		);
+
+		migrateStoroslopModelConfigFiles({ agentDir, configPaths: [configPath] });
+
+		const parsed = YAML.parse(fs.readFileSync(configPath, "utf8")) as Record<string, unknown>;
+		const roles = parsed.modelRoles as Record<string, unknown>;
+		expect(roles.default).toBe("storoslop/deepseek-v4.1-flash:high");
+	});
+
+	it("repoints every stale role, including list-form values, and leaves the rest alone", () => {
+		const configPath = path.join(agentDir, "config.yml");
+		fs.writeFileSync(
+			configPath,
+			YAML.stringify(
+				{
+					modelRoles: {
+						default: "storoslop/glm-5.3-flash",
+						smol: "glm-5.3-flash:low",
+						slow: ["storoslop/glm-5.3-flash:max", "anthropic/claude-opus-4-8"],
+						advisor: "anthropic/claude-opus-4-8",
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		migrateStoroslopModelConfigFiles({ agentDir, configPaths: [configPath] });
+
+		const parsed = YAML.parse(fs.readFileSync(configPath, "utf8")) as Record<string, unknown>;
+		const roles = parsed.modelRoles as Record<string, unknown>;
+		expect(roles.default).toBe("storoslop/deepseek-v4.1-flash");
+		expect(roles.smol).toBe("storoslop/deepseek-v4.1-flash:low");
+		expect(roles.slow).toEqual(["storoslop/deepseek-v4.1-flash:max", "anthropic/claude-opus-4-8"]);
+		expect(roles.advisor).toBe("anthropic/claude-opus-4-8");
+	});
+
+	it("migrates a project-level config passed alongside the agent-dir config", () => {
+		const projectConfigPath = path.join(tempDir.path(), "project", ".storoslop", "config.yml");
+		fs.mkdirSync(path.dirname(projectConfigPath), { recursive: true });
+		fs.writeFileSync(projectConfigPath, YAML.stringify({ modelRoles: { default: "glm-5.3-flash" } }, null, 2));
+
+		migrateStoroslopModelConfigFiles({
+			agentDir,
+			configPaths: [path.join(agentDir, "config.yml"), projectConfigPath],
+		});
+
+		const parsed = YAML.parse(fs.readFileSync(projectConfigPath, "utf8")) as Record<string, unknown>;
+		const roles = parsed.modelRoles as Record<string, unknown>;
+		expect(roles.default).toBe("storoslop/deepseek-v4.1-flash");
 	});
 
 	it("repoints a bare or thinking-suffixed retired role spelling", () => {
@@ -130,14 +188,14 @@ describe("storoslop model-swap migration", () => {
 
 		const parsed = YAML.parse(fs.readFileSync(suffixedPath, "utf8")) as Record<string, unknown>;
 		const roles = parsed.modelRoles as Record<string, unknown>;
-		expect(roles.default).toBe("storoslop/glm-5.3-flash");
+		expect(roles.default).toBe("storoslop/deepseek-v4.1-flash:high");
 	});
 
 	it("leaves roles naming other providers or live models untouched", () => {
 		const configPath = path.join(agentDir, "config.yml");
 		const raw = {
 			modelRoles: {
-				default: "storoslop/glm-5.3-flash",
+				default: "storoslop/deepseek-v4.1-flash",
 				smol: "anthropic/claude-haiku-4-5",
 			},
 		};

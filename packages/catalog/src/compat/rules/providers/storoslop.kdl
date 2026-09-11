@@ -3,27 +3,37 @@
 // frozen census covers it and this file is the authoritative wire contract.
 
 provider "storoslop" {
-	// The gateway serves GLM-5.3-Flash behind LiteLLM on an
-	// OpenAI-chat-completions surface with a chat-template reasoning contract:
-	// only `low`/`high`/`max` carry a real `reasoning_effort` on the wire
-	// (minimal/medium/xhigh remap onto the nearest supported rung), and
-	// reasoning round-trips in the DeepSeek-style `reasoning_content` field.
-	class "glm" {
+	// The gateway serves DeepSeek-V4.1-Flash behind vLLM on an
+	// OpenAI-chat-completions surface (`--enable-auto-tool-choice
+	// --tool-call-parser deepseek_v41`). `reasoning_effort` accepts
+	// low/high/xhigh/max (minimal/medium remap onto the nearest supported
+	// rung) or `none` to disable thinking, and reasoning round-trips in the
+	// plain `reasoning` field rather than DeepSeek's usual `reasoning_content`.
+	class "deepseek" {
 		family "flash" {
-			// The class rule (classes/glm.kdl) pins `thinking-default-level "max"`
-			// across all hosts at rank (glob, 3 dims, priority 10); this rule must
-			// carry a models selector to outrank it on dimensions and win the
-			// defaultLevel axis for this gateway.
-			models "*glm-5.3-flash" {
+			// The class rule (classes/deepseek.kdl) pins the V4 flash ladder to
+			// low/high/max and strips image input for the whole lineage; this
+			// rule must carry a models selector to outrank it on dimensions and
+			// win the efforts/defaultLevel axes for this gateway.
+			models "*deepseek-v4.1-flash" {
 				thinking-default-level "high"
+				thinking-efforts "low" "high" "xhigh" "max"
+				strip-image-input #false
 			}
 			reasoning-effort-map {
 				minimal "low"
 				medium "high"
-				xhigh "max"
 			}
 			supports-reasoning-effort #true
+			reasoning-disable-mode "none-effort"
 			thinking-mode "effort"
+			thinking-format "openai"
+			reasoning-content-field "reasoning"
+			max-tokens-field "max_tokens"
+			// vLLM keeps reasoning on when `tool_choice` is present; the
+			// deepseek class default (native-API behaviour) would drop it.
+			supports-tool-choice #true
+			disable-reasoning-on-tool-choice #false
 		}
 	}
 }
