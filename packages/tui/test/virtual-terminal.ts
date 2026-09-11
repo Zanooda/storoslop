@@ -129,6 +129,9 @@ const DEFAULT_BG_B = DEFAULT_BG_RGB & 0xff;
  * baseY/viewportY/viewport/scrollBuffer across append, overflow, scroll, write-
  * while-scrolled, and resize sequences.
  */
+/** DSR 6n: the application asks where the cursor is; answered with CSI row;col R. */
+const DSR_CURSOR_POSITION = "\x1b[6n";
+
 export class VirtualTerminal implements Terminal {
 	#ghostty: Ghostty;
 	#term: GhosttyTerminal;
@@ -189,7 +192,27 @@ export class VirtualTerminal implements Terminal {
 	}
 
 	write(data: string): void {
-		this.#engineWrite(data);
+		// Answer DSR 6n (cursor position request) like a real terminal: TUI's
+		// post-resize anchor probe relies on the CSI row;col R round trip.
+		// ghostty-web 0.4 exposes no response channel, so split the stream at
+		// each probe, write the prefix, snapshot the cursor at that point, and
+		// deliver the report asynchronously like a PTY read loop (a synchronous
+		// callback would re-enter the TUI mid-write). Other queries stay
+		// unanswered: tests assert on grid state, and unsolicited capability
+		// responses would leak into the focused component as junk keystrokes.
+		let rest = data;
+		for (;;) {
+			const probe = rest.indexOf(DSR_CURSOR_POSITION);
+			if (probe === -1) break;
+			this.#engineWrite(rest.slice(0, probe + DSR_CURSOR_POSITION.length));
+			rest = rest.slice(probe + DSR_CURSOR_POSITION.length);
+			if (this.#inputHandler) {
+				const cursor = this.getCursor();
+				const reply = `\x1b[${cursor.row + 1};${cursor.col + 1}R`;
+				queueMicrotask(() => this.#inputHandler?.(reply));
+			}
+		}
+		if (rest.length > 0) this.#engineWrite(rest);
 	}
 
 	get columns(): number {
