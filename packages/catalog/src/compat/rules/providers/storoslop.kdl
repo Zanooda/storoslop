@@ -3,6 +3,26 @@
 // frozen census covers it and this file is the authoritative wire contract.
 
 provider "storoslop" {
+	default-model "deepseek-v4.1-flash"
+	env "STOROSLOP_API_KEY"
+	// Fork-curated seed for the fork-private single-provider gateway. No
+	// upstream catalog source lists storoslop and it exposes no discovery
+	// endpoint, so this roster is the entire bundled surface in every regen
+	// (the runtime manager also pins it via `staticModels`). The thinking
+	// ladder mirrors the gateway's vLLM serving contract.
+	seed api="openai-completions" base-url="http://slop.storo.cloud:4000/v1" bundle="always" {
+		model "deepseek-v4.1-flash" name="deepseek-v4.1-flash" {
+			reasoning #true
+			input "text" "image"
+			supports-tools #true
+			cost input=0.14 output=0.28 cache-read=0.028 cache-write=0
+			limits context=1048576 max-tokens=131072
+			thinking-mode "effort"
+			thinking-efforts "low" "high" "xhigh" "max"
+			thinking-default-level "high"
+		}
+	}
+
 	// The gateway serves DeepSeek-V4.1-Flash behind vLLM on an
 	// OpenAI-chat-completions surface (`--enable-auto-tool-choice
 	// --tool-call-parser deepseek_v41`). `reasoning_effort` accepts

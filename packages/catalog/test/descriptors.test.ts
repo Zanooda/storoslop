@@ -49,8 +49,8 @@ describe("catalog provider descriptors", () => {
 	test("took-upstream yolo-auto descriptor is registered with authoritative discovery", () => {
 		const yolo = PROVIDER_DESCRIPTORS.find(descriptor => descriptor.providerId === "yolo-auto");
 		expect(yolo).toBeDefined();
-		expect(yolo?.defaultModel).toBe("deepseek-flash-v4");
+		expect(yolo?.defaultModel).toBe("qwen3.8-flash");
 		expect(yolo?.dynamicModelsAuthoritative).toBe(true);
-		expect(DEFAULT_MODEL_PER_PROVIDER["yolo-auto"]).toBe("deepseek-flash-v4");
+		expect(DEFAULT_MODEL_PER_PROVIDER["yolo-auto"]).toBe("qwen3.8-flash");
 	});
 });

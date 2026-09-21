@@ -7,7 +7,7 @@ import { deriveProjectKey, type ProjectKey } from "../memory-files/paths";
 import { forgetMemory, readMemory, writeMemory } from "../memory-files/store";
 import memoryDescription from "../prompts/tools/memory.md" with { type: "text" };
 import type { ToolSession } from ".";
-import type { OutputMeta } from "./output-meta";
+import type { OutputMeta } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { toolResult } from "./tool-result";
 
 type MemoryDetails = { meta?: OutputMeta } & {
