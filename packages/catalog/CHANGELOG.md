@@ -2,19 +2,17 @@
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-22
+
 ### Added
 
 - Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `3ed46dceae` (2026-09-21): added the DeepInfra, LiteLLM, Qwen Portal, SiliconFlow and SiliconFlow-CN providers plus Gemini 3.8 Flash, the `typesafe` and `stencil` auth providers, OpenRouter embedding/reranking/video/speech rows, model-kind and grounded-search capability metadata, and native judge-model discovery; provider catalog entries (default model, env keys, discovery wiring) now live in `src/compat/rules/providers/<id>.kdl` and compile into `rules.json`. The bundled storoslop roster and its `providers/storoslop.kdl` wire contract are unchanged by the merge.
 
-## [1.3.0] - 2026-09-11
+### Fixed
 
-### Added
-
-- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `8d01d3b790` (2026-09-11): Command Code provider, DeepSeek V4.1 Flash on OpenRouter, DeepSeek peak/off-peak scheduled pricing, rule-driven neutral upgrades with reference-fill opt-out, and `compat.stripImageInput` accepted in `models.yml`. The bundled storoslop roster and its `providers/storoslop.kdl` wire contract are unchanged by the merge.
-
-### Changed
-
-- Replaced the bundled `storoslop/glm-5.3-flash` model with `storoslop/deepseek-v4.1-flash` (1M-token context, 131,072-token output, text + image input, $0.14/$0.28 per 1M input/output tokens, $0.028 cache read). The gateway serves it behind vLLM (`--enable-auto-tool-choice --tool-call-parser deepseek_v41`): thinking levels are `low`/`high`/`xhigh`/`max` (default `high`; `minimal`/`medium` remap onto the nearest rung, thinking-off sends `reasoning_effort: "none"`), reasoning round-trips in the `reasoning` field, output is capped via `max_tokens`, and `tool_choice` no longer disables reasoning. The `providers/storoslop.kdl` compat rule now targets the `deepseek`/`flash` lineage and re-enables image input that the class default strips.
+- OpenCode Go's DeepSeek Flash lanes (`deepseek-flash`, `deepseek-v4.1-flash`) now declare image input. The gateway serves them with vision despite the IDs carrying no vision suffix, so the class-wide `strip-image-input` rule was dropping attachments the endpoint reads; the modality is declared too, since live discovery seeds these lanes text-only ([#11774](https://github.com/can1357/oh-my-pi/pull/11774) by [@STRML](https://github.com/STRML)).
+- DeepSeek V4.1 Flash requests now honor the documented 384K output maximum instead of being capped at 64K ([#11769](https://github.com/can1357/oh-my-pi/issues/11769)).
+- Fixed the first-party `deepseek-flash` alias missing the V4.1 Flash wire contract: it now sends `max_tokens` with `reasoning_content` and replays reasoning and assistant content on tool calls with no tool choice ([#11799](https://github.com/can1357/oh-my-pi/pull/11799) by [@brit](https://github.com/brit)).
 
 ## [18.2.8] - 2026-09-21
 
@@ -152,10 +150,7 @@
 
 ### Fixed
 
-- OpenCode Go's DeepSeek Flash lanes (`deepseek-flash`, `deepseek-v4.1-flash`) now declare image input. The gateway serves them with vision despite the IDs carrying no vision suffix, so the class-wide `strip-image-input` rule was dropping attachments the endpoint reads; the modality is declared too, since live discovery seeds these lanes text-only ([#11774](https://github.com/can1357/oh-my-pi/pull/11774) by [@STRML](https://github.com/STRML)).
 - Amazon Bedrock OpenAI models, plus unclassified profiles such as opaque application-inference-profile ARNs, now carry the compatibility policy required to preserve image-bearing tool results ([#11681](https://github.com/can1357/oh-my-pi/issues/11681)).
-- DeepSeek V4.1 Flash requests now honor the documented 384K output maximum instead of being capped at 64K ([#11769](https://github.com/can1357/oh-my-pi/issues/11769)).
-- Fixed the first-party `deepseek-flash` alias missing the V4.1 Flash wire contract: it now sends `max_tokens` with `reasoning_content` and replays reasoning and assistant content on tool calls with no tool choice ([#11799](https://github.com/can1357/oh-my-pi/pull/11799) by [@brit](https://github.com/brit)).
 
 ## [18.1.17] - 2026-09-10
 
@@ -1633,6 +1628,16 @@
 ### Removed
 
 - Removed the runtime enrichment layer: `enrichModelThinking` (and its non-enumerable memo-slot cache), `refreshModelThinking`, `modelOmitsReasoningEffort`, and the `model-thinking` re-exports of generator-only policies. Thinking metadata is resolved exactly once inside `buildModel`; runtime helpers (`getSupportedEfforts`, `clampThinkingLevelForModel`, `requireSupportedEffort`, the effort mappers) are pure field reads.
+
+## [1.3.0] - 2026-09-11
+
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `8d01d3b790` (2026-09-11): Command Code provider, DeepSeek V4.1 Flash on OpenRouter, DeepSeek peak/off-peak scheduled pricing, rule-driven neutral upgrades with reference-fill opt-out, and `compat.stripImageInput` accepted in `models.yml`. The bundled storoslop roster and its `providers/storoslop.kdl` wire contract are unchanged by the merge.
+
+### Changed
+
+- Replaced the bundled `storoslop/glm-5.3-flash` model with `storoslop/deepseek-v4.1-flash` (1M-token context, 131,072-token output, text + image input, $0.14/$0.28 per 1M input/output tokens, $0.028 cache read). The gateway serves it behind vLLM (`--enable-auto-tool-choice --tool-call-parser deepseek_v41`): thinking levels are `low`/`high`/`xhigh`/`max` (default `high`; `minimal`/`medium` remap onto the nearest rung, thinking-off sends `reasoning_effort: "none"`), reasoning round-trips in the `reasoning` field, output is capped via `max_tokens`, and `tool_choice` no longer disables reasoning. The `providers/storoslop.kdl` compat rule now targets the `deepseek`/`flash` lineage and re-enables image input that the class default strips.
 
 ## [1.2.3] - 2026-09-07
 
