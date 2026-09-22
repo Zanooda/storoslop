@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Terminal UI modules (themes, tool renderers, chat, overlays, status line, composer, setup wizard, and the Git/PS/debug apps) moved to `@oh-my-pi/pi-tui`; the matching `@oh-my-pi/pi-coding-agent` subpaths no longer exist (root re-exports are unchanged).
+- The `hashline` edit tool dropped `DEL`/`DEL.BLK`/`COPY`/`COPY.BLK` in favour of `CUT`/`CUT.BLK` plus `PASTE`, and read results no longer duplicate the body in `details.truncation.content`.
+- `/drop` is now `/delete`; image-generation overrides take model selectors, web-search CLI overrides use `--model`, and the bash tool's `env` parameter was removed.
+- `inspect_image.enabled` became the tri-state `inspect_image.mode` (`auto`/`on`/`off`); existing boolean configs migrate automatically.
+
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `3ed46dceae` (2026-09-21, branch `integrate/oh-my-pi-3ed46dceae`, upstream releases `18.1.18`–`18.2.8`): the `find` semantic-workspace-search tool, `omp stream` live session streaming with Stencil accounts, a unified judgment system powering thinking-level detection, unexpected-stop detection and AI-assisted staging (the `judge`/`judge_batch` Eval helpers), configurable image/web/speech/dictation/judge/memory model roles, `SYSTEM_TEMPLATE.md` Handlebars prompt templates, the `omp cleanse` cleanup command, expanded browser automation and secret-obfuscation coverage, and `--from-claude`/`--from-codex` session imports. Kept-fork deltas are unchanged: storoslop rebrand, `1.3.x` version lineage and native sentinel, `bun@1.3.14` + `@types/bun` pin, ghostty-web TUI, single-provider model registry with the bundled storoslop roster, GitHub-release update flow, and fork CI.
+
 ## [1.3.0] - 2026-09-11
 
 ### Added

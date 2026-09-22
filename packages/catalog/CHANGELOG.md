@@ -1,3 +1,11 @@
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `3ed46dceae` (2026-09-21): added the DeepInfra, LiteLLM, Qwen Portal, SiliconFlow and SiliconFlow-CN providers plus Gemini 3.8 Flash, the `typesafe` and `stencil` auth providers, OpenRouter embedding/reranking/video/speech rows, model-kind and grounded-search capability metadata, and native judge-model discovery; provider catalog entries (default model, env keys, discovery wiring) now live in `src/compat/rules/providers/<id>.kdl` and compile into `rules.json`. The bundled storoslop roster and its `providers/storoslop.kdl` wire contract are unchanged by the merge.
+
 ## [1.3.0] - 2026-09-11
 
 ### Added
