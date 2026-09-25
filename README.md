@@ -593,12 +593,12 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `3ed46dceae`**, merged 2026-09-21. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `6204b75080`**, merged 2026-09-25. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.3.x` version lineage across `package.json` / `Cargo.toml` / `Cargo.lock` / `bun.lock` / the `__piNativesV1_3_0` native sentinel (upstream is on `18.2.8`)
+- `1.3.x` version lineage across the `Cargo.toml` workspace version and every `packages/*/package.json` version (the root `package.json` carries no version field) plus the `__piNativesV1_3_1` native sentinel (upstream is on `18.3.1`)
 - `bun@1.3.14` + `@types/bun` pin (upstream moved to `packageManager: bun@>=1.4`)
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time
@@ -619,6 +619,11 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - oxlint/oxfmt toolchain (replaces biome) and Eval Ruby/Julia runtime removal
 - Agent Hub activity view, Herdr/terminal-multiplexer notification routing, Muse Code provider
 - plan autosave (`plan.autosave`, saved under `<project>/.storoslop/plans/`), `tui.vimMode`, experimental notes-backed context windows, DeepSeek peak/off-peak pricing, Command Code provider, DeepSeek V4.1 Flash on OpenRouter, Anthropic decimation prompt-cache breakpoints (upstream `18.1.13`–`18.1.17`)
+- cross-platform virtual filesystem provider (`crates/pi-vfs`, native Unix/Windows runtimes) unifying native-tool filesystem access and internal URLs, wired into shell execution (`crates/pi-shell`)
+- native Apple Foundation Models integration (`crates/pi-natives/src/applefm/` Swift bridge + `apple-foundation-models` provider in `packages/ai`)
+- IDA Pro integration via idalib workers migrated to broker-managed host daemons (`packages/coding-agent/src/ida/` host/protocol/client), with LRU eviction, idle autosave and auto-close
+- centralized settings registry and internal URL routing (`cfg://` agent-controlled settings; session-wide approval/timeout handling)
+- `hub` tool deprecated in favour of `wait` and protocol-based interfaces
 
 ---
 

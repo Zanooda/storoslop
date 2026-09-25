@@ -31,6 +31,9 @@ describe("advisor advise-only turn terminates the review", () => {
 		tempDir = TempDir.createSync("@pi-advisor-advise-terminal-");
 		authStorage = createInMemoryAuthStorage();
 		authStorage.keys.setRuntime("anthropic", "test-key");
+		// Fork: storoslop is the only provider whose models `getAvailable()` surfaces;
+		// the advisor role must resolve against it for the runtime to start.
+		authStorage.keys.setRuntime("storoslop", "test-key");
 	});
 
 	afterEach(async () => {
@@ -75,7 +78,7 @@ describe("advisor advise-only turn terminates the review", () => {
 			advisorTools: [readTool],
 			advisorStreamFn: advisorMock.stream,
 		});
-		settings.setModelRole("advisor", "anthropic/claude-sonnet-4-5");
+		settings.setModelRole("advisor", "storoslop/deepseek-v4.1-flash");
 		expect(session.setAdvisorEnabled(true)).toBe(true);
 		const advisor = session.getAdvisorAgent();
 		if (!advisor) throw new Error("Expected advisor agent to be active");

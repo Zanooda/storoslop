@@ -55,8 +55,16 @@ type User32 = Library<typeof USER32_SYMBOLS>;
 
 /** AltGr layer of one keyboard layout: `"<baseCodepoint>:<shift 0|1>"` → produced text. */
 type AltGrTable = Map<string, string>;
-/** Keyboard layout handle (`HKL`) as `bun:ffi` surfaces pointer-sized values. */
-export type KeyboardLayoutHandle = Pointer | bigint;
+/**
+ * Keyboard layout handle (`HKL`) as `bun:ffi` surfaces pointer-sized values.
+ *
+ * bun 1.3.14 typings type `FFIType.ptr` returns as `Pointer | null` and its args as
+ * `NodeJS.TypedArray | Pointer | CString | null`; every in-tree producer
+ * (`GetKeyboardLayout`, `LoadKeyboardLayoutW`) yields a `Pointer`, so no `bigint`
+ * can reach the FFI arg positions. Upgrade path: once the fork adopts bun >=1.4
+ * typings, restore the `Pointer | bigint` union (bigint return, widened ptr args).
+ */
+export type KeyboardLayoutHandle = Pointer;
 
 let user32: User32 | null | undefined;
 let cachedLayout: { hkl: KeyboardLayoutHandle | null; table: AltGrTable } | undefined;

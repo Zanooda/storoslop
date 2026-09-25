@@ -20,7 +20,6 @@ import { getThemeByName, setThemeInstance, theme } from "@oh-my-pi/pi-tui/theme"
 import { AUTO_THINKING } from "@oh-my-pi/pi-tui/thinking";
 import type { TUI } from "@oh-my-pi/pi-tui";
 
-import { cfgCycleOrder } from "@oh-my-pi/pi-coding-agent/config/model-settings";
 import { cfgRetryFallbackChains } from "@oh-my-pi/pi-coding-agent/session/settings";
 
 function normalize(lines: readonly string[]): string {

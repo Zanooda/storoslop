@@ -18,6 +18,8 @@ import { parseFileDiffs, parseFileHunks } from "../../commit/git/diff";
 import { ModelRegistry } from "../../config/model-registry";
 import { Settings } from "../../config/settings";
 import { resolveJudge } from "../../judgment";
+import unitQuestionInstructions from "../../prompts/system/git-ai-stage-unit-question.md" with { type: "text" };
+import verifyQuestionInstructions from "../../prompts/system/git-ai-stage-verify-question.md" with { type: "text" };
 import { discoverAuthStorage, loadCliExtensionProviders } from "../../sdk";
 import { mapWithConcurrencyLimitAllSettled } from "../../task/parallel";
 import type { ChangedFile } from "@oh-my-pi/pi-tui/apps/git/state";
@@ -44,8 +46,7 @@ const STAGE_THRESHOLD = 0.6;
  */
 const UNIT_QUESTION: ScoreQuestion = {
 	type: "score",
-	instructions:
-		"The user is staging a git commit out of a working tree with many unrelated changes and described which changes they want. `all_changed_files` lists every changed path for contrast; the state then shows one unit of change: its `path`, its `kind` (`hunk`: the added + and removed − lines of one hunk of a modified file; `deleted file`: the head of the removed − lines of a file being deleted; `new file`: the head of an untracked file; `binary`: path only), and `change`. How much does this unit belong to what the user described?",
+	instructions: unitQuestionInstructions,
 	criteria: [
 		"Unrelated: different work that happens to be in the same tree.",
 		"Tangential: same file, area, or vocabulary, but the user's words do not actually describe this particular change.",
@@ -69,8 +70,7 @@ const VERIFY_CHARS = 600;
 const NONE_THRESHOLD = 0.5;
 /** Choice key for "the instruction describes none of the candidates". */
 const NONE = "none";
-const VERIFY_INSTRUCTIONS =
-	"The user is staging a git commit and described which changes they want. `candidates` are the changed units in the tree that scored highest for that description, each with its path, kind, and changed lines. Which candidate is most clearly the change the user described — or is none of them actually it?";
+const VERIFY_INSTRUCTIONS = verifyQuestionInstructions;
 const VERIFY_NONE_CRITERION =
 	"None of the candidates is the change the user described; they only share an area or vocabulary with it.";
 

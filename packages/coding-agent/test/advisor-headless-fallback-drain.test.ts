@@ -12,7 +12,14 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import { Agent } from "@oh-my-pi/pi-agent-core";
-import type { Api, AssistantMessageEventStream, Context, Model, SimpleStreamOptions } from "@oh-my-pi/pi-ai";
+import {
+	type Api,
+	type AssistantMessageEventStream,
+	type Context,
+	Effort,
+	type Model,
+	type SimpleStreamOptions,
+} from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
@@ -22,16 +29,61 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
 
-const PRIMARY_ADVISOR = "claude-sonnet-4-5";
-const BACKUP_ADVISOR = "claude-opus-4-5";
+// Fork: storoslop is the only provider `ModelRegistry.getAvailable()` surfaces,
+// so the reviewer and its configured backup are fork models (single-provider
+// invariant). The ids stay distinct so the stream mock can tell them apart.
+const PRIMARY_ADVISOR = "slop-v3";
+const BACKUP_ADVISOR = "slop-v3-flash";
 
 describe("headless advisor drain with a fallback reviewer", () => {
 	let tempDir: TempDir;
 	let session: AgentSession | undefined;
 	let authStorage: AuthStorage | undefined;
 
-	beforeAll(() => {
+	beforeAll(async () => {
 		tempDir = TempDir.createSync("@pi-advisor-fallback-drain-");
+		// Fork: storoslop is the only selectable provider; configure the reviewer
+		// and its backup via models.yml so the role/fallback chain resolve.
+		await Bun.write(
+			tempDir.join("models.yml"),
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "http://slop.storo.cloud/v1",
+						apiKey: "TEST_KEY",
+						api: "openai-completions",
+						models: [
+							{
+								id: PRIMARY_ADVISOR,
+								name: PRIMARY_ADVISOR,
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High, Effort.XHigh, Effort.Max],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100_000,
+								maxTokens: 8_000,
+							},
+							{
+								id: BACKUP_ADVISOR,
+								name: BACKUP_ADVISOR,
+								reasoning: true,
+								thinking: {
+									mode: "budget",
+									efforts: [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High, Effort.XHigh, Effort.Max],
+								},
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100_000,
+								maxTokens: 8_000,
+							},
+						],
+					},
+				},
+			}),
+		);
 	});
 
 	afterEach(async () => {
@@ -51,8 +103,6 @@ describe("headless advisor drain with a fallback reviewer", () => {
 	async function startSessionWithFailingAdvisor(backupDelayMs = 0) {
 		const primaryModel = getBundledModel("anthropic", "claude-sonnet-4-5");
 		if (!primaryModel) throw new Error("Expected bundled anthropic/claude-sonnet-4-5");
-		if (!getBundledModel("anthropic", BACKUP_ADVISOR))
-			throw new Error(`Expected bundled anthropic/${BACKUP_ADVISOR}`);
 
 		const primary = createMockModel({ responses: [{ content: ["primary answer"], stopReason: "stop" }] });
 		// The configured advisor endpoint is down: every call fails like an outage.
@@ -79,11 +129,12 @@ describe("headless advisor drain with a fallback reviewer", () => {
 		const settings = Settings.isolated({
 			"compaction.enabled": false,
 			"retry.baseDelayMs": 1,
-			"retry.fallbackChains": { advisor: [`anthropic/${BACKUP_ADVISOR}`] },
+			"retry.fallbackChains": { advisor: [`storoslop/${BACKUP_ADVISOR}`] },
 		});
-		settings.setModelRole("advisor", `anthropic/${PRIMARY_ADVISOR}`);
+		settings.setModelRole("advisor", `storoslop/${PRIMARY_ADVISOR}`);
 		authStorage = await AuthStorage.create(":memory:");
 		authStorage.keys.setRuntime("anthropic", "test-key");
+		authStorage.keys.setRuntime("storoslop", "test-key");
 		const advised = new AgentSession({
 			agent,
 			sessionManager: SessionManager.inMemory(),

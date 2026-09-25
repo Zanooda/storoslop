@@ -66,6 +66,23 @@ function promptText(input: string | AgentMessage[]): string {
 		.join("\n");
 }
 
+/** High-entropy secret with no repeated 8-char window, so any surviving window is a leak. */
+function distinctSecret(length: number): string {
+	let secret = "";
+	for (let i = 0; secret.length < length; i++) secret += Bun.hash(`secret-${i}`).toString(36);
+	return secret.slice(0, length);
+}
+
+/** 8-char windows of `secret` present in `text`: a truncation cut leaks a secret as fragments, not whole. */
+function leakedSecretPieces(text: string, secret: string): string[] {
+	const pieces: string[] = [];
+	for (let i = 0; i + 8 <= secret.length; i++) {
+		const piece = secret.slice(i, i + 8);
+		if (text.includes(piece)) pieces.push(piece);
+	}
+	return pieces;
+}
+
 describe.skip("advisor", () => {
 	describe("advisor system prompt", () => {
 		it("forbids concrete claims about tool arguments hidden from the advisor transcript", () => {

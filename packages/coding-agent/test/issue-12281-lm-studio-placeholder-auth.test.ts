@@ -183,7 +183,11 @@ describe("issue #12281 — lm-studio empty-fallback placeholder vs. wire auth", 
 		storage.close();
 	}, 30_000);
 
-	test("an empty-paste placeholder never presents lm-studio as authenticated while discovery 401s surface as an auth error", async () => {
+	// Fork-restricted: the single-provider fork removed implicit/discoverable
+	// local providers (`ModelRegistry.getDiscoverableProviders()` returns [] and
+	// `getAvailable()` scopes every model to `storoslop`), so a discovered
+	// lm-studio/vllm model can never be surfaced here.
+	test.skip("an empty-paste placeholder never presents lm-studio as authenticated while discovery 401s surface as an auth error", async () => {
 		// Failure mode (the defect): Enter at the optional-key prompt stores
 		// "lm-studio-local"; the UI reported hasAuth=true (hub unlocked,
 		// /login "logged in (api key)") while every request went out bare
@@ -228,7 +232,11 @@ describe("issue #12281 — lm-studio empty-fallback placeholder vs. wire auth", 
 		expect(violations).toEqual([]);
 	}, 30_000);
 
-	test("keyless lm-studio keeps discovering without an Authorization header, with and without a stored placeholder", async () => {
+	// Fork-restricted: the single-provider fork removed implicit/discoverable
+	// local providers (`ModelRegistry.getDiscoverableProviders()` returns [] and
+	// `getAvailable()` scopes every model to `storoslop`), so a discovered
+	// lm-studio/vllm model can never be surfaced here.
+	test.skip("keyless lm-studio keeps discovering without an Authorization header, with and without a stored placeholder", async () => {
 		// Failure mode (overcorrection): if placeholder handling started
 		// attaching a fake bearer, refused to probe, or hid the provider
 		// from the available list, keyless LM Studio setups — which must
@@ -271,7 +279,11 @@ describe("issue #12281 — lm-studio empty-fallback placeholder vs. wire auth", 
 		placeholder.close();
 	}, 30_000);
 
-	test("a placeholder-only vllm login keeps its discovered models available and off the wire as a bearer", async () => {
+	// Fork-restricted: the single-provider fork removed implicit/discoverable
+	// local providers (`ModelRegistry.getDiscoverableProviders()` returns [] and
+	// `getAvailable()` scopes every model to `storoslop`), so a discovered
+	// lm-studio/vllm model can never be surfaced here.
+	test.skip("a placeholder-only vllm login keeps its discovered models available and off the wire as a bearer", async () => {
 		// Failure mode (sibling regression): vllm shares the empty-fallback
 		// placeholder pattern but never receives an implicit keyless mark,
 		// so filtering placeholders out of hasAuth without treating

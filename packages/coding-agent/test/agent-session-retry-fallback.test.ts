@@ -6829,13 +6829,44 @@ describe("AgentSession retry fallback", () => {
 	});
 
 	it("still switches to the same model on a different upstream route", async () => {
-		const openRouterModel = getBundledModel("openrouter", "z-ai/glm-4.7");
-		if (!openRouterModel) {
-			throw new Error("Expected bundled OpenRouter test model to exist");
+		// Fork: `getAvailable()` surfaces only storoslop, and per-request upstream
+		// routing is honoured for aggregator-shaped endpoints. A scoped registry
+		// (local to this test) exposes a storoslop model on an aggregator host so
+		// the role/chain below exercise "same provider+id, different route".
+		authStorage.keys.setRuntime("storoslop", "storoslop-test-key");
+		await Bun.write(
+			path.join(tempDir.path(), "routed-models.yml"),
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "https://openrouter.ai/api/v1",
+						apiKey: "TEST_KEY",
+						api: "openai-completions",
+						models: [
+							{
+								id: "glm-4.7",
+								name: "glm-4.7",
+								reasoning: true,
+								thinking: { mode: "budget", efforts: ["minimal", "low", "medium", "high", "xhigh", "max"] },
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100_000,
+								maxTokens: 8_000,
+							},
+						],
+					},
+				},
+			}),
+		);
+		const routedRegistry = new ModelRegistry(authStorage, path.join(tempDir.path(), "routed-models.yml"));
+		modelRegistry = routedRegistry;
+		const routedModel = routedRegistry.find("storoslop", "glm-4.7");
+		if (!routedModel) {
+			throw new Error("Expected the scoped storoslop/glm-4.7 fixture to exist");
 		}
-		const routedPrimary = parseModelPattern("openrouter/z-ai/glm-4.7@cerebras", [openRouterModel]).model;
+		const routedPrimary = parseModelPattern("storoslop/glm-4.7@cerebras", [routedModel]).model;
 		if (!routedPrimary) {
-			throw new Error("Expected routed OpenRouter primary to resolve");
+			throw new Error("Expected routed storoslop primary to resolve");
 		}
 
 		const mock = createMockModel();
@@ -6848,7 +6879,7 @@ describe("AgentSession retry fallback", () => {
 					?.openRouterRouting?.only?.[0];
 				const requested = `${requestedModel.provider}/${requestedModel.id}${route ? `@${route}` : ""}`;
 				requestedModels.push(requested);
-				if (requested === "openrouter/z-ai/glm-4.7@cerebras") mock.push({ throw: "500 upstream is unwell" });
+				if (requested === "storoslop/glm-4.7@cerebras") mock.push({ throw: "500 upstream is unwell" });
 				else mock.push({ content: [`ok:${requested}`] });
 				return mock.stream(requestedModel, context, options);
 			},
@@ -6859,9 +6890,9 @@ describe("AgentSession retry fallback", () => {
 			"compaction.enabled": false,
 			"retry.baseDelayMs": 5,
 			"retry.maxRetries": 2,
-			"retry.fallbackChains": { default: ["openrouter/z-ai/glm-4.7@chutes"] },
+			"retry.fallbackChains": { default: ["storoslop/glm-4.7@chutes"] },
 		});
-		settings.setModelRole("default", "openrouter/z-ai/glm-4.7@cerebras");
+		settings.setModelRole("default", "storoslop/glm-4.7@cerebras");
 
 		session = new AgentSession({
 			agent,
@@ -6874,7 +6905,7 @@ describe("AgentSession retry fallback", () => {
 		await session.prompt("Fail over to another route of the same model");
 		await session.waitForIdle();
 
-		expect(requestedModels).toContain("openrouter/z-ai/glm-4.7@chutes");
+		expect(requestedModels).toContain("storoslop/glm-4.7@chutes");
 		expect(getLastAssistantMessage(session).stopReason).not.toBe("error");
 	});
 });

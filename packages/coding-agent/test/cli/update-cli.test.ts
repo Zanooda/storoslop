@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "bun:test";
-import { fixedNpmRegistry } from "../../src/cli/npm-registry";
 import { getLatestRelease, runUpdateCommand } from "../../src/cli/update-cli";
-
-const npmjs = fixedNpmRegistry();
 
 type FetchInput = string | URL | Request;
 type FetchInit = RequestInit | BunFetchRequestInit;
@@ -53,7 +50,7 @@ describe("getLatestRelease fork update contract", () => {
 		);
 		vi.spyOn(globalThis, "fetch").mockImplementation(fetchStub);
 
-		const release = await getLatestRelease({ registries: npmjs });
+		const release = await getLatestRelease();
 
 		expect(requestedUrls).toEqual([FORK_RELEASE_URL]);
 		expect(release.tag).toBe("v999.0.0");

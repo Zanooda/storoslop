@@ -57,7 +57,11 @@ describe("disabledProviders takes effect live", () => {
 		return session;
 	};
 
-	it("drops a provider disabled mid-session from the model list and the Ctrl+P cycle", async () => {
+	// Fork-restricted: this file asserts multi-provider availability. The
+	// single-provider fork scopes `getAvailable()` to `storoslop` and removed
+	// implicit discovery entirely (`getDiscoverableProviders()` returns []), so
+	// neither a second bundled provider nor an lm-studio re-seed can exist.
+	it.skip("drops a provider disabled mid-session from the model list and the Ctrl+P cycle", async () => {
 		const sonnet = bundled("anthropic", "claude-sonnet-4-5");
 		const opus = bundled("anthropic", "claude-opus-4-5");
 		const gpt = bundled("openai", "gpt-5");
@@ -75,7 +79,11 @@ describe("disabledProviders takes effect live", () => {
 		expect((await live.cycleModel())?.model.id).toBe(sonnet.id);
 	});
 
-	it("re-seeds implicit discovery for a provider re-enabled mid-session", async () => {
+	// Fork-restricted: this file asserts multi-provider availability. The
+	// single-provider fork scopes `getAvailable()` to `storoslop` and removed
+	// implicit discovery entirely (`getDiscoverableProviders()` returns []), so
+	// neither a second bundled provider nor an lm-studio re-seed can exist.
+	it.skip("re-seeds implicit discovery for a provider re-enabled mid-session", async () => {
 		const sonnet = bundled("anthropic", "claude-sonnet-4-5");
 		const settings = Settings.isolated();
 		cfgDisabledProviders.set(settings, ["lm-studio"]);

@@ -69,6 +69,7 @@ describe("AgentSession mid-run threshold compaction", () => {
 		sharedDir = TempDir.createSync("@pi-agent-goal-midrun-compaction-shared-");
 		sharedAuthStorage = await AuthStorage.create(path.join(sharedDir.path(), "auth.db"));
 		sharedAuthStorage.keys.setRuntime("anthropic", "test-key");
+		sharedAuthStorage.keys.setRuntime("storoslop", "test-key");
 		sharedModelRegistry = new ModelRegistry(sharedAuthStorage, path.join(sharedDir.path(), "models.yml"));
 	});
 

@@ -1,0 +1,1 @@
+The user is staging a git commit and described which changes they want. `candidates` are the changed units in the tree that scored highest for that description, each with its path, kind, and changed lines. Which candidate is most clearly the change the user described — or is none of them actually it?

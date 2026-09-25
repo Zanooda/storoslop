@@ -1996,6 +1996,9 @@ describe("AgentSession message pipeline", () => {
 			});
 		};
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
+		// Fork: local/discoverable providers (ollama, …) are no longer implicit
+		// keyless providers, so the fixture configures the credential explicitly.
+		authStorage.keys.setRuntime(model.provider, "test-key");
 		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
 		const { session } = await createAgentSession({
 			cwd: tempDir.path(),
@@ -2092,6 +2095,9 @@ describe("AgentSession message pipeline", () => {
 			});
 		};
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
+		// Fork: local/discoverable providers (ollama, …) are no longer implicit
+		// keyless providers, so the fixture configures the credential explicitly.
+		authStorage.keys.setRuntime(model.provider, "test-key");
 		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
 		const { session } = await createAgentSession({
 			cwd: tempDir.path(),
@@ -2190,6 +2196,9 @@ describe("AgentSession message pipeline", () => {
 			});
 		};
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
+		// Fork: local/discoverable providers (ollama, …) are no longer implicit
+		// keyless providers, so the fixture configures the credential explicitly.
+		authStorage.keys.setRuntime(model.provider, "test-key");
 		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
 		const { session } = await createAgentSession({
 			cwd: tempDir.path(),
@@ -2304,6 +2313,9 @@ describe("AgentSession message pipeline", () => {
 			});
 		};
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
+		// Fork: local/discoverable providers (ollama, …) are no longer implicit
+		// keyless providers, so the fixture configures the credential explicitly.
+		authStorage.keys.setRuntime(model.provider, "test-key");
 		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
 		const { session } = await createAgentSession({
 			cwd: tempDir.path(),
@@ -2406,6 +2418,9 @@ describe("AgentSession message pipeline", () => {
 			});
 		};
 		const authStorage = await AuthStorage.create(tempDir.join("auth.db"));
+		// Fork: local/discoverable providers (ollama, …) are no longer implicit
+		// keyless providers, so the fixture configures the credential explicitly.
+		authStorage.keys.setRuntime(model.provider, "test-key");
 		const modelRegistry = new ModelRegistry(authStorage, tempDir.join("models.yml"));
 		const { session } = await createAgentSession({
 			cwd: tempDir.path(),

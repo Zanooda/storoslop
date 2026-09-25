@@ -90,7 +90,7 @@ describe("listClaudePluginRoots", () => {
 		process.env.HOME = tempDir;
 		vi.spyOn(os, "homedir").mockReturnValue(tempDir);
 		// Point the agent dir at a temp dir so user-scope discovery (native MCP
-		// config, skills, etc.) cannot read the real ~/.omp/agent profile.
+		// config, skills, etc.) cannot read the real ~/.storoslop/agent profile.
 		setAgentDir(testAgentDir);
 		enableProvider("claude-plugins");
 		disableUserSource("claude-plugins");
@@ -490,7 +490,7 @@ describe("listClaudePluginRoots", () => {
 			[firstHome, "first@market"],
 			[secondHome, "second@market"],
 		] as const) {
-			const pluginsDir = path.join(home, ".omp", "plugins");
+			const pluginsDir = path.join(home, ".storoslop", "plugins");
 			await fs.mkdir(pluginsDir, { recursive: true });
 			await fs.writeFile(
 				path.join(pluginsDir, "installed_plugins.json"),
@@ -519,7 +519,7 @@ describe("listClaudePluginRoots", () => {
 	test("loads OMP user skills without opting into foreign Claude skills", async () => {
 		const ompPluginPath = path.join(tempDir, "plugins", "omp-owned");
 		const claudePluginPath = path.join(tempDir, "plugins", "claude-owned");
-		const ompRegistryPath = path.join(tempDir, ".omp", "plugins", "installed_plugins.json");
+		const ompRegistryPath = path.join(tempDir, ".storoslop", "plugins", "installed_plugins.json");
 		const claudeRegistryPath = path.join(tempDir, ".claude", "plugins", "installed_plugins.json");
 		await Promise.all([
 			fs.mkdir(path.join(ompPluginPath, "skills", "omp-demo"), { recursive: true }),
@@ -569,7 +569,7 @@ describe("listClaudePluginRoots", () => {
 		// rides SourceMeta, so the foreign gate applies only to claude-origin roots.
 		const ompPluginPath = path.join(tempDir, "plugins", "omp-owned");
 		const claudePluginPath = path.join(tempDir, "plugins", "claude-owned");
-		const ompRegistryPath = path.join(tempDir, ".omp", "plugins", "installed_plugins.json");
+		const ompRegistryPath = path.join(tempDir, ".storoslop", "plugins", "installed_plugins.json");
 		const claudeRegistryPath = path.join(tempDir, ".claude", "plugins", "installed_plugins.json");
 		await Promise.all([
 			fs.mkdir(path.join(ompPluginPath, "skills", "omp-demo"), { recursive: true }),
@@ -616,7 +616,7 @@ describe("listClaudePluginRoots", () => {
 	});
 
 	test("dashboard marks omp-origin plugin capabilities active without enabling the Claude source (#12776)", async () => {
-		// Regression (#12776): the loader exempts ~/.omp/plugins marketplace roots
+		// Regression (#12776): the loader exempts ~/.storoslop/plugins marketplace roots
 		// (origin !== "claude") from the foreign user opt-in gate, but the
 		// /extensions dashboard's resolveState re-dropped them as "user-opt-in".
 		// The omp-origin skill AND rule must render active; the claude-origin skill
@@ -624,7 +624,7 @@ describe("listClaudePluginRoots", () => {
 		// non-skill _source built by loadFilesFromDir, not just skills.
 		const ompPluginPath = path.join(tempDir, "plugins", "omp-owned");
 		const claudePluginPath = path.join(tempDir, "plugins", "claude-owned");
-		const ompRegistryPath = path.join(tempDir, ".omp", "plugins", "installed_plugins.json");
+		const ompRegistryPath = path.join(tempDir, ".storoslop", "plugins", "installed_plugins.json");
 		const claudeRegistryPath = path.join(tempDir, ".claude", "plugins", "installed_plugins.json");
 		await Promise.all([
 			fs.mkdir(path.join(ompPluginPath, "skills", "omp-demo"), { recursive: true }),
@@ -678,7 +678,7 @@ describe("listClaudePluginRoots", () => {
 	for (const catalogDir of [".claude-plugin", ".omp-plugin"]) {
 		test(`marketplace-root ${catalogDir} entry limits shared skills to declared paths`, async () => {
 			const pluginPath = path.join(tempDir, "plugins", "anthropic-skills");
-			const registryPath = path.join(tempDir, ".omp", "plugins", "installed_plugins.json");
+			const registryPath = path.join(tempDir, ".storoslop", "plugins", "installed_plugins.json");
 			await Promise.all([
 				fs.mkdir(path.join(pluginPath, "skills", "xlsx"), { recursive: true }),
 				fs.mkdir(path.join(pluginPath, "skills", "skill-creator"), { recursive: true }),

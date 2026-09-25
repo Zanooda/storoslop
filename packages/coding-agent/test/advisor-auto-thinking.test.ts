@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import * as path from "node:path";
 import { Agent, ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { Effort, type Model } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
@@ -9,7 +10,15 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { AUTO_THINKING, toReasoningEffort } from "@oh-my-pi/pi-tui/thinking";
+import { TempDir } from "@oh-my-pi/pi-utils";
 import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+
+// Fork: `getAvailable()` surfaces only storoslop models, so the advisor role is
+// pointed at a models.yml-configured fork model. Its thinking efforts mirror the
+// upstream fixture's model (minimal…max) so the levels asserted below clamp the
+// same way. The primary agent keeps the bundled anthropic fixture untouched.
+const ADVISOR_MODEL = "slop-v3";
+const FALLBACK_ADVISOR_MODEL = "slop-v3-flash";
 
 // `auto` is a session-level selector: the per-turn difficulty classifier runs
 // for the primary turn only, and `concreteThinkingLevel` erases `auto` when the
@@ -22,11 +31,37 @@ describe("advisor auto thinking level", () => {
 	let modelRegistry: ModelRegistry;
 	let model: Model;
 
-	beforeAll(() => {
+	beforeAll(async () => {
 		authStorage = createInMemoryAuthStorage();
 		authStorage.keys.setRuntime("anthropic", "test-key");
 		authStorage.keys.setRuntime("google", "test-key");
-		modelRegistry = new ModelRegistry(authStorage);
+		const modelsDir = TempDir.createSync("@pi-advisor-auto-thinking-");
+		await Bun.write(
+			path.join(modelsDir.path(), "models.yml"),
+			JSON.stringify({
+				providers: {
+					storoslop: {
+						baseUrl: "http://slop.storo.cloud/v1",
+						apiKey: "TEST_KEY",
+						api: "openai-completions",
+						models: [ADVISOR_MODEL, FALLBACK_ADVISOR_MODEL].map(id => ({
+							id,
+							name: id,
+							reasoning: true,
+							thinking: {
+								mode: "budget",
+								efforts: [Effort.Minimal, Effort.Low, Effort.Medium, Effort.High, Effort.XHigh, Effort.Max],
+							},
+							input: ["text"],
+							cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+							contextWindow: 100_000,
+							maxTokens: 8_000,
+						})),
+					},
+				},
+			}),
+		);
+		modelRegistry = new ModelRegistry(authStorage, path.join(modelsDir.path(), "models.yml"));
 		const bundled = getBundledModel("anthropic", "claude-sonnet-4-5");
 		if (!bundled) throw new Error("Expected bundled anthropic/claude-sonnet-4-5 to exist");
 		model = bundled;
@@ -50,7 +85,7 @@ describe("advisor auto thinking level", () => {
 			...(streamFn ? { streamFn } : {}),
 		});
 		const settings = Settings.isolated({ "compaction.enabled": false, ...settingsOverrides });
-		settings.setModelRole("advisor", `${model.provider}/${model.id}:${AUTO_THINKING}`);
+		settings.setModelRole("advisor", `storoslop/${ADVISOR_MODEL}:${AUTO_THINKING}`);
 		session = new AgentSession({
 			agent,
 			sessionManager: SessionManager.inMemory(),
@@ -170,11 +205,11 @@ describe("advisor auto thinking level", () => {
 			{
 				"advisor.syncBacklog": "1",
 				"retry.baseDelayMs": 5,
-				"retry.fallbackChains": { advisor: ["google/gemini-2.5-flash:minimal"] },
+				"retry.fallbackChains": { advisor: [`storoslop/${FALLBACK_ADVISOR_MODEL}:minimal`] },
 			},
 			(m, context, options) => {
 				wire.push(`${m.id}:${options?.reasoning}`);
-				if (m.id === model.id && !quotaFailed) {
+				if (m.id === ADVISOR_MODEL && !quotaFailed) {
 					quotaFailed = true;
 					advisorMock.push({
 						throw: "Devin stream error failed_precondition: Your daily usage quota has been exhausted. Your quota will reset after 60s.",
@@ -203,14 +238,14 @@ describe("advisor auto thinking level", () => {
 
 		await s.agent.prompt("quota fails over to the fallback");
 		await fellBack.promise;
-		expect(wire).toEqual([`${model.id}:${Effort.Low}`, "gemini-2.5-flash:minimal"]);
+		expect(wire).toEqual([`${ADVISOR_MODEL}:${Effort.Low}`, `${FALLBACK_ADVISOR_MODEL}:minimal`]);
 		s.setThinkingLevel(Effort.High);
-		expect(await review("primary now high")).toBe("gemini-2.5-flash:minimal");
+		expect(await review("primary now high")).toBe(`${FALLBACK_ADVISOR_MODEL}:minimal`);
 
 		// Cooldown over: the very review that restores the main model already
 		// runs at the primary's current level, not the pre-fallback `low`.
 		vi.spyOn(Date, "now").mockReturnValue(Date.now() + 120_000);
-		expect(await review("cooldown expired")).toBe(`${model.id}:${Effort.High}`);
+		expect(await review("cooldown expired")).toBe(`${ADVISOR_MODEL}:${Effort.High}`);
 		expect(s.getAdvisorAgent()).toBe(advisor);
 	});
 });

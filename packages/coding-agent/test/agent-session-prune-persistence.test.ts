@@ -38,6 +38,9 @@ describe("AgentSession per-turn prune persistence", () => {
 		tempDir = TempDir.createSync("@pi-prune-persistence-");
 		authStorage = await AuthStorage.create(path.join(tempDir.path(), "testauth.db"));
 		authStorage.keys.setRuntime("anthropic", "test-key");
+		// Fork: `getAvailable()` surfaces only storoslop models; the advisor role
+		// must resolve against the fork provider for its runtime to start.
+		authStorage.keys.setRuntime("storoslop", "test-key");
 		const modelRegistry = new ModelRegistry(authStorage);
 		sessionManager = SessionManager.create(tempDir.path(), tempDir.path());
 
@@ -238,7 +241,7 @@ describe("AgentSession per-turn prune persistence", () => {
 		}
 
 		function enableAdvisor(): void {
-			session.settings.setModelRole("advisor", "anthropic/claude-sonnet-4-5");
+			session.settings.setModelRole("advisor", "storoslop/deepseek-v4.1-flash");
 			expect(session.setAdvisorEnabled(true)).toBe(true);
 		}
 

@@ -1852,7 +1852,7 @@ export class SessionTools {
 		isCurrent: () => boolean,
 		signal?: AbortSignal,
 	): Promise<SystemPromptPreparation> {
-		const staged = await this.#stageMemoryBackendPrompt(promptText, isCurrent);
+		const staged = await this.#stageMemoryBackendPrompt(promptText, isCurrent, signal);
 		const withFileMemory = await this.#appendFileMemoryToPrompt(staged.systemPrompt);
 		// Fork: the ambient file memory rides only the delivered turn prompt; `commit`
 		// still persists the backend injection alone so it is not double-applied.
@@ -1860,7 +1860,11 @@ export class SessionTools {
 	}
 
 	/** Stages the configured memory backend's `beforeAgentStartPrompt` injection. */
-	async #stageMemoryBackendPrompt(promptText: string, isCurrent: () => boolean): Promise<SystemPromptPreparation> {
+	async #stageMemoryBackendPrompt(
+		promptText: string,
+		isCurrent: () => boolean,
+		signal?: AbortSignal,
+	): Promise<SystemPromptPreparation> {
 		const backend = await resolveMemoryBackend(this.#host.settings);
 		if (!isCurrent() || !backend.beforeAgentStartPrompt) return { systemPrompt: this.#baseSystemPrompt };
 
