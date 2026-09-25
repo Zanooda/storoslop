@@ -2,17 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.1] - 2026-09-22
-
-### Added
-
-- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `3ed46dceae` (2026-09-21): added the DeepInfra, LiteLLM, Qwen Portal, SiliconFlow and SiliconFlow-CN providers plus Gemini 3.8 Flash, the `typesafe` and `stencil` auth providers, OpenRouter embedding/reranking/video/speech rows, model-kind and grounded-search capability metadata, and native judge-model discovery; provider catalog entries (default model, env keys, discovery wiring) now live in `src/compat/rules/providers/<id>.kdl` and compile into `rules.json`. The bundled storoslop roster and its `providers/storoslop.kdl` wire contract are unchanged by the merge.
-
-### Fixed
-
-- OpenCode Go's DeepSeek Flash lanes (`deepseek-flash`, `deepseek-v4.1-flash`) now declare image input. The gateway serves them with vision despite the IDs carrying no vision suffix, so the class-wide `strip-image-input` rule was dropping attachments the endpoint reads; the modality is declared too, since live discovery seeds these lanes text-only ([#11774](https://github.com/can1357/oh-my-pi/pull/11774) by [@STRML](https://github.com/STRML)).
-- DeepSeek V4.1 Flash requests now honor the documented 384K output maximum instead of being capped at 64K ([#11769](https://github.com/can1357/oh-my-pi/issues/11769)).
-- Fixed the first-party `deepseek-flash` alias missing the V4.1 Flash wire contract: it now sends `max_tokens` with `reasoning_content` and replays reasoning and assistant content on tool calls with no tool choice ([#11799](https://github.com/can1357/oh-my-pi/pull/11799) by [@brit](https://github.com/brit)).
 ## [18.3.1] - 2026-09-25
 
 ### Added
@@ -1677,6 +1666,18 @@
 ### Removed
 
 - Removed the runtime enrichment layer: `enrichModelThinking` (and its non-enumerable memo-slot cache), `refreshModelThinking`, `modelOmitsReasoningEffort`, and the `model-thinking` re-exports of generator-only policies. Thinking metadata is resolved exactly once inside `buildModel`; runtime helpers (`getSupportedEfforts`, `clampThinkingLevelForModel`, `requireSupportedEffort`, the effort mappers) are pure field reads.
+
+## [1.3.1] - 2026-09-22
+
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `3ed46dceae` (2026-09-21): added the DeepInfra, LiteLLM, Qwen Portal, SiliconFlow and SiliconFlow-CN providers plus Gemini 3.8 Flash, the `typesafe` and `stencil` auth providers, OpenRouter embedding/reranking/video/speech rows, model-kind and grounded-search capability metadata, and native judge-model discovery; provider catalog entries (default model, env keys, discovery wiring) now live in `src/compat/rules/providers/<id>.kdl` and compile into `rules.json`. The bundled storoslop roster and its `providers/storoslop.kdl` wire contract are unchanged by the merge.
+
+### Fixed
+
+- OpenCode Go's DeepSeek Flash lanes (`deepseek-flash`, `deepseek-v4.1-flash`) now declare image input. The gateway serves them with vision despite the IDs carrying no vision suffix, so the class-wide `strip-image-input` rule was dropping attachments the endpoint reads; the modality is declared too, since live discovery seeds these lanes text-only ([#11774](https://github.com/can1357/oh-my-pi/pull/11774) by [@STRML](https://github.com/STRML)).
+- DeepSeek V4.1 Flash requests now honor the documented 384K output maximum instead of being capped at 64K ([#11769](https://github.com/can1357/oh-my-pi/issues/11769)).
+- Fixed the first-party `deepseek-flash` alias missing the V4.1 Flash wire contract: it now sends `max_tokens` with `reasoning_content` and replays reasoning and assistant content on tool calls with no tool choice ([#11799](https://github.com/can1357/oh-my-pi/pull/11799) by [@brit](https://github.com/brit)).
 
 ## [1.3.0] - 2026-09-11
 

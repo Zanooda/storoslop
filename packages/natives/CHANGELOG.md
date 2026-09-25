@@ -2,11 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.1] - 2026-09-22
-
-### Added
-
-- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `3ed46dceae` (2026-09-21): `pi-natives` now exposes VCS display discovery (`vcsDiscoverForDisplay`), `hashlineIsReadTruncationNotice`, and `renderMermaidAscii`.
 ## [18.3.1] - 2026-09-25
 
 ### Added
@@ -1479,6 +1474,12 @@
 ### Fixed
 
 - Fixed potential crashes when updating native binaries by using safe copy strategy that avoids overwriting in-memory binaries
+
+## [1.3.1] - 2026-09-22
+
+### Added
+
+- Merged upstream [oh-my-pi](https://github.com/can1357/oh-my-pi) `main` `3ed46dceae` (2026-09-21): `pi-natives` now exposes VCS display discovery (`vcsDiscoverForDisplay`), `hashlineIsReadTruncationNotice`, and `renderMermaidAscii`.
 
 ## [1.2.3] - 2026-09-07
 
