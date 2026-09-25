@@ -217,7 +217,7 @@ describe("AgentSession eager todo enforcement", () => {
 	beforeAll(async () => {
 		sharedDir = TempDir.createSync("@pi-agent-session-eager-todo-shared-");
 		sharedAuthStorage = await AuthStorage.create(path.join(sharedDir.path(), "auth.db"));
-		sharedAuthStorage.setRuntimeApiKey("anthropic", "test-key");
+		sharedAuthStorage.keys.setRuntime("anthropic", "test-key");
 		// Fork: storoslop is the only selectable provider. Configure it via models.yml
 		// (with a key) so the todo-init title-refresh path can resolve a titling model
 		// and actually run, rather than bailing on an empty getAvailable().

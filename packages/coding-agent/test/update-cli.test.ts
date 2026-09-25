@@ -659,6 +659,7 @@ describe("migrateRenamedInstall transaction", () => {
 		tag: "v999.1.0",
 		version: "999.1.0",
 		packages: { pkg: "@new/omp", natives: "@new/natives" },
+		registry: "https://registry.npmjs.org/",
 	};
 
 	function scriptedSteps(script: { install: number[]; removeOld?: number; verify: boolean[] }): {
@@ -917,7 +918,7 @@ describe("update-cli release binary integrity", () => {
 	const binaryName = "storoslop-linux-x64";
 	const url = `https://github.com/Zanooda/storoslop/releases/download/${tag}/${binaryName}`;
 	const content = "verified binary";
-	const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+	const digest = `sha256:${Bun.SHA256.hash(content, "hex")}`;
 
 	function releaseAsset(overrides: Record<string, unknown> = {}): Record<string, unknown> {
 		return {
@@ -1080,7 +1081,7 @@ describe("update-cli release binary integrity", () => {
 				url,
 				targetPath,
 				expectedSize: Buffer.byteLength(content),
-				expectedDigest: `sha256:${createHash("sha256").update("different binary").digest("hex")}`,
+				expectedDigest: `sha256:${Bun.SHA256.hash("different binary", "hex")}`,
 				fetchImpl,
 			}),
 		).rejects.toThrow("digest mismatch");
@@ -1385,7 +1386,7 @@ describe("update-cli script-shim takeover", () => {
 	const url = `https://github.com/Zanooda/storoslop/releases/download/v${version}/${binaryName}`;
 
 	function makeFetch(content: string, prerelease = false): (input: string | URL | Request) => Promise<Response> {
-		const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+		const digest = `sha256:${Bun.SHA256.hash(content, "hex")}`;
 		return async (input: string | URL | Request): Promise<Response> => {
 			const requestUrl = String(input);
 			if (requestUrl.startsWith("https://api.github.com/")) {
@@ -1578,7 +1579,7 @@ describe("update-cli concurrent binary updates", () => {
 	const binaryName = "storoslop-linux-x64";
 	const url = `https://github.com/Zanooda/storoslop/releases/download/v${version}/${binaryName}`;
 	const payload = Buffer.alloc(2048, 0x41);
-	const digest = `sha256:${createHash("sha256").update(payload).digest("hex")}`;
+	const digest = `sha256:${Bun.SHA256.hash(payload, "hex")}`;
 
 	function metadata(): Response {
 		return Response.json({

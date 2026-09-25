@@ -11,6 +11,9 @@ import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-sessi
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
 
+import { cfgAdvisorEnabled } from "@oh-my-pi/pi-coding-agent/advisor/settings";
+import { cfgDisabledExtensions } from "@oh-my-pi/pi-coding-agent/extensibility/settings";
+
 const INITIAL_CONTEXT = "reload-context-initial-marker";
 const UPDATED_CONTEXT = "reload-context-updated-marker";
 const PROJECT_CONTEXT_EXTENSION_ID = "context-file:project:AGENTS.md";
@@ -27,8 +30,8 @@ async function createContextSession(
 		// advisor role must resolve against a configured storoslop model. Seed the
 		// models config with a storoslop provider (key + model) the way `storoslop
 		// setup` does.
-		authStorage.setRuntimeApiKey("openai", "test-key");
-		settings.set("advisor.enabled", true);
+		authStorage.keys.setRuntime("openai", "test-key");
+		cfgAdvisorEnabled.set(settings, true);
 		settings.setModelRole("advisor", "storoslop/deepseek-v4-flash");
 		await Bun.write(
 			`${cwd}/models.json`,
@@ -105,7 +108,7 @@ describe("context-file prompt refresh", () => {
 		try {
 			expect(session.systemPrompt.join("\n")).toContain(INITIAL_CONTEXT);
 
-			settings.set("disabledExtensions", [PROJECT_CONTEXT_EXTENSION_ID]);
+			cfgDisabledExtensions.set(settings, [PROJECT_CONTEXT_EXTENSION_ID]);
 			await session.refreshSkills();
 
 			expect(session.systemPrompt.join("\n")).not.toContain(INITIAL_CONTEXT);

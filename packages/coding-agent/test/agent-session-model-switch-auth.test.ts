@@ -25,7 +25,7 @@ describe("AgentSession model switch auth pre-flight", () => {
 	beforeAll(async () => {
 		sharedDir = TempDir.createSync("@pi-model-switch-auth-");
 		authStorage = await AuthStorage.create(path.join(sharedDir.path(), "auth.db"));
-		authStorage.setRuntimeApiKey("anthropic", "test-key");
+		authStorage.keys.setRuntime("anthropic", "test-key");
 		// Fork: storoslop is the only selectable provider; configure it via models.yml
 		// so setModel/role-cycling resolve against the fork's provider.
 		await Bun.write(

@@ -27,7 +27,7 @@ describe("AgentSession model persistence", () => {
 	beforeAll(async () => {
 		sharedDir = TempDir.createSync("@pi-model-persistence-shared-");
 		sharedAuthStorage = await AuthStorage.create(path.join(sharedDir.path(), "auth.db"));
-		sharedAuthStorage.setRuntimeApiKey("anthropic", "test-key");
+		sharedAuthStorage.keys.setRuntime("anthropic", "test-key");
 		// Fork: storoslop is the only selectable provider. Configure it via
 		// models.yml (with a key) so getAvailable()/role resolution resolve the
 		// persistence scenarios below against the fork's actual provider.

@@ -24,7 +24,7 @@ A **plugin** is a directory containing Claude/storoslop plugin content such as s
 
 Enabled project-scoped installs shadow enabled user-scoped installs of the same plugin. A disabled project install does not shadow the user install.
 
-On Linux and macOS, `storoslop config init-xdg` creates the XDG data, state, and cache roots; it does not move existing data. Once the relevant roots exist and `XDG_DATA_HOME`, `XDG_STATE_HOME`, and `XDG_CACHE_HOME` are set, new user marketplace/plugin state resolves under `/omp` (including `marketplaces.json` and `plugins/`). The `~/.storoslop` paths below are the non-XDG defaults.
+On Linux and macOS, `storoslop config init-xdg` initializes the XDG data, state, and cache roots; it does not move existing data. With `XDG_DATA_HOME`, `XDG_STATE_HOME`, and `XDG_CACHE_HOME` set, initialized roots store new user marketplace/plugin state under `$XDG_DATA_HOME/storoslop` (including `marketplaces.json` and `plugins/`). The `~/.storoslop` paths below are the non-XDG defaults.
 
 ## Commands
 

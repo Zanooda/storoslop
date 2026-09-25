@@ -17,6 +17,8 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
 
+import { cfgModelRoles } from "@oh-my-pi/pi-coding-agent/config/model-settings";
+
 describe("plan mode thinking level", () => {
 	let session: AgentSession;
 	let modelRegistry: ModelRegistry;
@@ -26,7 +28,7 @@ describe("plan mode thinking level", () => {
 
 	beforeAll(async () => {
 		authStorage = await AuthStorage.create(":memory:");
-		authStorage.setRuntimeApiKey("anthropic", "test-key");
+		authStorage.keys.setRuntime("anthropic", "test-key");
 		sharedDir = TempDir.createSync("@plan-mode-thinking-");
 		// Fork: storoslop is the only selectable provider; configure it via models.yml.
 		await Bun.write(
@@ -77,7 +79,7 @@ describe("plan mode thinking level", () => {
 	});
 
 	function configureRoles(modelRoles: Record<string, string>): AgentSession {
-		sessionSettings.override("modelRoles", modelRoles);
+		cfgModelRoles.override(sessionSettings, modelRoles);
 		return session;
 	}
 
