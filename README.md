@@ -288,7 +288,7 @@ Core tools live in the same namespace as `read` and `bash`. Pin the active set w
 **Coordination**
 
 - `task` — fan out subagents in parallel, optionally workspace-isolated.
-- `hub` — message live agents, wait on or cancel background jobs, and supervise long-running processes.
+- `wait` — block until the next background result, peer message, or steering interrupt; message peers and control jobs via `agent://` and `proc://`.
 - `todo` — ordered mutations over the session todo list with phase tracking.
 - `ask` — structured follow-up questions for interactive runs.
 
@@ -343,7 +343,7 @@ Auth tags below: `oauth` signs in with your provider account, `plan` routes thro
 
 Direct APIs and gateways. Mix providers per role.
 
-Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · Fireworks · Together · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless
+Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · Fireworks · Together · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · Helmcode · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless
 
 ### Coding plans
 
@@ -593,12 +593,12 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `6204b75080`**, merged 2026-09-25. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `2f55c0cdf2`**, merged 2026-10-02. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.3.x` version lineage across the `Cargo.toml` workspace version and every `packages/*/package.json` version (the root `package.json` carries no version field) plus the `__piNativesV1_3_1` native sentinel (upstream is on `18.3.1`)
+- `1.3.x` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
 - `bun@1.3.14` + `@types/bun` pin (upstream moved to `packageManager: bun@>=1.4`)
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time
@@ -624,6 +624,8 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - IDA Pro integration via idalib workers migrated to broker-managed host daemons (`packages/coding-agent/src/ida/` host/protocol/client), with LRU eviction, idle autosave and auto-close
 - centralized settings registry and internal URL routing (`cfg://` agent-controlled settings; session-wide approval/timeout handling)
 - `hub` tool deprecated in favour of `wait` and protocol-based interfaces
+- post-link native release stamp (`scripts/stamp-native-version.ts` + `__piNativesBuildVersion()`) superseding the fork's per-release `__piNativesV*` sentinel; older sentinel addons are still recognized by the loader
+- `/dump all` recursive subagent zip export, upstream subagent/session-retry fixes (`18.4.x` lineage through `2f55c0cdf2`)
 
 ---
 
