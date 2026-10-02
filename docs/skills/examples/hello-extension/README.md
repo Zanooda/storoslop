@@ -12,7 +12,7 @@ cp -r . ~/.storoslop/agent/extensions/hello-extension
 
 Restart `storoslop`. You will see the startup notification immediately.
 
-With `storoslop --profile <name>`, use `~/.storoslop/profiles/<name>/agent/extensions/hello-extension` instead. `PI_CODING_AGENT_DIR` likewise changes the agent directory.
+With `storoslop --profile <name>`, use `~/.storoslop/profiles/<name>/agent/extensions/hello-extension` under the default layout. `PI_CODING_AGENT_DIR` changes the default profile's agent directory, not a named profile's. Initialized XDG roots can change these locations.
 
 **Option B — point the settings `extensions` array at it:**
 

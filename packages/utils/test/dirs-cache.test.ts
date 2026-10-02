@@ -5,7 +5,7 @@ import * as path from "node:path";
 import {
 	__resetDirsFromEnvForTests,
 	getActiveProfile,
-	getComposerCacheDir,
+	getComposerCacheDbPath,
 	getConfigDirName,
 	getDocumentConversionCacheDir,
 	getMarketplacesRegistryPath,
@@ -62,7 +62,7 @@ describe("document conversion cache directory", () => {
 		);
 	});
 
-	it("routes getComposerCacheDir to $XDG_CACHE_HOME/storoslop/cache/composer", async () => {
+	it("routes getComposerCacheDbPath to $XDG_CACHE_HOME/storoslop/cache/composer.db", async () => {
 		if (process.platform === "win32") return;
 
 		process.env.XDG_CACHE_HOME = path.join(tempRoot, "cache");
@@ -71,7 +71,7 @@ describe("document conversion cache directory", () => {
 		const defaultAgentDir = path.join(os.homedir(), getConfigDirName(), "agent");
 		setAgentDir(defaultAgentDir);
 
-		expect(getComposerCacheDir()).toBe(path.join(process.env.XDG_CACHE_HOME, "storoslop", "cache", "composer"));
+		expect(getComposerCacheDbPath()).toBe(path.join(process.env.XDG_CACHE_HOME, "storoslop", "cache", "composer.db"));
 	});
 
 	it("stays under a custom PI_CODING_AGENT_DIR", () => {

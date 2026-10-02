@@ -208,6 +208,7 @@ describe.skip("AgentSession.branchFromBtw", () => {
 		expect(activeSession.sessionFile).toBe(originalFile);
 		expect(emit).toHaveBeenCalledWith({
 			type: "session_before_branch",
+			reason: "btw",
 			entryId: activeSession.sessionManager.getLeafId(),
 		});
 	});
