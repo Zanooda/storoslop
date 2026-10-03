@@ -4,7 +4,6 @@ import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import type { DescribeContext, NativeChild, NativeNode } from "../src/native/node";
 import { setNativeRendering } from "../src/native/state";
 import type { SetupHost, SetupScene, SetupSceneController, SetupUiHost } from "../src/setup/scenes/types";
-import { SETUP_SPLASH_MS } from "../src/setup/scenes/splash";
 import { runStartupSplash } from "../src/setup/startup-splash";
 import { SetupWizardComponent } from "../src/setup/wizard-overlay";
 
@@ -89,7 +88,7 @@ describe("setup surfaces under native rendering", () => {
 		await run;
 	});
 
-	it("wizard advances splash → scene on the deadline and describes the mounted scene", async () => {
+	it("mounts the first scene at once and describes the mounted scene", async () => {
 		const ui = fakeUi();
 		let mounted: SetupSceneController | undefined;
 		const scene: SetupScene = {
@@ -104,13 +103,10 @@ describe("setup surfaces under native rendering", () => {
 		const wizard = new SetupWizardComponent(ui.host as SetupHost, [scene]);
 		const done = wizard.run();
 		try {
-			advance(SETUP_SPLASH_MS - 1);
-			expect(mounted).toBeUndefined();
-			advance(1);
+			// Fork: the animated setup splash/welcome is skipped, so the first scene is
+			// live as soon as run() returns — there is no SETUP_SPLASH_MS deadline.
 			expect(mounted).toBeDefined();
 			expect(nodes([wizard.describe()]).some(n => n.c?.some(child => child === mounted))).toBe(true);
-			// run() + the scene mount; no 33ms repaint loop across the splash.
-			expect(ui.renders()).toBe(2);
 
 			wizard.handleInput("\x03");
 			expect(nodes([wizard.describe()]).some(n => n.p?.actions?.click === "continue")).toBe(true);
