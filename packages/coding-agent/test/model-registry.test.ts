@@ -376,6 +376,25 @@ describe("ModelRegistry", () => {
 				).toBe(false);
 			}
 		});
+
+		test("web search engines stay in the web role pool without leaking into the chat pool", () => {
+			const settings = Settings.isolated({});
+			const registry = new ModelRegistry(authStorage, modelsJsonPath);
+
+			// Regression: the fork's storoslop-only availability scope emptied the
+			// `web` role pool, so the web_search tool always answered "No web search
+			// model configured." instead of walking its engine chain.
+			expect(roleCandidatePool("web", settings, registry)).toContainEqual(
+				expect.objectContaining({ provider: "web", id: "duckduckgo", kind: "search" }),
+			);
+			// The single-provider promise still holds for user-selectable chat models.
+			expect(registry.getAvailable().some(model => model.provider === "web")).toBe(false);
+			// `disabledProviders` still wins over the search-engine exception.
+			const webDisabled = new ModelRegistry(authStorage, modelsJsonPath, {
+				settings: Settings.isolated({ disabledProviders: ["web"] }),
+			});
+			expect(roleCandidatePool("web", settings, webDisabled)).toEqual([]);
+		});
 	});
 
 	describe("Bedrock inference profile ARN fallback", () => {

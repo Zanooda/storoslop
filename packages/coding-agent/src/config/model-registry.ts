@@ -2679,16 +2679,32 @@ export class ModelRegistry {
 	 * Fork: storoslop exposes only its own provider. Even the bundled catalog
 	 * providers must not be user-selectable, so ALL available models are scoped
 	 * to the `storoslop` provider regardless of stored auth elsewhere.
+	 *
+	 * Exception: the synthetic `web` provider is not a chat provider — it backs
+	 * the `web` model role, whose search engines are admitted by each adapter's
+	 * own availability check at search time. It MUST stay in the pool, because
+	 * its KDL `allows-missing-api-key` rule is not consulted by model
+	 * availability, so gating it here empties the role and web_search always
+	 * fails with "No web search model configured.". Chat callers are unaffected:
+	 * the default `kind === "chat"` filter drops every search-kind row.
 	 */
 	getAvailable(kind: ModelKind | "all" = "chat"): Model<Api>[] {
 		const isProviderAvailable = this.#createProviderAvailabilityCheck();
+		const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
 		// Fork: storoslop is ready when it has a configured API key (from
 		// `storoslop setup` -> models.yml), which is not an OAuth credential.
-		const isStoroslopReady = (p: string): boolean =>
-			p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop"));
+		// `web` backs the web-search role: its engines are admitted per adapter
+		// at search time, and its KDL `allows-missing-api-key` rule is not
+		// consulted by model availability — gating it there would empty the
+		// role and web_search would always fail with "No web search model
+		// configured.". It still honours `disabledProviders`.
+		const isForkProviderReady = (p: string): boolean =>
+			p === "web"
+				? !disabledProviders.has(p)
+				: p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop"));
 		const models = this.#hasFullSnapshot
-			? this.#models.filter(model => isStoroslopReady(model.provider))
-			: this.#composeStaticModels(new Set(this.#knownStaticProviders().filter(isStoroslopReady)));
+			? this.#models.filter(model => isForkProviderReady(model.provider))
+			: this.#composeStaticModels(new Set(this.#knownStaticProviders().filter(isForkProviderReady)));
 		return kind === "all" ? models : models.filter(model => modelKind(model) === kind);
 	}
 
