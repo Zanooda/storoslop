@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Web search and fetch quality improved by the upstream 703a261df9 integration: the xAI search provider is reworked, the `x`/Twitter scraper gains a dedicated `web/x.ts` path, and the `github`, `docs-rs`, `mastodon`, `hackernews`, `lemmy`, `discourse`, and `nuget` scrapers are hardened.
+
 ## [1.3.3] - 2026-10-03
 
 ### Added

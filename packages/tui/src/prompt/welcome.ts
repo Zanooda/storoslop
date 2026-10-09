@@ -28,9 +28,6 @@ const TIP_LINES: readonly string[] = tipsText
 /** Tips for the classic renderer: every tip, {@link NO_TERN_TIP_MARKER} stripped. */
 const TIPS: readonly string[] = TIP_LINES.map(line => line.replace(NO_TERN_TIP_MARKER, ""));
 
-/** Tips for a live TSP surface: those marked {@link NO_TERN_TIP_MARKER} dropped. */
-const TSP_TIPS: readonly string[] = TIP_LINES.filter(line => !NO_TERN_TIP_MARKER.test(line));
-
 /** Trailing marker that flags a tip as a "what's new" callout. Stripped before
  *  wrapping (with any preceding whitespace) and replaced by {@link NEW_TAG_TEXT}
  *  painted as a shimmering rainbow. Non-global so `.test` stays stateless. */

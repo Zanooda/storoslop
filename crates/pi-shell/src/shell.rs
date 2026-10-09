@@ -3729,10 +3729,11 @@ mod tests {
 		let source_info = SourceInfo::from("pi-natives:test");
 
 		// Generous bound: this shells out to a real two-member pipeline and must
-		// observe both children STOPped. On a shared CI runner that compiles other
-		// bazel targets concurrently (GitHub-hosted), 5s was too tight and
-		// flaked with "pipeline did not stop" — the process-latency allowance,
-		// not the kill contract, was the failure.
+		// observe both children STOPped. On a shared CI runner that compiles
+		// other bazel targets concurrently (GitHub-hosted), 5s was too
+		// tight and flaked with "pipeline did not stop" — the
+		// process-latency allowance, not the kill contract, was the
+		// failure.
 		time::timeout(
 			Duration::from_secs(30),
 			session.shell.run_string(command, &source_info, &params),

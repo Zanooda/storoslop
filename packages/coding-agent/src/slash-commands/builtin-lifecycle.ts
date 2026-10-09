@@ -8,7 +8,7 @@ import { rebindMemoryBackendForCwd } from "../hindsight/backend";
 import { memoryStatsUnavailableMessage, resolveMemoryBackend } from "../memory-backend";
 import { deriveProjectKey } from "../memory-files/paths";
 import { forgetMemory, readMemory, writeMemory } from "../memory-files/store";
-import type { AgentSession, FreshSessionResult, HandoffResult } from "../session/agent-session";
+import type { FreshSessionResult, HandoffResult } from "../session/agent-session";
 import { COMPACT_MODES, parseCompactArgs } from "../session/compact-modes";
 import { USER_INTERRUPT_LABEL } from "../session/messages";
 import { resolveResumableSession } from "../session/session-listing";

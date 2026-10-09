@@ -1756,7 +1756,11 @@ export function coralbricksModelManagerOptions(
 ): ModelManagerOptions<"openai-completions"> {
 	const apiKey = config?.apiKey;
 	const baseUrl = config?.baseUrl ?? CORALBRICKS_BASE_URL;
-	const references = createBundledReferenceMap<"openai-completions">("coralbricks");
+	// Fork: coralbricks ships no bundled rows in the fork's models.json, so the
+	// lookup is cast like the other model-less providers (ollama, vllm, lm-studio).
+	const references = createBundledReferenceMap<"openai-completions">(
+		"coralbricks" as Parameters<typeof getBundledModels>[0],
+	);
 	return {
 		providerId: "coralbricks",
 		dynamicModelsAuthoritative: true,

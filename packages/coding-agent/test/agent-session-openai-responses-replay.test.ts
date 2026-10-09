@@ -23,10 +23,6 @@ import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { getTestModel } from "./helpers/model-fixtures";
 
 const openaiModel = getTestModel("openai", model => model.api === "openai-responses" && model.reasoning);
-const alternateOpenaiModel = getTestModel(
-	"openai",
-	model => model.api === "openai-responses" && model.reasoning && model.id !== openaiModel.id,
-);
 const codexModel = getTestModel("openai-codex", model => model.api === "openai-codex-responses" && model.reasoning);
 const copilotModel = getTestModel("github-copilot", model => model.api === "openai-responses" && model.reasoning);
 

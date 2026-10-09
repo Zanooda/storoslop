@@ -475,7 +475,11 @@ afterEach(async () => {
 });
 
 async function createHarness(
-	options: { elicitationHandler?: (req: CreateElicitationRequest) => Promise<CreateElicitationResponse> } = {},
+	options: {
+		elicitationHandler?: (req: CreateElicitationRequest) => Promise<CreateElicitationResponse>;
+		/** Runs before a notification is recorded, so a test can delay one delivery. */
+		sessionUpdateHook?: (notification: SessionNotification) => Promise<void> | void;
+	} = {},
 ): Promise<AgentHarness> {
 	const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "omp-acp-test-"));
 	cleanupRoots.push(root);
@@ -493,6 +497,9 @@ async function createHarness(
 	const sessions: FakeAgentSession[] = [];
 	const connection = {
 		sessionUpdate: async (notification: SessionNotification) => {
+			// Only await when a hook is configured: `await undefined` would insert a
+			// microtask before the push and perturb ordering-sensitive tests.
+			if (options.sessionUpdateHook) await options.sessionUpdateHook(notification);
 			updates.push(notification);
 		},
 		unstable_createElicitation: options.elicitationHandler
