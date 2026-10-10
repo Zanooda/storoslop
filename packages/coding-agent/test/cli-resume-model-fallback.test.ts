@@ -19,7 +19,7 @@ describe("headless startup resume", () => {
 				},
 			});
 			try {
-				const agentDir = tempDir.join("home", ".omp", "agent");
+				const agentDir = tempDir.join("home", ".storoslop", "agent");
 				await Bun.write(
 					path.join(agentDir, "models.yml"),
 					JSON.stringify({
@@ -178,15 +178,25 @@ describe("headless runtime session switch", () => {
 			hostname: "127.0.0.1",
 			port: 0,
 			async fetch(request) {
-				requests.push({ provider: new URL(request.url).pathname.split("/")[1], body: await request.text() });
+				// Record only inference calls; provider readiness probes hit the
+				// gateway root and would otherwise pollute the request log.
+				const url = new URL(request.url);
+				if (url.pathname.endsWith("/chat/completions")) {
+					requests.push({ provider: url.pathname.split("/")[1], body: await request.text() });
+				}
 				return Response.json({ error: { message: "Loopback provider" } }, { status: 400 });
 			},
 		});
-		const agentDir = path.join(cwd, "home", ".omp", "agent");
+		const agentDir = path.join(cwd, "home", ".storoslop", "agent");
 		await Bun.write(
 			path.join(agentDir, "models.yml"),
 			JSON.stringify({
 				providers: {
+					storoslop: {
+						baseUrl: `${server.url.origin}/storoslop/v1`,
+						api: "openai-completions",
+						apiKey: "sk-loopback",
+					},
 					local: {
 						baseUrl: `${server.url.origin}/local/v1`,
 						api: "openai-completions",
@@ -328,25 +338,30 @@ describe("headless runtime session switch", () => {
 			const renamed = await writeThread("renamed", "local/local-model");
 			const base = { type: "open_session", sessionDir: renamed.dir };
 
-			expect(await request({ ...base, id: "partial", provider: "local" })).toMatchObject({
+			expect(await request({ ...base, id: "partial", provider: "storoslop" })).toMatchObject({
 				success: false,
 				error: "provider and modelId must be given together",
 			});
-			expect(await request({ ...base, id: "stale", provider: "local", modelId: "local-model" })).toMatchObject({
+			expect(await request({ ...base, id: "stale", provider: "storoslop", modelId: "local-model" })).toMatchObject({
 				success: false,
-				error: "Model not found: local/local-model",
+				error: "Model not found: storoslop/local-model",
 			});
-			const opened = await request({ ...base, id: "open", provider: "local", modelId: "renamed-model" });
+			// Fork: the single-provider registry exposes only `storoslop` rows, so
+			// the explicit binding targets a bundled storoslop model.
+			const opened = await request({ ...base, id: "open", provider: "storoslop", modelId: "deepseek-v4.1-flash" });
 			expect(opened).toMatchObject({
 				success: true,
 				data: { cancelled: false, resumed: true, sessionFile: renamed.file },
 			});
 			const state = await request({ id: "state", type: "get_state" });
-			expect(state.data).toMatchObject({ messageCount: 2, model: { provider: "local", id: "renamed-model" } });
+			expect(state.data).toMatchObject({
+				messageCount: 2,
+				model: { provider: "storoslop", id: "deepseek-v4.1-flash" },
+			});
 
 			await request({ id: "turn", type: "prompt", message: "What did I ask you to remember?" });
 			await waitFor("agent_end");
-			expect(requests.map(entry => entry.provider)).toEqual(["local"]);
+			expect(requests.map(entry => entry.provider)).toEqual(["storoslop"]);
 			expect(requests[0]?.body).toContain("ZEBRA-42");
 		});
 	}, 30_000);

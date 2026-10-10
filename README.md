@@ -593,7 +593,7 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `2f55c0cdf2`**, merged 2026-10-02. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `703a261df9`**, merged 2026-10-09. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
@@ -609,6 +609,7 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 **Took-upstream** (adopted in full):
 
 - KDL compat taxonomy (`packages/catalog/src/compat/rules/` + compiled `rules.json`, `bun run gen:compat`)
+- upstream model catalog wholesale (`packages/catalog/src/models.json`, regenerated with `bun run gen:models`) — every upstream provider/model row is adopted, plus the fork's bundled `storoslop/deepseek-v4.1-flash` seed (`rules/providers/storoslop.kdl` + `STOROSLOP_STATIC_MODELS`); only the runtime registry stays single-provider
 - native `pi-vcs` crate and `pi-natives` `vcs` module (`VcsGitRepo`/`VcsJjWorkspace`/`VcsRepo`), with `utils/git.ts`/`utils/jj.ts` replaced by `utils/github.ts` + vcs natives
 - `cline-pass` provider, `discovery.injectV1` openai-models-list option
 - V2 streaming Responses compaction and V1 `/responses/compact` fallback chain

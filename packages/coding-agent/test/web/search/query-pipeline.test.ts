@@ -80,9 +80,16 @@ describe("web search directive pipeline", () => {
 	});
 
 	it.each<[string, string, SearchProviderId]>([
-		["routes an X-only query to xAI ahead of the role's engine", "tern site:x.com", "xai"],
+		[
+			"falls back to the role's engine for an X-only query when no xAI model is in the pool",
+			"tern site:x.com",
+			"brave",
+		],
 		["keeps the role's engine for queries that are not X-only", "tern site:x.com site:github.com", "brave"],
 	])("%s", async (_caseName, query, expectedProvider) => {
+		// Fork: the single-provider registry scopes `getAvailable` to the `web`
+		// and `storoslop` providers, so `xaiModelChain` resolves no xAI models and
+		// `preferXAI` cannot promote one — X-only queries keep the role's engine.
 		const context = await stubRoleProvider("brave", async () => ({ provider: "brave", sources: SOURCES }));
 		context.authStorage.keys.setRuntime("xai", "test-xai-key");
 		vi.spyOn(provider, "getGroundedSearchProvider").mockImplementation(async grounding => ({
