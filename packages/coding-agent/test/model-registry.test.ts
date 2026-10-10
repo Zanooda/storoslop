@@ -2901,6 +2901,36 @@ describe("ModelRegistry", () => {
 			expect(available.map(model => model.id)).toContain("deepseek-v4.1-flash");
 		});
 
+		test("a credential-less models.yml provider is not advertised as available", () => {
+			// `auth: "oauth"` is the one shape that passes models.yml validation with
+			// models but no apiKey (a plain missing apiKey is rejected outright), so it
+			// lands in the overlay set carrying no usable credential. Mirroring the
+			// `storoslop` key gate below, it must not be advertised.
+			const available = readonlyRegistry({
+				providers: {
+					storoslop: { apiKey: "TEST_KEY" },
+					"ghost-oauth": {
+						baseUrl: "https://ghost.example.com/v1",
+						api: "openai-completions",
+						auth: "oauth",
+						models: [
+							{
+								id: "ghost-model",
+								name: "Ghost",
+								reasoning: false,
+								input: ["text"],
+								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+								contextWindow: 100_000,
+								maxTokens: 8000,
+							},
+						],
+					},
+				},
+			}).getAvailable();
+			expect(available.some(model => model.provider === "ghost-oauth")).toBe(false);
+			expect(new Set(available.map(model => model.provider))).toEqual(new Set(["storoslop"]));
+		});
+
 		test("bundled storoslop model metadata ships with the build, not the user config", () => {
 			// A stale user-side definition (old builds persisted deepseek-v4-flash
 			// into models.yml) must not shadow the bundled deepseek-v4.1-flash roster:

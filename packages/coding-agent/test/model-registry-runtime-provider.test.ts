@@ -179,6 +179,31 @@ describe("ModelRegistry runtime provider registration", () => {
 		expect(registry.getAll("image").some(isGatewayImage)).toBe(true);
 	});
 
+	test("an extension-registered chat model never enters the all-kind pool", () => {
+		registry.registerProvider(
+			"my-gateway",
+			{
+				baseUrl: "https://gateway.example.com/v1",
+				apiKey: "RUNTIME_KEY",
+				api: "openai-completions",
+				models: [
+					{ ...baseModel, id: "gpt-5-runtime" },
+					{ ...baseModel, id: "gpt-image-2", api: "openai-images", kind: "image" },
+				],
+			},
+			"ext://runtime",
+		);
+		const isGatewayImage = (model: Model<Api>) => model.provider === "my-gateway" && model.id === "gpt-image-2";
+		const isGatewayChat = (model: Model<Api>) => model.provider === "my-gateway" && model.id === "gpt-5-runtime";
+
+		// The runner-kind surface survives `kind === "all"`…
+		expect(registry.getAvailable("all").some(isGatewayImage)).toBe(true);
+		// …but the extension's chat row is dropped, so a chat role — which reads
+		// `getAvailable("all")` through `roleCandidatePool` — can never resolve to it.
+		expect(registry.getAvailable("all").some(isGatewayChat)).toBe(false);
+		expect(registry.getAvailable("chat").some(isGatewayChat)).toBe(false);
+	});
+
 	test("fetchDynamicModels drops a row whose api cannot serve its kind", async () => {
 		registry.registerProvider(
 			"my-gateway",

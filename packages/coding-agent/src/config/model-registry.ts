@@ -2939,12 +2939,16 @@ export class ModelRegistry {
 	 * Providers the user authored in `models.yml` are NOT the bundled catalog and
 	 * stay available — that is exactly how the fork's own `storoslop` provider is
 	 * configured, and how a user adds a vision backend for `omp read
-	 * <image>?q=`. Extension-`registerProvider` providers are scoped to the
-	 * runner kinds (`image`/`search`/…): the fork surfaces no extension-registered
-	 * *chat* model (see the pruned `sdk-restricted-extension-provider` /
-	 * `sdk-default-role-extension-provider` tests, where an extension model would
-	 * otherwise win a chat role), but an extension may still supply a vision or
-	 * web backend for a runner role (`ext://…` image models keep their kind).
+	 * <image>?q=`. Like the explicit `storoslop` branch below, such a provider is
+	 * admitted only when it actually carries usable credentials, so a
+	 * keyless/misconfigured `models.yml` entry never advertises models.
+	 *
+	 * Extension-`registerProvider` providers are scoped to the runner kinds
+	 * (`image`/`search`/…): the fork surfaces no extension-registered *chat*
+	 * model, so no chat role can resolve to one — `getAvailable("all")` (the pool
+	 * `roleCandidatePool` filters) drops their chat rows as well. An extension may
+	 * still supply a vision or web backend for a runner role (`ext://…` image
+	 * models keep their kind).
 	 *
 	 * Exception: the synthetic `web` provider is not a chat provider — it backs
 	 * the `web` model role, whose search engines are admitted by each adapter's
@@ -2957,21 +2961,32 @@ export class ModelRegistry {
 	getAvailable(kind: ModelKind | "all" = "chat"): Model<Api>[] {
 		const isProviderAvailable = this.#createProviderAvailabilityCheck();
 		const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
-		const isUserProvider = (p: string): boolean =>
-			this.#customModelOverlays.some(overlay => overlay.provider === p) ||
-			(kind !== "chat" && this.#runtimeModelOverlays.some(overlay => overlay.provider === p));
+		// A `models.yml`-authored provider is admitted only with usable credentials
+		// (mirrors the `storoslop` branch below): a keyless/misconfigured entry must
+		// not advertise models.
+		const userProviders = new Set(this.#customModelOverlays.map(overlay => overlay.provider));
+		// A provider known only through extension `registerProvider` (no `models.yml`
+		// entry) is a runner-kind surface: it is never admitted for `kind === "chat"`,
+		// and its chat rows are dropped from `kind === "all"` so no chat role — which
+		// reads `getAvailable("all")` via `roleCandidatePool` — can resolve to one.
+		const runtimeOnlyProviders = new Set(this.#runtimeModelOverlays.map(overlay => overlay.provider));
+		for (const provider of userProviders) runtimeOnlyProviders.delete(provider);
 		// `storoslop` is ready when it has a configured API key (from `storoslop
 		// setup` -> models.yml), which is not an OAuth credential.
 		const isForkProviderReady = (p: string): boolean =>
 			disabledProviders.has(p)
 				? false
 				: p === "web" ||
-					isUserProvider(p) ||
+					(userProviders.has(p) && (isProviderAvailable(p) || this.#customProviderApiKeys.has(p))) ||
+					(kind !== "chat" && runtimeOnlyProviders.has(p)) ||
 					(p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop")));
 		const models = this.#hasFullSnapshot
 			? this.#models.filter(model => isForkProviderReady(model.provider))
 			: this.#composeStaticModels(new Set(this.#knownStaticProviders().filter(isForkProviderReady)));
-		return kind === "all" ? models : models.filter(model => modelKind(model) === kind);
+		if (kind === "all") {
+			return models.filter(model => !(runtimeOnlyProviders.has(model.provider) && modelKind(model) === "chat"));
+		}
+		return models.filter(model => modelKind(model) === kind);
 	}
 
 	/**
