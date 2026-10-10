@@ -71,14 +71,29 @@ function createGhosttyTerminal(
 	scrollbackCap: number,
 ): GhosttyTerminal {
 	return ghostty.createTerminal(columns, rows, {
-		// Byte budget (libghostty-vt's `scrollbackLimit` is a byte cap, not a
-		// line count — ~14 B per cell). Sized to hold the wrapper's line cap at
-		// the terminal's column count comfortably, while staying small enough
-		// that ghostty's own page eviction kicks in under heavy write volume:
-		// ghostty-web 0.4's allocator traps once an instance accumulates enough
-		// un-evicted history (recommit-heavy stress runs hit it). The wrapper
-		// still clamps the EXPOSED scrollback to the line cap, so eviction
-		// beyond the budget is invisible to the oracles.
+		// libghostty-vt's `scrollbackLimit` is a BYTE budget, not a line count
+		// (the docs say "lines" but Screen.Options.max_scrollback is bytes —
+		// maintainer-confirmed in ghostty discussion #12769). Holding
+		// `scrollbackCap + rows + 64` lines at `columns` columns therefore costs
+		// ≈ lines × columns × bytes-per-cell: measured on this WASM at 12.07
+		// B/cell (80 cols: 971 B/line, 200 cols: 2413 B/line) plus ~12 B of
+		// per-row bookkeeping. 16 B/cell leaves room for that overhead and for the
+		// extra rows a wide resize reflows into the buffer — a 14 B/cell budget
+		// measurably evicted ROW lines in the 10000-line replay test below.
+		//
+		// The old flat `lines * 1024` was a line count in disguise: it was already
+		// ~9% short at 80 cols and evicted ~2.7x below the requested cap at 200
+		// cols, which is why resize-tmux-sync failed once the wrapper exposed a
+		// wide-terminal cap. Column scaling is what makes the byte budget hold the
+		// requested line cap at any width.
+		//
+		// The budget is still a hard byte bound, so ghostty's own page eviction
+		// kicks in under heavy write volume: ghostty-web 0.4's allocator traps
+		// once an instance accumulates enough un-evicted history (recommit-heavy
+		// stress runs hit it). Those stress rigs run at 80 cols, where scaling
+		// raises the budget only ~1.25x, and the wrapper still clamps the EXPOSED
+		// scrollback to the line cap, so eviction beyond the budget is invisible
+		// to the oracles.
 		scrollbackLimit: Math.max((scrollbackCap + rows + 64) * columns * 16, 1024 * 1024),
 		fgColor: DEFAULT_FG_RGB,
 		bgColor: DEFAULT_BG_RGB,

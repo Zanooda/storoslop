@@ -23,6 +23,10 @@ import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 import { getTestModel } from "./helpers/model-fixtures";
 
 const openaiModel = getTestModel("openai", model => model.api === "openai-responses" && model.reasoning);
+const alternateOpenaiModel = getTestModel(
+	"openai",
+	model => model.api === "openai-responses" && model.reasoning && model.id !== openaiModel.id,
+);
 const codexModel = getTestModel("openai-codex", model => model.api === "openai-codex-responses" && model.reasoning);
 const copilotModel = getTestModel("github-copilot", model => model.api === "openai-responses" && model.reasoning);
 
@@ -566,11 +570,69 @@ describe("AgentSession OpenAI Responses replay boundaries", () => {
 		).toBe(true);
 	});
 
-	// Fork: pruned "same-file reload restores a different saved model" reset tests.
-	// They asserted a reload switching to a DIFFERENT saved openai/openai-codex model,
-	// but the fork restricts selectable models to the storoslop provider, so a different
-	// foreign-provider model can never be restored on reload (getAvailable() is
-	// storoslop-only). The same-model reload-reset behavior is covered above.
+	it("resets provider session state when same-file reload restores a different saved model", async () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-issue-505-reload-model-${Snowflake.next()}-`));
+		tempDirs.push(tempDir);
+		const assistantText = "Reloaded model change response";
+
+		const { sessionFile } = await createPersistedSession(tempDir, sessionManager => {
+			sessionManager.appendModelChange(modelSelector(codexModel));
+			appendStaleAssistantTurn(sessionManager, assistantText, codexModel);
+		});
+
+		const reloadedSessionManager = await SessionManager.open(sessionFile, tempDir);
+		const { session } = await createSessionHarness(tempDir, reloadedSessionManager, codexModel);
+		sessions.push(session);
+
+		const closeSpy = vi.fn();
+		session.providerSessionState.set("openai-codex-responses", { close: closeSpy } satisfies ProviderSessionState);
+
+		const mutatedSessionManager = await SessionManager.open(sessionFile, tempDir);
+		mutatedSessionManager.appendModelChange(modelSelector(openaiModel));
+		await mutatedSessionManager.flush();
+		expect(mutatedSessionManager.buildSessionContext().models.default).toBe(modelSelector(openaiModel));
+		await mutatedSessionManager.close();
+
+		await session.reload();
+
+		expect(session.model?.provider).toBe(openaiModel.provider);
+		expect(session.model?.id).toBe(openaiModel.id);
+		expect(closeSpy).toHaveBeenCalledTimes(1);
+		expect(session.providerSessionState.size).toBe(0);
+		expectAssistantReplayMetadataPreserved(findRuntimeAssistant(session, assistantText));
+	});
+
+	it("resets plain openai-responses provider state when same-file reload restores a different saved model", async () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-issue-505-reload-openai-${Snowflake.next()}-`));
+		tempDirs.push(tempDir);
+		const assistantText = "Reloaded openai responses model change";
+
+		const { sessionFile } = await createPersistedSession(tempDir, sessionManager => {
+			sessionManager.appendModelChange(modelSelector(openaiModel));
+			appendStaleAssistantTurn(sessionManager, assistantText);
+		});
+
+		const reloadedSessionManager = await SessionManager.open(sessionFile, tempDir);
+		const { session } = await createSessionHarness(tempDir, reloadedSessionManager);
+		sessions.push(session);
+
+		const closeSpy = vi.fn();
+		session.providerSessionState.set("openai-responses:openai", { close: closeSpy } satisfies ProviderSessionState);
+
+		const mutatedSessionManager = await SessionManager.open(sessionFile, tempDir);
+		mutatedSessionManager.appendModelChange(modelSelector(alternateOpenaiModel));
+		await mutatedSessionManager.flush();
+		expect(mutatedSessionManager.buildSessionContext().models.default).toBe(modelSelector(alternateOpenaiModel));
+		await mutatedSessionManager.close();
+
+		await session.reload();
+
+		expect(session.model?.provider).toBe(alternateOpenaiModel.provider);
+		expect(session.model?.id).toBe(alternateOpenaiModel.id);
+		expect(closeSpy).toHaveBeenCalledTimes(1);
+		expect(session.providerSessionState.size).toBe(0);
+		expectAssistantReplayMetadataSanitized(findRuntimeAssistant(session, assistantText));
+	});
 
 	it("switches sessions without requiring write access during load-time sanitization", async () => {
 		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-issue-505-switch-fail-${Snowflake.next()}-`));

@@ -267,6 +267,13 @@ export class GlobTool implements AgentTool<typeof findSchema, GlobToolDetails> {
 			const useGitignore = gitignore ?? true;
 			const timeoutMs = this.#timeoutMs;
 			const timeoutSignal = AbortSignal.timeout(timeoutMs);
+			// Bun 1.3.14 cancels AbortSignal.timeout's deadline timer as soon as the
+			// signal's last listener is removed. A completed custom-backed call
+			// detaches its listener before the next one starts, so a subsequent
+			// backend that never settles would then hang past the deadline (the
+			// scanner never returns at all). Keep one listener attached for the whole
+			// scan so the deadline always fires; `aborted`/`reason` are unaffected.
+			timeoutSignal.addEventListener("abort", () => {});
 			const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 			const formatMatchPath = (matchPath: string, base: string, fileType?: natives.FileType): string => {
 				const hadTrailingSlash = matchPath.endsWith("/") || matchPath.endsWith("\\");

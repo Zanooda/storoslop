@@ -2933,9 +2933,18 @@ export class ModelRegistry {
 	}
 
 	/**
-	 * Fork: storoslop exposes only its own provider. Even the bundled catalog
-	 * providers must not be user-selectable, so ALL available models are scoped
-	 * to the `storoslop` provider regardless of stored auth elsewhere.
+	 * Fork: the bundled upstream catalog must not be user-selectable, so its
+	 * providers are scoped out of the pool regardless of stored auth elsewhere.
+	 *
+	 * Providers the user authored in `models.yml` are NOT the bundled catalog and
+	 * stay available — that is exactly how the fork's own `storoslop` provider is
+	 * configured, and how a user adds a vision backend for `omp read
+	 * <image>?q=`. Extension-`registerProvider` providers are scoped to the
+	 * runner kinds (`image`/`search`/…): the fork surfaces no extension-registered
+	 * *chat* model (see the pruned `sdk-restricted-extension-provider` /
+	 * `sdk-default-role-extension-provider` tests, where an extension model would
+	 * otherwise win a chat role), but an extension may still supply a vision or
+	 * web backend for a runner role (`ext://…` image models keep their kind).
 	 *
 	 * Exception: the synthetic `web` provider is not a chat provider — it backs
 	 * the `web` model role, whose search engines are admitted by each adapter's
@@ -2948,17 +2957,17 @@ export class ModelRegistry {
 	getAvailable(kind: ModelKind | "all" = "chat"): Model<Api>[] {
 		const isProviderAvailable = this.#createProviderAvailabilityCheck();
 		const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
-		// Fork: storoslop is ready when it has a configured API key (from
-		// `storoslop setup` -> models.yml), which is not an OAuth credential.
-		// `web` backs the web-search role: its engines are admitted per adapter
-		// at search time, and its KDL `allows-missing-api-key` rule is not
-		// consulted by model availability — gating it there would empty the
-		// role and web_search would always fail with "No web search model
-		// configured.". It still honours `disabledProviders`.
+		const isUserProvider = (p: string): boolean =>
+			this.#customModelOverlays.some(overlay => overlay.provider === p) ||
+			(kind !== "chat" && this.#runtimeModelOverlays.some(overlay => overlay.provider === p));
+		// `storoslop` is ready when it has a configured API key (from `storoslop
+		// setup` -> models.yml), which is not an OAuth credential.
 		const isForkProviderReady = (p: string): boolean =>
-			p === "web"
-				? !disabledProviders.has(p)
-				: p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop"));
+			disabledProviders.has(p)
+				? false
+				: p === "web" ||
+					isUserProvider(p) ||
+					(p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop")));
 		const models = this.#hasFullSnapshot
 			? this.#models.filter(model => isForkProviderReady(model.provider))
 			: this.#composeStaticModels(new Set(this.#knownStaticProviders().filter(isForkProviderReady)));
