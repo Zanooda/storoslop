@@ -71,14 +71,15 @@ function createGhosttyTerminal(
 	scrollbackCap: number,
 ): GhosttyTerminal {
 	return ghostty.createTerminal(columns, rows, {
-		// Byte budget (not a line count). Sized to hold the wrapper's line cap
-		// comfortably while staying small enough that ghostty's own page
-		// eviction kicks in under heavy write volume: ghostty-web 0.4's
-		// allocator traps once an instance accumulates enough un-evicted
-		// history (recommit-heavy stress runs hit it). The wrapper still clamps
-		// the EXPOSED scrollback to the line cap, so eviction beyond the budget
-		// is invisible to the oracles.
-		scrollbackLimit: Math.max((scrollbackCap + rows + 64) * 1024, 1024 * 1024),
+		// Byte budget (libghostty-vt's `scrollbackLimit` is a byte cap, not a
+		// line count — ~14 B per cell). Sized to hold the wrapper's line cap at
+		// the terminal's column count comfortably, while staying small enough
+		// that ghostty's own page eviction kicks in under heavy write volume:
+		// ghostty-web 0.4's allocator traps once an instance accumulates enough
+		// un-evicted history (recommit-heavy stress runs hit it). The wrapper
+		// still clamps the EXPOSED scrollback to the line cap, so eviction
+		// beyond the budget is invisible to the oracles.
+		scrollbackLimit: Math.max((scrollbackCap + rows + 64) * columns * 16, 1024 * 1024),
 		fgColor: DEFAULT_FG_RGB,
 		bgColor: DEFAULT_BG_RGB,
 	});

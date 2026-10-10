@@ -268,7 +268,7 @@ describe("fullscreen setup sign-in cursor", () => {
 			});
 			try {
 				void wizard.run();
-				terminal.sendInput("\r");
+				// Fork: the wizard skips the animated splash, so no splash-dismiss Enter.
 				// Reuse the wizard tests' clock-based dissolve skip, not a wall-clock sleep.
 				const afterDissolve = performance.now() + 1000;
 				vi.spyOn(performance, "now").mockReturnValue(afterDissolve);
