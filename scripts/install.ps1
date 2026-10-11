@@ -305,8 +305,32 @@ function Install-Binary {
     # Download binary
     $BinaryUrl = "https://github.com/$Repo/releases/download/$Latest/$BinaryName"
     Write-Host "Downloading $BinaryName..."
-    $OutPath = Join-Path $InstallDir storoslop.exe"
-    Invoke-WebRequest -Uri $BinaryUrl -OutFile $OutPath -TimeoutSec 900
+    $OutPath = Join-Path $InstallDir "storoslop.exe"
+    # Verify against the release's SHA256SUMS.txt (sha256sum format) before
+    # replacing any existing install.
+    $SumsUrl = "https://github.com/$Repo/releases/download/$Latest/SHA256SUMS.txt"
+    $Sums = (Invoke-WebRequest -Uri $SumsUrl -TimeoutSec 60).Content
+    $ExpectedSha256 = $null
+    foreach ($SumsLine in ($Sums -split "`n")) {
+        if ($SumsLine -match "^([0-9a-fA-F]{64})\s+$([regex]::Escape($BinaryName))\s*$") {
+            $ExpectedSha256 = $Matches[1].ToLowerInvariant()
+            break
+        }
+    }
+    if (-not $ExpectedSha256) {
+        throw "Release $Latest has no checksum for $BinaryName (SHA256SUMS.txt)"
+    }
+    $DownloadPath = Join-Path $InstallDir ".storoslop.download.exe"
+    try {
+        Invoke-WebRequest -Uri $BinaryUrl -OutFile $DownloadPath -TimeoutSec 900
+        $ActualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $DownloadPath).Hash.ToLowerInvariant()
+        if ($ActualSha256 -ne $ExpectedSha256) {
+            throw "Checksum mismatch for ${BinaryName}: expected $ExpectedSha256, got $ActualSha256"
+        }
+        Move-Item -Force -LiteralPath $DownloadPath -Destination $OutPath
+    } finally {
+        Remove-Item -Force -LiteralPath $DownloadPath -ErrorAction SilentlyContinue
+    }
 
     Write-Host ""
     Write-Host "[OK] Installed omp to $OutPath" -ForegroundColor Green

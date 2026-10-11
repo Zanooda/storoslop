@@ -6,6 +6,7 @@ import { AgentBusyError } from "@oh-my-pi/pi-agent-core";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
+
 import { resolveLocalUrlToPath } from "@oh-my-pi/pi-coding-agent/internal-urls";
 import {
 	ACP_BOOTSTRAP_RACE_GUARD_MS,
@@ -513,6 +514,7 @@ async function createHarness(
 	sessions.push(initialSession);
 	const factory = async (cwd: string): Promise<AgentSession> => {
 		const session = new FakeAgentSession(cwd);
+
 		sessions.push(session);
 		return session as unknown as AgentSession;
 	};

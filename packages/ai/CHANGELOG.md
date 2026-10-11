@@ -2,6 +2,65 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added `compat.supportsThinkingBindingControls` for Bedrock Converse: setting it to `false` stops prefix-bound Claude requests from sending `thinking.block_binding`, the `thinking-binding-controls-2026-08-01` beta and the `/input_transformations` response path, for gateways or regions that reject them ([#15316](https://github.com/can1357/oh-my-pi/pull/15316) by [@harshaygadekar](https://github.com/harshaygadekar))
+
+### Fixed
+
+- Fixed Bedrock Claude Fable 5.1 requests with thinking off and a forced tool choice sending the forced choice next to adaptive thinking; the choice now falls back to `auto` ([#15316](https://github.com/can1357/oh-my-pi/pull/15316) by [@harshaygadekar](https://github.com/harshaygadekar))
+
+## [18.9.0] - 2026-10-11
+
+### Breaking Changes
+
+- Removed the `retainTextSignature` option from `consumeGoogleStream` and `streamGoogleGenAI`; Google routes now consistently preserve text reply signatures.
+- Custom `SessionsApi` implementations must implement `permits(provider, sessionId, credentialId)`.
+
+### Added
+
+- Exported `matchesReplacementCredential` and `isSameOAuthAccount` to help identify credential replacement and account ownership.
+- Added `AuthStorage.sessions.permits(provider, sessionId, credentialId)` for checking whether a stored account may serve a session restricted to an account pool.
+- Added `judgeQuestions()` for loading judge questions from JSON with inferred choice labels and answer types, plus `renderQuestion()` for templated instructions.
+
+### Changed
+
+- Devin chat turns now use the native Devin CLI sampling settings by default, while continuing to honor explicitly configured temperature, top-p, and stop sequences.
+- Added `parentSessionId` and `minimizeEffort` stream options. Branched side requests can reuse a conversation's prompt cache, and supported models can run them at their lowest effort without losing cache reuse.
+- Improved cross-host continuation for supported models so confirmed prior reasoning is preserved as reasoning context rather than exposed as `<think>` text in replies.
+
+### Fixed
+
+- Fixed Anthropic subscription quota not appearing in `/usage` when an OAuth token is supplied through `ANTHROPIC_API_KEY`.
+- Fixed custom OpenAI-compatible Responses streams truncating reasoning and incorrectly invoking custom tools with empty input.
+- Fixed Codex WebSocket prewarming so optional service tiers and model routing are handled consistently with normal requests.
+- Fixed OAuth sign-in result pages breaking or rendering injected markup when provider errors or callback values contain special characters.
+- Fixed Anthropic requests failing when tools are added to a conversation or when resumed sessions no longer include earlier tools.
+- Fixed Anthropic requests rejecting tall or oversized historical screenshots by resizing or re-encoding images to the host's limits.
+- Improved compatibility with Anthropic-compatible endpoints that reject prompt-cache options by retrying without unsupported caching features and reporting the disabled capability.
+- LiteLLM proxy logs now group requests by omp conversation instead of displaying a separate session for each request.
+- Fixed Gemini-family integrations echoing prior thinking as visible fenced `thinking` blocks; thinking is now restored as model reasoning across Google, Vertex, Antigravity, Gemini CLI, and Factory Droid routes.
+- Fixed Gemini-family integrations losing text reply signatures needed for subsequent requests across Google, Vertex, Antigravity, Gemini CLI, and Factory Droid routes.
+- Fixed Cursor integrations losing previously recorded reasoning, including signed and redacted reasoning, when continuing or resuming a conversation.
+- Fixed invalid `auth.accountPolicies` entries referring to unavailable accounts from preventing startup, account selection, or login; such entries are now skipped with a warning.
+- Fixed Factory Droid Claude turns with thinking disabled from replaying unsupported earlier thinking blocks, and aligned high-effort Sonnet 5.5 thinking behavior with the native client.
+- Fixed side requests for GPT-6 Responses and Codex models from losing prompt-cache context or applying unsupported reasoning-effort configuration changes.
+
+## [18.8.9] - 2026-10-10
+
+### Changed
+
+- Updated state field rendering to trim trailing whitespace and normalize empty collection formatting for consistent prompt output
+
+## [18.8.8] - 2026-10-10
+
+### Fixed
+
+- Fixed OpenAI Responses and Codex tool calls running with empty `{}` arguments when a compatible host or proxy ends the call with an empty arguments payload after streaming the real ones ([#15099](https://github.com/can1357/oh-my-pi/pull/15099) by [@will-bogusz](https://github.com/will-bogusz))
+- Fixed truncated Factory Droid Gemini responses ending as a hard error or a half-received tool call instead of being retried ([#15103](https://github.com/can1357/oh-my-pi/pull/15103) by [@will-bogusz](https://github.com/will-bogusz))
+- Fixed Factory Droid Gemini ignoring an error the server reports mid-response, which hid its status and retried errors that cannot succeed ([#15103](https://github.com/can1357/oh-my-pi/pull/15103) by [@will-bogusz](https://github.com/will-bogusz))
+- Fixed resumed OpenAI Responses sessions (xAI, Factory Droid, OpenAI and other hosts) dropping all earlier encrypted reasoning on their first request; GitHub Copilot still rebuilds history until its first response ([#15148](https://github.com/can1357/oh-my-pi/pull/15148) by [@will-bogusz](https://github.com/will-bogusz))
+
 ## [18.8.7] - 2026-10-09
 
 ### Added
@@ -2354,3 +2413,4 @@
 - Fixed OpenAI Responses parallel tool-call routing so late keyed argument deltas for a closed call are dropped instead of being appended to another open call.
 
 Older entries are archived in [packages/ai/CHANGELOG.md@306d94191305](https://github.com/can1357/oh-my-pi/blob/306d94191305bfb02824fccdea02e3b476368734/packages/ai/CHANGELOG.md).
+Older entries are archived in [packages/ai/CHANGELOG.md@592e894eb29e](https://github.com/can1357/oh-my-pi/blob/592e894eb29ed3db2ee2dae71ec7d72ac13c64c8/packages/ai/CHANGELOG.md).

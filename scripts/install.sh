@@ -8,12 +8,14 @@ set -e
 #
 # Options:
 #   --source       Install from source via bun (requires bun up to spec)
+#   --binary       Always install the prebuilt binary (default)
 #   --ref <ref>    Install a specific release tag (e.g. v1.2.0)
 #   -r <ref>       Shorthand for --ref
 
 REPO="Zanooda/storoslop"
 INSTALL_DIR="${PI_INSTALL_DIR:-$HOME/.local/bin}"
 APP_NAME="storoslop"
+MIN_BUN_VERSION="1.3.14"
 
 # Parse arguments
 MODE=""
@@ -22,6 +24,10 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --source)
             MODE="source"
+            shift
+            ;;
+        --binary)
+            MODE="binary"
             shift
             ;;
         --ref)
@@ -78,8 +84,98 @@ host_arch() {
     esac
 }
 
+# Bun's own architecture (x64|arm64), or empty when it can't be determined.
+bun_arch() {
+    bun -e 'process.stdout.write(process.arch)' 2>/dev/null
+}
+
+# True when Bun's architecture matches the host. If Bun's arch can't be read,
+# assume a match rather than block the install.
+bun_arch_matches_host() {
+    ba="$(bun_arch)"
+    [ -z "$ba" ] && return 0
+    [ "$ba" = "$(host_arch)" ]
+}
+
+version_ge() {
+    current="$1"
+    minimum="$2"
+
+    current_major="${current%%.*}"
+    current_rest="${current#*.}"
+    current_minor="${current_rest%%.*}"
+    current_patch="${current_rest#*.}"
+    current_patch="${current_patch%%.*}"
+
+    minimum_major="${minimum%%.*}"
+    minimum_rest="${minimum#*.}"
+    minimum_minor="${minimum_rest%%.*}"
+    minimum_patch="${minimum_rest#*.}"
+    minimum_patch="${minimum_patch%%.*}"
+
+    if [ "$current_major" -ne "$minimum_major" ]; then
+        [ "$current_major" -gt "$minimum_major" ]
+        return $?
+    fi
+
+    if [ "$current_minor" -ne "$minimum_minor" ]; then
+        [ "$current_minor" -gt "$minimum_minor" ]
+        return $?
+    fi
+
+    [ "$current_patch" -ge "$minimum_patch" ]
+}
+
+require_bun_version() {
+    version_raw=$(bun --version 2>/dev/null || true)
+    if [ -z "$version_raw" ]; then
+        echo "Failed to read bun version"
+        exit 1
+    fi
+
+    version_clean=${version_raw%%-*}
+    if ! version_ge "$version_clean" "$MIN_BUN_VERSION"; then
+        echo "Bun ${MIN_BUN_VERSION} or newer is required. Current version: ${version_clean}"
+        echo "Upgrade Bun at https://bun.sh/docs/installation"
+        exit 1
+    fi
+}
+
+# Check if bun is available
+has_bun() {
+    command -v bun >/dev/null 2>&1
+}
+
+# Install bun
+install_bun() {
+    echo "Installing bun..."
+    if command -v bash >/dev/null 2>&1; then
+        curl -fsSL https://bun.sh/install | bash
+    else
+        echo "bash not found; attempting install with sh..."
+        curl -fsSL https://bun.sh/install | sh
+    fi
+    export BUN_INSTALL="$HOME/.bun"
+    export PATH="$BUN_INSTALL/bin:$PATH"
+    require_bun_version
+}
+
+# Hex sha256 of file "$1".
+sha256_of() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | cut -d ' ' -f 1
+    else
+        shasum -a 256 "$1" | cut -d ' ' -f 1
+    fi
+}
+
 # Install the storoslop release binary from GitHub.
 install_binary() {
+    if ! command -v sha256sum >/dev/null 2>&1 && ! command -v shasum >/dev/null 2>&1; then
+        echo "sha256sum or shasum is required to verify the downloaded binary"
+        exit 1
+    fi
+
     # Detect platform
     OS="$(uname -s)"
     ARCH="$(host_arch)"
@@ -124,11 +220,30 @@ install_binary() {
     echo "Using version: $LATEST"
 
     mkdir -p "$INSTALL_DIR"
-    # Download binary
+    # Download next to the destination and move it into place only once the
+    # checksum matches, so a bad download never replaces a working binary.
     BINARY_URL="https://github.com/${REPO}/releases/download/${LATEST}/${BINARY}"
+    SUMS_URL="https://github.com/${REPO}/releases/download/${LATEST}/SHA256SUMS.txt"
+    DOWNLOAD_PATH="${INSTALL_DIR}/.${APP_NAME}.download.$$"
+    trap 'rm -f "$DOWNLOAD_PATH"' EXIT
     echo "Downloading ${BINARY}..."
-    curl -fsSL --connect-timeout 10 --speed-limit 1024 --speed-time 30 "$BINARY_URL" -o "${INSTALL_DIR}/${APP_NAME}"
-    chmod +x "${INSTALL_DIR}/${APP_NAME}"
+    curl -fsSL --connect-timeout 10 --speed-limit 1024 --speed-time 30 "$BINARY_URL" -o "$DOWNLOAD_PATH"
+
+    # Verify against the release's SHA256SUMS.txt (sha256sum format) before
+    # touching any existing install.
+    EXPECTED_SHA256=$(curl -fsSL --connect-timeout 10 --max-time 60 "$SUMS_URL" | awk -v name="$BINARY" '$2 == name { print $1; exit }')
+    if [ -z "$EXPECTED_SHA256" ]; then
+        echo "Release ${LATEST} has no checksum for ${BINARY} (SHA256SUMS.txt)"
+        exit 1
+    fi
+    ACTUAL_SHA256="$(sha256_of "$DOWNLOAD_PATH")"
+    if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+        echo "Checksum mismatch for ${BINARY}: expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}"
+        exit 1
+    fi
+    chmod +x "$DOWNLOAD_PATH"
+    mv -f "$DOWNLOAD_PATH" "${INSTALL_DIR}/${APP_NAME}"
+    trap - EXIT
 
     # Verify the freshly installed binary can actually start before reporting
     # success. Bun's musl-target binaries link libstdc++/libgcc dynamically,
@@ -162,6 +277,17 @@ case "$MODE" in
         ;;
     source)
         echo "Installing from source..."
+        if ! has_bun; then
+            install_bun
+        fi
+        require_bun_version
+        if ! bun_arch_matches_host; then
+            echo "Error: bun reports architecture '$(bun_arch)' but this host is '$(host_arch)'."
+            echo "Building from source with this bun would produce a mismatched binary"
+            echo "(e.g. x86_64 under Rosetta on Apple Silicon). Install a native bun,"
+            echo "or re-run without --source to fetch the prebuilt $(host_arch) binary."
+            exit 1
+        fi
         if [ -z "$REF" ]; then
             REF="main"
         fi

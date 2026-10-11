@@ -68,9 +68,10 @@ describe("musl release artifacts", () => {
 			"curl",
 			`#!/bin/sh
 case "$*" in
+  *SHA256SUMS.txt*) printf '%s  storoslop-linux-musl-x64\\n' '55684b635087cc9a505df74d97020bf99b809c602a40c5bc02505d84e540dee4' ;;
   *api.github.com*) echo '{"tag_name":"v1.0.0"}' ;;
   *) while [ "$#" -gt 0 ]; do
-       [ "$1" = "-o" ] && { printf binary > "$2"; exit 0; }
+       [ "$1" = "-o" ] && { printf '#!/bin/sh\\necho "storoslop 1.0.0"\\n' > "$2"; exit 0; }
        shift
      done ;;
 esac
@@ -86,6 +87,6 @@ esac
 
 		expect(result.exitCode, result.stderr).toBe(0);
 		expect(result.stdout).toContain("Downloading storoslop-linux-musl-x64...");
-		expect(await Bun.file(path.join(installDir, "storoslop")).text()).toBe("binary");
+		expect(await Bun.file(path.join(installDir, "storoslop")).text()).toContain("storoslop 1.0.0");
 	});
 });

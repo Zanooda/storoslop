@@ -40,6 +40,8 @@ The most capable agent surface that ships. Continuously tuned by real-world use 
 curl -fsSL https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.sh | sh
 ```
 
+Without a usable bun (or with `--binary`), the install scripts fetch the prebuilt binary from the fork's GitHub Releases (`https://github.com/Zanooda/storoslop/releases`) and verify its SHA-256 before installing it. Pin a release with the fork's installer `--ref v<version>` (PowerShell: `-Ref v<version>`).
+
 > **Alpine / musl:** the prebuilt musl binary links `libstdc++`/`libgcc` dynamically, which stock Alpine does not ship. Install them first: `apk add libstdc++ libgcc`.
 
 **Homebrew**
@@ -593,7 +595,7 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `703a261df9`**, merged 2026-10-09. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `442a83c9e7`**, merged 2026-10-11. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
@@ -627,6 +629,14 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - `hub` tool deprecated in favour of `wait` and protocol-based interfaces
 - post-link native release stamp (`scripts/stamp-native-version.ts` + `__piNativesBuildVersion()`) superseding the fork's per-release `__piNativesV*` sentinel; older sentinel addons are still recognized by the loader
 - `/dump all` recursive subagent zip export, upstream subagent/session-retry fixes (`18.4.x` lineage through `2f55c0cdf2`)
+- structured judge question files with a JSON loader (`packages/coding-agent/src/prompts/judge/*.json`), replacing the fork's per-stage Markdown prompts
+- terminal multiplexer notification providers (`packages/tui/src/multiplexers/`: cmux, herdr, orca, tmux, wmux, zellij, screen)
+- table-chart analysis and rendering thresholds in the TUI (`packages/tui/src/chat/table-chart.ts`)
+- configurable Extra Context Files (`custom-context`) for always-on prompt context
+- `ctx.annotations` extension API for host-wired annotation surfaces
+- browser target discovery (`browser.targets()`), so a page can be adopted by target instead of guessed
+- composer predictions (inline next-message suggestions) and `retry.fallbackOn` fallback-chain admission
+- `omp usage reset` for spending a stored account's usage window on demand
 
 ### Project inputs and trust
 

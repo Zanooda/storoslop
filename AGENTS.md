@@ -41,7 +41,7 @@ When authorized to create or edit a contributor-submitted PR, follow the checkli
 
 ## Upstream
 
-This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`8d01d3b790`**, merged alongside the fork's own `1.2.4` lineage on 2026-09-11 (branch `integrate/oh-my-pi-8d01d3b790`). Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
+This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`442a83c9e7`**, merged alongside the fork's own `1.3.x` lineage on 2026-10-11 (branch `integrate/oh-my-pi-442a83c9e7`). Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
 
 ## Code Quality
 
@@ -53,6 +53,7 @@ This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (
 - **Class privacy**: use ES `#private` fields; leave externally accessible members bare. **No `private`/`protected`/`public` keyword on fields or methods**, except on **constructor parameter properties** where TypeScript requires it (e.g. `constructor(private readonly session: ToolSession)`).
 - **Promises**: use `Promise.withResolvers()` instead of `new Promise((resolve, reject) => ...)`.
 - **Prompts**: never build prompts in code (no inline strings, template literals, or concatenation). Prompts live in static `.md` files; use Handlebars for dynamic content. Import them via `import content from "./prompt.md" with { type: "text" }` — not `readFile`.
+- **Judge questions**: one JSON file per feature (`src/prompts/judge/<feature>.json`) maps question ids to `{ instructions, criteria? }`. Load it with `judgeQuestions(file)` from `@oh-my-pi/pi-ai`; fill Handlebars instructions with `renderQuestion(question, context)`. `criteria` sets the kind: a list of levels → score, omitted or `true`/`false` keys only → yes/no, any other labels → choice (`{}` when the caller supplies the labels). Choice labels and answer types come from the JSON keys.
 - **Worker scripts**: workers re-enter the CLI entrypoint; never spawn separate worker entry modules. `cli.ts` declares itself as the worker host at startup (`declareWorkerHostEntry()` from `@oh-my-pi/pi-utils/env`) and dispatches hidden argv selectors (`__omp_worker_stats_sync`, `__omp_worker_tab`, `__omp_worker_js_eval`, `__omp_worker_tiny_inference`) before loading the command registry. Spawn sites use:
   ```ts
   import { workerHostEntry } from "@oh-my-pi/pi-utils";
