@@ -2,6 +2,26 @@
 
 - Git TUI sidebar sections now collapse and expand (with staged/unstaged staging shortcuts) and long streaming reasoning output continues into terminal scrollback; conventional-commit generation and foldable sections arrive from the upstream `b4e8e856` integration (fork lineage `1.1.7`).
 
+## [1.3.5] - 2026-10-11
+
+### Added
+
+- Added Vim find and till motions (`f`, `F`, `t`, `T`) in the prompt editor, with `;` and `,` to repeat them ([#15100](https://github.com/can1357/oh-my-pi/pull/15100) by [@Shadorain](https://github.com/Shadorain))
+- Added Vim replace (`r`, `R`) in the prompt editor ([#15100](https://github.com/can1357/oh-my-pi/pull/15100) by [@Shadorain](https://github.com/Shadorain))
+- Added Vim bracket and quote matching (`%`), paragraph motions (`{`, `}`), line join (`J`), and indent (`>>`, `<<`) in the prompt editor ([#15100](https://github.com/can1357/oh-my-pi/pull/15100) by [@Shadorain](https://github.com/Shadorain))
+- Added an external-editor key (Ctrl+G by default) to the annotation overlay for the note draft and, when the host provides `onExternalEditor`, the source being annotated; an edited text source is returned as `editedText` on the paste result ([#15151](https://github.com/can1357/oh-my-pi/pull/15151) by [@Shadorain](https://github.com/Shadorain))
+- Added `TUI.releaseHeldInput()`: on a terminal expected to speak TSP, a `deferInput` start now holds keystrokes (TSP events and the cell-size reply still apply; Ctrl+C/Ctrl+D release early) until the app calls it once its session is wired; such terminals also skip the sixel probe ([#15120](https://github.com/can1357/oh-my-pi/pull/15120) by [@H4vC](https://github.com/H4vC))
+- Added `TUI.replaceHeldFocus(previous, next)`, which `Composer.setEditor()` calls so a swapped-in editor inherits held startup keys; only keys for the start-time focus owner are now held, and a dialog that takes focus gets its input live ([#15122](https://github.com/can1357/oh-my-pi/pull/15122) by [@H4vC](https://github.com/H4vC))
+- Added `RenderResultOptions.elapsedMs` and `cancelled`, `NativeToolHead.command` and `NativeToolView.preview: "children"` for native describe hooks
+
+### Changed
+
+- Tern draws each bash run, eval cell and `!`/`$` run as one box: the command or code, its output, status lines and a foot with state, time and facts; images sit below the box and the bash head shows the intent instead of the command
+
+### Fixed
+
+- Fixed the Agents hub Time column rewinding and freezing for running subagents between progress updates ([#15140](https://github.com/can1357/oh-my-pi/pull/15140) by [@H4vC](https://github.com/H4vC))
+
 ## [18.9.0] - 2026-10-11
 
 ### Added
@@ -68,21 +88,6 @@
 
 - Added an `inline` option to `HookSelectorComponent` that keeps a selector in the composer slot in Tern instead of opening it as a sheet over the screen ([#15058](https://github.com/can1357/oh-my-pi/pull/15058) by [@H4vC](https://github.com/H4vC))
 - Added `ModelHubCallbacks.previewCompactionPoint`, whose line the compaction limit field shows while you type instead of the input syntax ([#15065](https://github.com/can1357/oh-my-pi/pull/15065) by [@H4vC](https://github.com/H4vC))
-- Added Vim find and till motions (`f`, `F`, `t`, `T`) in the prompt editor, with `;` and `,` to repeat them ([#15100](https://github.com/can1357/oh-my-pi/pull/15100) by [@Shadorain](https://github.com/Shadorain))
-- Added Vim replace (`r`, `R`) in the prompt editor ([#15100](https://github.com/can1357/oh-my-pi/pull/15100) by [@Shadorain](https://github.com/Shadorain))
-- Added Vim bracket and quote matching (`%`), paragraph motions (`{`, `}`), line join (`J`), and indent (`>>`, `<<`) in the prompt editor ([#15100](https://github.com/can1357/oh-my-pi/pull/15100) by [@Shadorain](https://github.com/Shadorain))
-- Added an external-editor key (Ctrl+G by default) to the annotation overlay for the note draft and, when the host provides `onExternalEditor`, the source being annotated; an edited text source is returned as `editedText` on the paste result ([#15151](https://github.com/can1357/oh-my-pi/pull/15151) by [@Shadorain](https://github.com/Shadorain))
-- Added `TUI.releaseHeldInput()`: on a terminal expected to speak TSP, a `deferInput` start now holds keystrokes (TSP events and the cell-size reply still apply; Ctrl+C/Ctrl+D release early) until the app calls it once its session is wired; such terminals also skip the sixel probe ([#15120](https://github.com/can1357/oh-my-pi/pull/15120) by [@H4vC](https://github.com/H4vC))
-- Added `TUI.replaceHeldFocus(previous, next)`, which `Composer.setEditor()` calls so a swapped-in editor inherits held startup keys; only keys for the start-time focus owner are now held, and a dialog that takes focus gets its input live ([#15122](https://github.com/can1357/oh-my-pi/pull/15122) by [@H4vC](https://github.com/H4vC))
-- Added `RenderResultOptions.elapsedMs` and `cancelled`, `NativeToolHead.command` and `NativeToolView.preview: "children"` for native describe hooks
-
-### Changed
-
-- Tern draws each bash run, eval cell and `!`/`$` run as one box: the command or code, its output, status lines and a foot with state, time and facts; images sit below the box and the bash head shows the intent instead of the command
-
-### Fixed
-
-- Fixed the Agents hub Time column rewinding and freezing for running subagents between progress updates ([#15140](https://github.com/can1357/oh-my-pi/pull/15140) by [@H4vC](https://github.com/H4vC))
 
 ## [18.8.7] - 2026-10-09
 
@@ -2989,101 +2994,4 @@ Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mon
 
 - Added `getText()` method to Text component for retrieving current text content
 
-## [1.2.0] - 2026-08-31
-
-### Fixed
-
-- Fixed graceful shutdown so finalized output is correctly retired before handing control back to the shell.
-- Fixed terminal scrollback corruption during shutdown, tmux pane zoom and resize, and destructive screen resets, preventing duplicated frames, lost history, and stale transcript re-streaming.
-- Fixed streaming Markdown rendering at chunk boundaries to preserve CommonMark emphasis behavior for Unicode text and correctly recognize GFM tables as they are completed.
-
-## [1.1.3] - 2026-08-21
-
-- Integrated upstream v17.4.1 into the fork: optional `getNativeScrollbackLiveRegionPinnedStart()` hook for nested transcripts.
-
-### Added
-
-- Added icon support to autocomplete and select lists, with customizable theming
-- `MarkdownTheme.createHighlightStream` lets themes supply a stateful incremental highlighter; streaming Markdown now syntax-highlights the completed lines of any open code fence (previously only diff/patch fences), and a fence highlights whole-block as soon as it closes
-- `SelectList` layouts accept `maxDescriptionRows` to cap wrapped descriptions with a trailing ellipsis
-- `CombinedAutocompleteProvider` accepts a `commandUsage` callback that ranks equal-score slash matches by usage frequency
-- `Editor.viewportRowsProvider` lets hosts clamp the autocomplete dropdown to the live terminal height
-
-### Changed
-
-- Increased default autocomplete dropdown height from 5 to 10 items
-- Changed the test `VirtualTerminal` engine from ghostty-web to `kitty-vt-wasm` (kitty's real screen.c/vt-parser.c). Retires the ghostty-web 0.4 crash workarounds (combining-mark input stripping, event-log replay/compaction, allocator-exhaustion engine rotation, full-clear ED3 recreate), gives the render-stress oracles exact default-color detection from typed cell snapshots, and lets full-clear/ED3 repaints exercise the engine natively instead of being masked by an engine recreate.
-- Added `Editor.setTheme()` so an adopted editor can switch from its lightweight startup theme to the configured interactive theme without replacing the editor or losing its draft.
-
-## [1.0.1] - 2026-08-20
-
-### Fixed
-
-- Desktop notification source name now reports `storoslop` instead of the upstream `Oh My Pi` across D-Bus, OSC 99, and cmux delivery paths.
-
-## [0.50.0] - 2026-01-26
-
-### Added
-
-- Added `fullRedraws` readonly property to TUI class for tracking full screen redraws
-- Added `PI_TUI_WRITE_LOG` environment variable to capture raw ANSI output for debugging
-
-### Fixed
-
-- Fixed appended lines not being committed to scrollback, causing earlier content to be overwritten when viewport fills ([#954](https://github.com/badlogic/pi-mono/issues/954))
-- Slash command menu now only triggers when the editor input is otherwise empty ([#904](https://github.com/badlogic/pi-mono/issues/904))
-- Center-anchored overlays now stay vertically centered when resizing the terminal taller after a shrink ([#950](https://github.com/badlogic/pi-mono/pull/950) by [@nicobailon](https://github.com/nicobailon))
-- Fixed editor multi-line insertion handling and lastAction tracking ([#945](https://github.com/badlogic/pi-mono/pull/945) by [@Perlence](https://github.com/Perlence))
-- Fixed editor word wrapping to reserve a cursor column ([#934](https://github.com/badlogic/pi-mono/pull/934) by [@Perlence](https://github.com/Perlence))
-- Fixed editor word wrapping to use single-pass backtracking for whitespace handling ([#924](https://github.com/badlogic/pi-mono/pull/924) by [@Perlence](https://github.com/Perlence))
-- Fixed Kitty image ID allocation and cleanup to prevent image ID collisions between modules
-
-## [0.49.3] - 2026-01-22
-
-### Added
-
-- `codeBlockIndent` property on `MarkdownTheme` to customize code block content indentation (default: 2 spaces) ([#855](https://github.com/badlogic/pi-mono/pull/855) by [@terrorobe](https://github.com/terrorobe))
-- Added Alt+Delete as hotkey for delete word forwards ([#878](https://github.com/badlogic/pi-mono/pull/878) by [@Perlence](https://github.com/Perlence))
-
-### Changed
-
-- Fuzzy matching now scores consecutive matches higher and penalizes gaps more heavily for better relevance ([#860](https://github.com/badlogic/pi-mono/pull/860) by [@mitsuhiko](https://github.com/mitsuhiko))
-
-### Fixed
-
-- Autolinked emails no longer display redundant `(mailto:...)` suffix in markdown output ([#888](https://github.com/badlogic/pi-mono/pull/888) by [@terrorobe](https://github.com/terrorobe))
-- Fixed viewport tracking and cursor positioning for overlays and content shrink scenarios
-- Autocomplete now allows searches with `/` characters (e.g., `folder1/folder2`) ([#882](https://github.com/badlogic/pi-mono/pull/882) by [@richardgill](https://github.com/richardgill))
-- Directory completions for `@` file attachments no longer add trailing space, allowing continued autocomplete into subdirectories
-
-## [0.49.1] - 2026-01-18
-
-### Added
-
-- Added undo support to Editor with Ctrl+- hotkey. Undo coalesces consecutive word characters into one unit (fish-style). ([#831](https://github.com/badlogic/pi-mono/pull/831) by [@Perlence](https://github.com/Perlence))
-- Added legacy terminal support for Ctrl+symbol keys (Ctrl+\, Ctrl+], Ctrl+-) and their Ctrl+Alt variants. ([#831](https://github.com/badlogic/pi-mono/pull/831) by [@Perlence](https://github.com/Perlence))
-
-## [0.49.0] - 2026-01-17
-
-### Added
-
-- Added `showHardwareCursor` getter and setter to control cursor visibility while keeping IME positioning active. ([#800](https://github.com/badlogic/pi-mono/pull/800) by [@ghoulr](https://github.com/ghoulr))
-- Added Emacs-style kill ring editing with yank and yank-pop keybindings. ([#810](https://github.com/badlogic/pi-mono/pull/810) by [@Perlence](https://github.com/Perlence))
-- Added legacy Alt+letter handling and Alt+D delete word forward support in the editor keymap. ([#810](https://github.com/badlogic/pi-mono/pull/810) by [@Perlence](https://github.com/Perlence))
-
-## [0.48.0] - 2026-01-16
-
-### Added
-
-- `EditorOptions` with optional `paddingX` for horizontal content padding, plus `getPaddingX()`/`setPaddingX()` methods ([#791](https://github.com/badlogic/pi-mono/pull/791) by [@ferologics](https://github.com/ferologics))
-
-### Changed
-
-- Hardware cursor is now disabled by default for better terminal compatibility. Set `PI_HARDWARE_CURSOR=1` to enable (replaces `PI_NO_HARDWARE_CURSOR=1` which disabled it).
-
-### Fixed
-
-- Decode Kitty CSI-u printable sequences in the editor so shifted symbol keys (e.g., `@`, `?`) work in terminals that enable Kitty keyboard protocol ([#779](https://github.com/badlogic/pi-mono/pull/779) by [@iamd3vil](https://github.com/iamd3vil))
-
-Older entries are archived in [packages/tui/CHANGELOG.md@306d94191305](https://github.com/can1357/oh-my-pi/blob/306d94191305bfb02824fccdea02e3b476368734/packages/tui/CHANGELOG.md).
-Older entries are archived in [packages/tui/CHANGELOG.md@60347ef0f214](https://github.com/can1357/oh-my-pi/blob/60347ef0f214fa63df596d143477268da3f0c904/packages/tui/CHANGELOG.md).
+Older entries are archived in [packages/tui/CHANGELOG.md@9a443aa1d77a](https://github.com/can1357/oh-my-pi/blob/9a443aa1d77a607d63498c994118fc19ae5b8035/packages/tui/CHANGELOG.md).

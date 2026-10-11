@@ -2,19 +2,12 @@
 
 ## [Unreleased]
 
+## [1.3.5] - 2026-10-11
+
 ### Changed
 
 - Upstream `442a83c9e7` integration: adopted structured judge question JSON with a loader, terminal-multiplexer notification providers, TUI table-chart thresholds, configurable Extra Context Files, the `ctx.annotations` extension API, browser target discovery, composer predictions, `retry.fallbackOn`, and `omp usage reset`.
 - The startup welcome banner now shows the `storoslop` wordmark instead of `omp`; on terminals too narrow for the wordmark the version stays beside the logo base instead of disappearing.
-
-## [1.3.4] - 2026-10-10
-
-### Changed
-
-- Web search and fetch quality improved by the upstream 703a261df9 integration: the xAI search provider is reworked, the `x`/Twitter scraper gains a dedicated `web/x.ts` path, and the `github`, `docs-rs`, `mastodon`, `hackernews`, `lemmy`, `discourse`, and `nuget` scrapers are hardened.
-### Added
-
-- Added `supportsThinkingBindingControls` to Bedrock `compat` in `models.yml`, so a Bedrock gateway or region that rejects Claude thinking-binding controls can turn them off ([#15316](https://github.com/can1357/oh-my-pi/pull/15316) by [@harshaygadekar](https://github.com/harshaygadekar))
 
 ## [18.9.0] - 2026-10-11
 
@@ -1515,5 +1508,15 @@
 - A corrupted or externally modified session file no longer leaves the session impossible to close; a subsequent Ctrl+C exits without rewriting the session log.
 - Fixed silent MCP requests being terminated by an undeclared idle timeout; closing a legacy SSE connection now also cancels pending requests and notifications.
 - Fixed browser reuse for Chromium installed behind Linux wrapper scripts and prevented duplicate launches when a profile is locked ([#12236](https://github.com/can1357/oh-my-pi/pull/12236) by [@shivamklr](https://github.com/shivamklr)).
+
+## [1.3.4] - 2026-10-10
+
+### Changed
+
+- Web search and fetch quality improved by the upstream 703a261df9 integration: the xAI search provider is reworked, the `x`/Twitter scraper gains a dedicated `web/x.ts` path, and the `github`, `docs-rs`, `mastodon`, `hackernews`, `lemmy`, `discourse`, and `nuget` scrapers are hardened.
+
+### Added
+
+- Added `supportsThinkingBindingControls` to Bedrock `compat` in `models.yml`, so a Bedrock gateway or region that rejects Claude thinking-binding controls can turn them off ([#15316](https://github.com/can1357/oh-my-pi/pull/15316) by [@harshaygadekar](https://github.com/harshaygadekar))
 
 Older entries are archived in [packages/coding-agent/CHANGELOG.md@cbbc18dec1c7](https://github.com/can1357/oh-my-pi/blob/cbbc18dec1c7bc5b8c518e3721309d65cdd7b546/packages/coding-agent/CHANGELOG.md).
