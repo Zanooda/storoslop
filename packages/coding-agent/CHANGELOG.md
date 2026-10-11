@@ -5,6 +5,7 @@
 ### Changed
 
 - Upstream `442a83c9e7` integration: adopted structured judge question JSON with a loader, terminal-multiplexer notification providers, TUI table-chart thresholds, configurable Extra Context Files, the `ctx.annotations` extension API, browser target discovery, composer predictions, `retry.fallbackOn`, and `omp usage reset`.
+- The startup welcome banner now shows the `storoslop` wordmark instead of `omp`; on terminals too narrow for the wordmark the version stays beside the logo base instead of disappearing.
 
 ## [1.3.4] - 2026-10-10
 
