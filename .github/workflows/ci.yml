@@ -255,11 +255,13 @@ jobs:
               # 30556752623 / 30557524371). Build one addon per invocation —
               # analysis and cached actions are shared through the persistent
               # server, so only the heavy links serialize — then re-request the
-              # full linux/win set as a no-op (also catches targets added to
-              # the set but missing from this list). We list the seven labels
-              # explicitly rather than //:natives-all: upstream renamed the old
+              # full set as a no-op (also catches targets added to the set but
+              # missing from this list). We list the labels explicitly rather
+              # than //:natives-all: upstream renamed the old
               # //:natives-linux-all aggregate to //:natives-all, which now also
-              # cross-builds the two darwin addons the hosted mac jobs build.
+              # cross-builds the darwin and win32-arm64 addons that the hosted
+              # mac/Windows-ARM jobs build natively. The six below are exactly
+              # the `native_targets` the release_binary matrix consumes.
               : > "$RUNNER_TEMP/bazel-build.log"
               for target in \
                 natives-linux-arm64 \
@@ -276,7 +278,6 @@ jobs:
                 //:natives-linux-musl-x64-baseline \
                 //:natives-linux-x64-baseline \
                 //:natives-linux-x64-modern \
-                //:natives-win32-arm64 \
                 //:natives-win32-x64-baseline 2>&1 | tee -a "$RUNNER_TEMP/bazel-build.log"
          # Cache-hit visibility: a supposedly warm build that executes
          # thousands of actions is the failure mode that made CI slow — make
