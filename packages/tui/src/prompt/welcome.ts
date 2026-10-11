@@ -187,7 +187,8 @@ export function renderWelcomeTip(tip: string, width: number, phase = 0): string[
 
 /**
  * The session's welcome banner. In a terminal: the gradient logo beside the
- * `omp` wordmark with the version under it (the logo alone when the lockup does
+ * `storoslop` wordmark with the version under it (the logo with the version
+ * beside its base when the lockup does not fit, nothing when even the logo does
  * not fit) and the tip of the session (dropped below {@link TIP_MIN_COLUMNS}
  * columns). Natively: a card with the same logo, wordmark, version and tip
  * ({@link WelcomeComponent.describe}).
@@ -378,8 +379,16 @@ export class WelcomeComponent implements Component {
 		if (room < 4) return [];
 		const logo = this.#currentLogoFrame();
 		const version = theme.fg("dim", `v${this.version}`);
-		const lockupWidth = LOGO_WIDTH + LOCKUP_GAP + Math.max(WORDMARK_WIDTH, visibleWidth(version));
-		const art = room >= lockupWidth ? lockup(logo, version) : room >= LOGO_WIDTH ? logo : [];
+		// The lockup puts the version under the wordmark; without room for the
+		// wordmark the version sits beside the logo base instead.
+		let art: string[];
+		if (room >= LOGO_WIDTH + LOCKUP_GAP + Math.max(WORDMARK_WIDTH, visibleWidth(version))) {
+			art = lockup(logo, version);
+		} else if (room >= LOGO_WIDTH) {
+			art = logo.map((row, index) => (index === logo.length - 1 ? `${row}${padding(LOCKUP_GAP)}${version}` : row));
+		} else {
+			art = [];
+		}
 		const lines = centerBlock(art, termWidth);
 		const tip = termWidth >= TIP_MIN_COLUMNS ? this.#renderTip(room) : [];
 		if (tip.length > 0) lines.push("", ...tip.flatMap(line => centerBlock([line], termWidth)));
@@ -416,10 +425,16 @@ export const PI_LOGO = ["▄███████▄ ", "██        ", "█�
 const LOGO_WIDTH = Math.max(...PI_LOGO.map(row => row.length));
 
 /**
- * The `omp` wordmark in half-blocks, set beside {@link PI_LOGO} from its second
- * row: the `p` descends into the fourth, the version takes the fifth.
+ * The `storoslop` wordmark in half-blocks, set beside {@link PI_LOGO} across its
+ * five rows: ascenders first, the x-height on the second and third, the `p`
+ * descender on the fourth, the version on the fifth.
  */
-const WORDMARK = ["▄▀▀▄ █▀▄▀▄ █▀▀▄", "▀▄▄▀ █ █ █ █▄▄▀", "           █"];
+const WORDMARK = [
+	"      █                     █",
+	"▄█▀  ▀█▀ ▄▀▀▄ █▀▄ ▄▀▀▄ ▄█▀  █ ▄▀▀▄ █▀▀▄",
+	" ▄█▀  █▄ ▀▄▄▀ █   ▀▄▄▀  ▄█▀ █ ▀▄▄▀ █▄▄▀",
+	"                                   █",
+];
 
 /** Columns of {@link WORDMARK}. */
 const WORDMARK_WIDTH = Math.max(...WORDMARK.map(row => row.length));
@@ -435,7 +450,7 @@ const TIP_MIN_COLUMNS = 50;
 
 /** Logo frame `logo` with the wordmark beside it and `version` (styled) under the wordmark. */
 function lockup(logo: readonly string[], version: string): string[] {
-	const beside = ["", ...WORDMARK.map(row => theme.bold(theme.fg("text", row))), version];
+	const beside = [...WORDMARK.map(row => theme.bold(theme.fg("text", row))), version];
 	return logo.map((row, index) => `${row}${padding(LOCKUP_GAP)}${beside[index] ?? ""}`);
 }
 
