@@ -28,12 +28,9 @@ describe("hideThinkingBlock default", () => {
 			streamingMessage: undefined,
 			showStatus: vi.fn(),
 			ui: { resetDisplay: vi.fn() },
-			get hasDisplayableThinkingContent() {
-				return false;
-			},
-			get effectiveHideThinkingBlock() {
-				return this.hideThinkingBlock;
-			},
+			// Toggle is allowed to flip because thinking is on; it never reads
+			// effectiveHideThinkingBlock, only ctx.hideThinkingBlock.
+			hasDisplayableThinkingContent: false,
 		} as unknown as InteractiveModeContext;
 		const controller = new InputController(ctx);
 
