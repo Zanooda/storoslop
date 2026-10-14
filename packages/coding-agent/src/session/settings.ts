@@ -170,12 +170,13 @@ export const cfgDefaultThinkingLevel = register({
 export const cfgHideThinkingBlock = register({
 	id: "hideThinkingBlock",
 	type: "boolean",
-	default: false,
+	// Fork default: thinking traces stay hidden until the user reveals them.
+	default: true,
 	ui: {
 		tab: "model",
 		group: "Thinking",
 		label: "Hide Thinking Blocks",
-		description: "Hide thinking blocks in assistant responses",
+		description: "Hide thinking blocks in assistant responses (storoslop default: hidden; toggle to reveal)",
 	},
 });
 
