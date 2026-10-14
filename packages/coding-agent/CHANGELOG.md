@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Thinking traces are hidden by default again; the TUI visibility toggle reveals them, and `--hide-thinking` forces them hidden for a run.
+- Upstream `f979f4639777` integration (574 commits): adopted session hand-off (`omp session pack`/`unpack`/`moved`) and `--restore` recovery of an interrupted turn, per-machine shared model-worker daemons, `omp gc --compress`, extension plan-review observation/answer, Cloudflare Workers AI and `anthropic-images` providers, the `o200k` tokenizer, and the composer-replacing tool-approval prompt; upstream's Codex Code Mode removal is adopted.
+
 ## [1.3.5] - 2026-10-11
 
 ### Changed
