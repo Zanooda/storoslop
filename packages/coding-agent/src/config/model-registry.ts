@@ -8,7 +8,6 @@ import { setCodexAttestationProvider } from "@oh-my-pi/pi-ai/providers/openai-co
 import { getProviderDefinition } from "@oh-my-pi/pi-ai/registry";
 import { getEnvApiKey } from "@oh-my-pi/pi-ai/env-api-key";
 import { OAuthRefreshUnavailableError } from "@oh-my-pi/pi-ai/error";
-import { isOfficialCodexApiUrl } from "@oh-my-pi/pi-ai/stream";
 import type {
 	Api,
 	Context,
@@ -48,9 +47,11 @@ import {
 } from "@oh-my-pi/pi-catalog/provider-models";
 import { toModelSpec } from "@oh-my-pi/pi-catalog/provider-models/bundled-references";
 import { apiServesKind, modelKind, type ModelKind } from "@oh-my-pi/pi-catalog/types";
+import { isOfficialCodexApiUrl } from "@oh-my-pi/pi-catalog/wire/codex";
 import { getAgentDir, isBunTestRuntime, logger, wrapFetchForExtraCa } from "@oh-my-pi/pi-utils";
 import { resolveProviderModelReference } from "../config/model-resolver";
 import { generateCodexAttestation } from "../live/attestation";
+import { redactUrlForLog } from "../mcp/json-rpc";
 import type { AuthStorage } from "../session/auth-storage";
 import { type ApiKeyResolverModel, type ApiKeyResolverOptions, createApiKeyResolver } from "./api-key-resolver";
 import type { ConfigError, ConfigFile } from "./config-file";
@@ -150,6 +151,8 @@ setCodexAttestationProvider(generateCodexAttestation);
 
 /** One built-in discovery pass rewriting more payload rows than this is debug-logged. */
 const MODEL_CACHE_REWRITE_LOG_THRESHOLD = 5;
+/** `scheme://user:pass@` in free text (e.g. a fetch error echoing the request URL). */
+const URL_USERINFO_RE = /([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+@/gi;
 const BUILT_IN_MODEL_MANAGER_PROVIDER_IDS: Readonly<Record<string, true>> = Object.freeze(
 	Object.fromEntries(
 		[...PROVIDER_DESCRIPTORS.map(descriptor => descriptor.providerId), ...SPECIAL_MODEL_MANAGER_PROVIDER_IDS].map(
@@ -322,6 +325,14 @@ export class ModelRegistry {
 	#commandConfigsByProvider: Map<string, Set<string>> = new Map();
 	#keylessProviders: Set<string> = new Set();
 	#discoverableProviders: DiscoveryProviderConfig[] = [];
+	/**
+	 * Local providers registered without a models.yml entry (ollama, llama.cpp,
+	 * lm-studio, apple). Their models sort after every other provider's, so a
+	 * bare id the user also defined in models.yml resolves to the configured one.
+	 */
+	#implicitLocalProviders: Set<string> = new Set();
+	/** Implicit local provider → env var that set its discovery endpoint. */
+	#implicitProviderEndpointEnv: Map<string, string> = new Map();
 	#customModelOverlays: CustomModelOverlay[] = [];
 	#providerOverrides: Map<string, ProviderOverride> = new Map();
 	#modelOverrides: Map<string, Map<string, ModelOverride>> = new Map();
@@ -391,8 +402,32 @@ export class ModelRegistry {
 		this.#catalogMetrics.add(models);
 	}
 
-	#withCatalogMetrics(models: Model<Api>[]): Model<Api>[] {
-		return applyCatalogMetrics(models, this.#catalogMetrics);
+	/** Final pass over every published model list: catalog metrics, then implicit local providers last. */
+	#finalizeModels(models: Model<Api>[]): Model<Api>[] {
+		return this.#orderImplicitProvidersLast(applyCatalogMetrics(models, this.#catalogMetrics));
+	}
+
+	/**
+	 * Stable-partition implicit local provider models after all others. Model
+	 * resolution breaks ties between equally ranked candidates by list order, so
+	 * this keeps an auto-discovered endpoint (e.g. `OLLAMA_BASE_URL`) from
+	 * shadowing a same-named model the user configured explicitly.
+	 */
+	#orderImplicitProvidersLast(models: Model<Api>[]): Model<Api>[] {
+		const implicit = this.#implicitLocalProviders;
+		if (implicit.size === 0) return models;
+		let sawImplicit = false;
+		for (const model of models) {
+			if (implicit.has(model.provider)) {
+				sawImplicit = true;
+			} else if (sawImplicit) {
+				const explicit: Model<Api>[] = [];
+				const deferred: Model<Api>[] = [];
+				for (const candidate of models) (implicit.has(candidate.provider) ? deferred : explicit).push(candidate);
+				return explicit.concat(deferred);
+			}
+		}
+		return models;
 	}
 
 	/**
@@ -824,7 +859,7 @@ export class ModelRegistry {
 					candidate.provider === base.provider && candidate.id === base.id ? patchedResolved : candidate,
 				);
 			}
-			this.#models = this.#withCatalogMetrics(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
+			this.#models = this.#finalizeModels(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
 			return resolveProviderModelReference(current.provider, current.id, this.#models) ?? patchedBase;
 		}
 		const patched = applyModelPatch(current, patch, "merge");
@@ -951,7 +986,11 @@ export class ModelRegistry {
 		return this.#configError;
 	}
 
-	/** Drain non-fatal file diagnostics, reporting each key path once per registry. */
+	/**
+	 * Drain non-fatal diagnostics: models.yml key problems (once per key path)
+	 * and discovery failures of env-redirected built-in providers (once per
+	 * distinct error).
+	 */
 	drainConfigWarnings(): string[] {
 		const warnings = this.#configWarnings;
 		this.#configWarnings = [];
@@ -1181,7 +1220,7 @@ export class ModelRegistry {
 		const projectFullCatalog = providerFilter !== undefined && this.#runtimeModelModifiers.size > 0;
 		const compositionFilter = projectFullCatalog ? undefined : providerFilter;
 		const unprojected = this.#projectBaseModels(this.#composeBaseModels(compositionFilter), compositionFilter);
-		const projected = this.#withCatalogMetrics(this.#applyRuntimeModelModifiers(unprojected));
+		const projected = this.#finalizeModels(this.#applyRuntimeModelModifiers(unprojected));
 		const selected = projectFullCatalog ? projected.filter(model => providerFilter.has(model.provider)) : projected;
 		return this.#internStaticModels(selected);
 	}
@@ -1191,7 +1230,7 @@ export class ModelRegistry {
 			this.#baseModels = this.#composeBaseModels();
 			this.#unprojectedModels = this.#projectBaseModels(this.#baseModels);
 			this.#models = this.#internStaticModels(
-				this.#withCatalogMetrics(this.#applyRuntimeModelModifiers(this.#unprojectedModels)),
+				this.#finalizeModels(this.#applyRuntimeModelModifiers(this.#unprojectedModels)),
 			);
 			this.#hasFullSnapshot = true;
 			this.#providerLookupSnapshots.clear();
@@ -1851,7 +1890,7 @@ export class ModelRegistry {
 		}
 		this.#baseModels = this.#mergeResolvedModels(baseModels, discoveredModels);
 		this.#unprojectedModels = this.#projectBaseModels(this.#baseModels);
-		this.#models = this.#withCatalogMetrics(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
+		this.#models = this.#finalizeModels(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
 	}
 
 	/**
@@ -2045,11 +2084,24 @@ export class ModelRegistry {
 			return;
 		}
 		this.#lastDiscoveryWarnings.set(providerConfig.provider, error);
+		const { baseUrl } = providerConfig;
+		const url = baseUrl && redactUrlForLog(baseUrl);
 		logger.warn("model discovery failed for provider", {
 			provider: providerConfig.provider,
-			url: providerConfig.baseUrl,
+			url,
 			error,
 		});
+		// An env var silently redirected a built-in provider the user never
+		// configured; a log line alone leaves its failures untraceable.
+		const endpointEnv = this.#implicitProviderEndpointEnv.get(providerConfig.provider);
+		if (endpointEnv && baseUrl && url) {
+			const provider = providerConfig.provider;
+			// The endpoint env var may embed `user:pass@`, and fetch errors can echo it.
+			const detail = error.replaceAll(baseUrl, url).replace(URL_USERINFO_RE, "$1").replace(/\s+/g, " ").trim();
+			this.#configWarnings.push(
+				`Built-in ${provider} provider: model discovery at ${url} (from ${endpointEnv}) failed. Fix or unset ${endpointEnv}, or add "${provider}" to disabledProviders. Error: ${detail}`,
+			);
+		}
 	}
 
 	async #discoverBuiltInProviderModels(
@@ -3528,7 +3580,7 @@ export class ModelRegistry {
 				: nextModels;
 			this.#unprojectedModels = this.#applyProviderBedrockOverrides(nextModelsWithTransport);
 
-			this.#models = this.#withCatalogMetrics(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
+			this.#models = this.#finalizeModels(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
 			this.#invalidateProviderModelCache(providerName);
 			if (!config.fetchDynamicModels) return;
 		}
@@ -3619,7 +3671,7 @@ export class ModelRegistry {
 						return this.#applyProviderTransportOverrideToModel(model, transportOverride);
 					}),
 				);
-				this.#models = this.#withCatalogMetrics(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
+				this.#models = this.#finalizeModels(this.#applyRuntimeModelModifiers(this.#unprojectedModels));
 			}
 			this.#invalidateProviderModelCache(providerName);
 		}

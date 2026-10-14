@@ -61,7 +61,13 @@ export async function compileCodingAgent(options: CodingAgentCompileOptions): Pr
 			// `bun@1.3.14`, whose bytecode path mis-wraps a module in this graph
 			// ("Expected CommonJS module to have a function wrapper") and crashes the
 			// compiled binary at startup. Keep bytecode off until the Bun pin moves.
+			// Upstream's `format: "esm"` exists only to keep ESM semantics under
+			// bytecode, so it is dropped with bytecode; `splitting`/`naming` are
+			// independent of bytecode and verified to compile on bun@1.3.14.
 			bytecode: false,
+			splitting: true,
+			// Discovery entry chunks can share a hash; include their source names to avoid collisions.
+			naming: { chunk: "chunks/[name]-[hash].[ext]" },
 			minify: {
 				identifiers: options.minifyIdentifiers ?? false,
 				keepNames: true,
