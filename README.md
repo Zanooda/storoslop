@@ -595,7 +595,7 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `442a83c9e7`**, merged 2026-10-11. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `f979f4639777`**, merged 2026-10-14 — 574 commits since the previous `442a83c9e7` baseline. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
@@ -607,6 +607,7 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - GitHub-release update flow (binary-only installer; no npm / canary / `updateViaManager`)
 - fork CI (pruned clippy scope, binary release pipeline) and pruned test suite
 - terminal title brand `S` and welcome-surface logo/gradient art
+- thinking traces hidden by default (`cfgHideThinkingBlock` default `true`)
 
 **Took-upstream** (adopted in full):
 
@@ -637,6 +638,12 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - browser target discovery (`browser.targets()`), so a page can be adopted by target instead of guessed
 - composer predictions (inline next-message suggestions) and `retry.fallbackOn` fallback-chain admission
 - `omp usage reset` for spending a stored account's usage window on demand
+- session hand-off (`omp session pack`/`unpack`/`moved` + `session-transfer`) and `omp --restore` crash/kill recovery of an interrupted turn plus the subagents it was running
+- per-machine shared worker daemons so local models load once per machine (`subprocess/shared-worker` + `jsonl-server`; the mnemopi embedding server)
+- `omp gc --compress` filesystem-transparent compression of idle sessions (`gc.compress`, `gc.compressAfterDays`)
+- extension plan-review observation/answer (`ctx.openPlanReview`, `ctx.resolvePlanReview` execution tiers) and the composer-replacing tool-approval prompt that keeps the composer usable mid-run
+- Cloudflare Workers AI provider, `openai-decisions`/`workers-ai-systemone` judge APIs and the `anthropic-images` provider; `task.agentSoftRequestBudget`/`task.structured`, the `o200k` tokenizer, and `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS`
+- upstream removal adopted: Codex Code Mode and its `providers.openai-codex.codeMode*` settings (Codex models always use the full direct tool surface)
 
 ### Project inputs and trust
 
