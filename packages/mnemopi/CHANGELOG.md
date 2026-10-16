@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.7] - 2026-10-16
+
 ### Changed
 
 - Upstream `a536558dc2` integration (958 commits): adopted the `MNEMOPI_<LABEL>_WEIGHT`/`MNEMOPI_TIER<N>_WEIGHT` recall-ranking fix and the CLI/MCP flush-before-close fix.

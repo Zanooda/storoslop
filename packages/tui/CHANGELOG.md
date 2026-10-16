@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.7] - 2026-10-16
+
 ### Changed
 
 - Upstream `a536558dc2` integration (958 commits): adopted the nested tool-status collapsible block, `/btw` history scrolling, table charts on TSP and in Tern, and the Windows ConPTY row-boundary paint fix; ghostty-web stays the fork's TUI engine.

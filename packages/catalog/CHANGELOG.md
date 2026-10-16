@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.7] - 2026-10-16
+
 ### Added
 
 - Added `keep-bundled-names` catalog attribute to preserve static model display names during discovery

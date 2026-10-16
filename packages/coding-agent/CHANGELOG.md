@@ -2,10 +2,13 @@
 
 ## [Unreleased]
 
+## [1.3.7] - 2026-10-16
+
 ### Added
 
 - Added `lsp.requestTimeout` setting to configure wait durations for language server diagnostics and requests
 - Added `omp auth-gateway serve --clients=<file>`: per-client bearer tokens, each limited to listed models and broker OAuth accounts with no fallback to other accounts or API keys, re-read while serving ([#5098](https://github.com/can1357/oh-my-pi/issues/5098), [#15900](https://github.com/can1357/oh-my-pi/pull/15900) by [@alphastorm](https://github.com/alphastorm))
+- Added `supportsThinkingBindingControls` to Bedrock `compat` in `models.yml`, so a Bedrock gateway or region that rejects Claude thinking-binding controls can turn them off ([#15316](https://github.com/can1357/oh-my-pi/pull/15316) by [@harshaygadekar](https://github.com/harshaygadekar))
 
 ### Changed
 
@@ -58,13 +61,6 @@
 - Fixed cancelling a bash job hard-killing it before its TERM cleanup handlers could run; it now gets up to one second to clean up before termination is forced ([#15709](https://github.com/can1357/oh-my-pi/pull/15709) by [@mg-mg-mg](https://github.com/mg-mg-mg))
 - Fixed the transcript collapsing to one line per entry after switching between a subagent and the main session mid-turn when an earlier turn left a tool call without a result ([#12247](https://github.com/can1357/oh-my-pi/issues/12247), [#15466](https://github.com/can1357/oh-my-pi/pull/15466) by [@shgew](https://github.com/shgew))
 - Fixed a retried tool losing its transcript card when the view was rebuilt (subagent focus switch, overlay close) while the tool was still running
-
-## [1.3.6] - 2026-10-14
-
-### Changed
-
-- Thinking traces are hidden by default again; the TUI visibility toggle reveals them, and `--hide-thinking` forces them hidden for a run.
-- Upstream `f979f4639777` integration (574 commits): adopted session hand-off (`omp session pack`/`unpack`/`moved`) and `--restore` recovery of an interrupted turn, per-machine shared model-worker daemons, `omp gc --compress`, extension plan-review observation/answer, Cloudflare Workers AI and `anthropic-images` providers, the `o200k` tokenizer, and the composer-replacing tool-approval prompt; upstream's Codex Code Mode removal is adopted.
 
 ## [18.11.1] - 2026-10-15
 
@@ -1780,37 +1776,11 @@
 - Runtime API-key overrides retain precedence over configured credentials.
 - Element handles returned by `tab.waitForSelector`, `tab.$`, and related selector helpers can now be passed as arguments to `tab.evaluate` inside `tab.run` instead of failing with "JSHandles can be evaluated only in the context they were created".
 
-## [1.3.5] - 2026-10-11
+## [1.3.6] - 2026-10-14
 
 ### Changed
 
-- Upstream `442a83c9e7` integration: adopted structured judge question JSON with a loader, terminal-multiplexer notification providers, TUI table-chart thresholds, configurable Extra Context Files, the `ctx.annotations` extension API, browser target discovery, composer predictions, `retry.fallbackOn`, and `omp usage reset`.
-- The startup welcome banner now shows the `storoslop` wordmark instead of `omp`; on terminals too narrow for the wordmark the version stays beside the logo base instead of disappearing.
-- The composer stays usable while a tool approval is pending: sending a message denies the call and steers the turn with it, so the agent knows why it was denied ([#15642](https://github.com/can1357/oh-my-pi/pull/15642) by [@H4vC](https://github.com/H4vC))
-- Session entries record which omp build wrote them, so a transcript shows whether a fix was live even in a session left open across an upgrade: the version, plus commit, branch, and uncommitted-diff hash when run from a source checkout, and `OMP_BUILD_LABEL` when set. `/session` lists the builds that wrote the session ([#15680](https://github.com/can1357/oh-my-pi/pull/15680) by [@will-bogusz](https://github.com/will-bogusz))
-- The in-composer tool approval prompt summarizes the command, path, or content to one row so the composer keeps its room; `Ctrl+O` shows them in full ([#15642](https://github.com/can1357/oh-my-pi/pull/15642) by [@H4vC](https://github.com/H4vC))
-- Background task guidance now lives in the Task tool description (and in same-name extension replacements that delegate to Task) instead of being repeated in every spawn acknowledgment ([#15477](https://github.com/can1357/oh-my-pi/pull/15477) by [@iliaal](https://github.com/iliaal))
+- Thinking traces are hidden by default again; the TUI visibility toggle reveals them, and `--hide-thinking` forces them hidden for a run.
+- Upstream `f979f4639777` integration (574 commits): adopted session hand-off (`omp session pack`/`unpack`/`moved`) and `--restore` recovery of an interrupted turn, per-machine shared model-worker daemons, `omp gc --compress`, extension plan-review observation/answer, Cloudflare Workers AI and `anthropic-images` providers, the `o200k` tokenizer, and the composer-replacing tool-approval prompt; upstream's Codex Code Mode removal is adopted.
 
-### Fixed
-
-- Fixed browser `tab.click("text/…")` timing out when the match was below the fold or the tab was in the background ([#14864](https://github.com/can1357/oh-my-pi/pull/14864) by [@alnaggar-dev](https://github.com/alnaggar-dev), [#15496](https://github.com/can1357/oh-my-pi/pull/15496) by [@will-bogusz](https://github.com/will-bogusz))
-- Fixed browser clicks the page never received, such as on a disabled control or inside an `inert` subtree, reporting success; the call now fails saying the browser did not deliver the click ([#15496](https://github.com/can1357/oh-my-pi/pull/15496) by [@will-bogusz](https://github.com/will-bogusz))
-- `tab.ariaSnapshot()` no longer prints the value of a password field; it shows one bullet per character, as `tab.observe()` and the screen do, so a typed or browser-autofilled password stays out of the model's context ([#15502](https://github.com/can1357/oh-my-pi/pull/15502) by [@will-bogusz](https://github.com/will-bogusz))
-- Fixed browser `tab.text()` and `tab.html()` (and the same calls on a frame) throwing when called without a selector; they now read the page body on Chrome, Tern and cmux ([#15599](https://github.com/can1357/oh-my-pi/pull/15599) by [@will-bogusz](https://github.com/will-bogusz))
-- Fixed the macOS `computer` tool keeping the display awake for the rest of the session after a native call hung; the call's timeout or closing the session now lets it sleep ([#15414](https://github.com/can1357/oh-my-pi/pull/15414) by [@will-bogusz](https://github.com/will-bogusz))
-- Fixed `page.waitForNetworkIdle` in a browser `run` timing out on a request an earlier `run` started ([#15495](https://github.com/can1357/oh-my-pi/pull/15495) by [@alnaggar-dev](https://github.com/alnaggar-dev) and [@will-bogusz](https://github.com/will-bogusz))
-- Fixed a tab that a relay page opens over its own CDP session (`Target.createTarget`) landing in a separate Chrome window with `newWindow`, under an id omp could not attach to, activate or close; it now opens as a relay tab in that page's browser ([#15494](https://github.com/can1357/oh-my-pi/pull/15494) by [@alnaggar-dev](https://github.com/alnaggar-dev) and [@will-bogusz](https://github.com/will-bogusz))
-- Fixed an Anthropic refusal fallback redeeming its fallback credit with an outdated system prompt and tools after switching models; it now sends a fresh request ([#15702](https://github.com/can1357/oh-my-pi/pull/15702) by [@H4vC](https://github.com/H4vC))
-- Fixed OpenAI/Codex auto-compaction failing with "Remote compaction input exceeds the context window" after a turn's final response pushed history past the window; native compaction now compacts the history before the kept recent turns, which stay in context as-is ([#15712](https://github.com/can1357/oh-my-pi/pull/15712) by [@H4vC](https://github.com/H4vC))
-
-## [1.3.4] - 2026-10-10
-
-### Changed
-
-- Web search and fetch quality improved by the upstream 703a261df9 integration: the xAI search provider is reworked, the `x`/Twitter scraper gains a dedicated `web/x.ts` path, and the `github`, `docs-rs`, `mastodon`, `hackernews`, `lemmy`, `discourse`, and `nuget` scrapers are hardened.
-
-### Added
-
-- Added `supportsThinkingBindingControls` to Bedrock `compat` in `models.yml`, so a Bedrock gateway or region that rejects Claude thinking-binding controls can turn them off ([#15316](https://github.com/can1357/oh-my-pi/pull/15316) by [@harshaygadekar](https://github.com/harshaygadekar))
-
-Older entries are archived in [packages/coding-agent/CHANGELOG.md@84a69d31e5fe](https://github.com/can1357/oh-my-pi/blob/84a69d31e5fefb565ad4de40373f07ff2f75ec98/packages/coding-agent/CHANGELOG.md).
+Older entries are archived in [packages/coding-agent/CHANGELOG.md@cabbbd9ef49e](https://github.com/can1357/oh-my-pi/blob/cabbbd9ef49e2f6016006b9b093df9e6012d5f0d/packages/coding-agent/CHANGELOG.md).

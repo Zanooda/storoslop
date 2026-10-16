@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.7] - 2026-10-16
+
 ### Breaking Changes
 
 - `resolveGatewayApiKey` and `buildGatewayApiKeyResolver` (`@oh-my-pi/pi-ai/auth-gateway`) take the request's route options (`{ storage, client? }`) instead of an `AuthStorage`, their resolver callback receives the resolved credential, and `resolveGatewayAccount` takes that credential ([#15900](https://github.com/can1357/oh-my-pi/pull/15900) by [@alphastorm](https://github.com/alphastorm))
