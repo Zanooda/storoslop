@@ -65,8 +65,8 @@ describe("Claude plugin MCP timeout compatibility", () => {
 	 */
 	async function installPluginWithTimeout(timeout: unknown): Promise<void> {
 		const pluginPath = path.join(tempDir, "plugins", "sap-fiori-mcp-server");
-		const registryPath = path.join(tempDir, ".omp", "plugins", "installed_plugins.json");
-		await fs.mkdir(path.join(tempDir, ".omp", "plugins"), { recursive: true });
+		const registryPath = path.join(tempDir, ".storoslop", "plugins", "installed_plugins.json");
+		await fs.mkdir(path.join(tempDir, ".storoslop", "plugins"), { recursive: true });
 		await fs.mkdir(pluginPath, { recursive: true });
 		await fs.writeFile(
 			path.join(pluginPath, ".mcp.json"),

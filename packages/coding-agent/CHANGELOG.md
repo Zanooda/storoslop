@@ -2,12 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.6] - 2026-10-14
-
-### Changed
-
-- Thinking traces are hidden by default again; the TUI visibility toggle reveals them, and `--hide-thinking` forces them hidden for a run.
-- Upstream `f979f4639777` integration (574 commits): adopted session hand-off (`omp session pack`/`unpack`/`moved`) and `--restore` recovery of an interrupted turn, per-machine shared model-worker daemons, `omp gc --compress`, extension plan-review observation/answer, Cloudflare Workers AI and `anthropic-images` providers, the `o200k` tokenizer, and the composer-replacing tool-approval prompt; upstream's Codex Code Mode removal is adopted.
 ### Added
 
 - Added `lsp.requestTimeout` setting to configure wait durations for language server diagnostics and requests
@@ -15,6 +9,7 @@
 
 ### Changed
 
+- Upstream `a536558dc2` integration (958 commits): adopted the `/jobs` subagent job tree, `ctx.ui.getEditorComponent()`, per-client `omp auth-gateway serve --clients` tokens, `lsp.requestTimeout`, `todo` updates riding the next tool call, structured `task` results via frontmatter, click-to-dictate streaming speech recognition, and the replayed-call/transport recovery fixes for Cursor, Codex and Anthropic; thinking traces stay hidden by default.
 - The `lsp` tool now uses `lsp.requestTimeout` to dynamically adjust both call deadlines and project-aware diagnostic wait times, with support for per-call overrides
 - Reduced CPU overhead during syntax checks and automatic edit repairs ([#15904](https://github.com/can1357/oh-my-pi/pull/15904) by [@iliaal](https://github.com/iliaal)).
 - Reduced status-line refresh overhead while subagents have long conversations ([#15874](https://github.com/can1357/oh-my-pi/pull/15874) by [@iliaal](https://github.com/iliaal)).
@@ -63,6 +58,13 @@
 - Fixed cancelling a bash job hard-killing it before its TERM cleanup handlers could run; it now gets up to one second to clean up before termination is forced ([#15709](https://github.com/can1357/oh-my-pi/pull/15709) by [@mg-mg-mg](https://github.com/mg-mg-mg))
 - Fixed the transcript collapsing to one line per entry after switching between a subagent and the main session mid-turn when an earlier turn left a tool call without a result ([#12247](https://github.com/can1357/oh-my-pi/issues/12247), [#15466](https://github.com/can1357/oh-my-pi/pull/15466) by [@shgew](https://github.com/shgew))
 - Fixed a retried tool losing its transcript card when the view was rebuilt (subagent focus switch, overlay close) while the tool was still running
+
+## [1.3.6] - 2026-10-14
+
+### Changed
+
+- Thinking traces are hidden by default again; the TUI visibility toggle reveals them, and `--hide-thinking` forces them hidden for a run.
+- Upstream `f979f4639777` integration (574 commits): adopted session hand-off (`omp session pack`/`unpack`/`moved`) and `--restore` recovery of an interrupted turn, per-machine shared model-worker daemons, `omp gc --compress`, extension plan-review observation/answer, Cloudflare Workers AI and `anthropic-images` providers, the `o200k` tokenizer, and the composer-replacing tool-approval prompt; upstream's Codex Code Mode removal is adopted.
 
 ## [18.11.1] - 2026-10-15
 
@@ -1778,38 +1780,6 @@
 - Runtime API-key overrides retain precedence over configured credentials.
 - Element handles returned by `tab.waitForSelector`, `tab.$`, and related selector helpers can now be passed as arguments to `tab.evaluate` inside `tab.run` instead of failing with "JSHandles can be evaluated only in the context they were created".
 
-## [18.2.2] - 2026-09-16
-
-### Added
-
-- Expanded built-in secret obfuscation to detect credentials in connection URLs regardless of environment-variable name, including PostgreSQL, MongoDB, MySQL, Redis, AMQP, and other supported schemes.
-- Expanded built-in secret obfuscation to cover AWS access keys, Google API keys, Slack, npm, Stripe secret/restricted keys and webhook secrets, Hugging Face and SendGrid tokens, JWTs, Bearer tokens, and PEM private keys.
-- Added the `tui.titleSpinner` setting to choose the terminal-title working-state animation (`braille`, `dots`, `line`, or `pulse`), alongside the existing `tui.titleState` toggle.
-
-### Changed
-
-- Session-stop hooks that block with a reason now keep the session running until they allow it or the user interrupts; explicit aborts are no longer restarted by a stop hook.
-- Corrupt agent and prompt-history databases are now backed up before fresh stores are created, allowing startup to continue; credentials may need to be entered again.
-- Agent and history database startup errors now identify the affected database file.
-- Terminal-title spinner animations now work on native Windows; WSL retains the static separator to avoid unnecessary CPU usage.
-- Explicit model refreshes now re-evaluate command-backed API keys and headers, allowing rotated credentials to take effect without restarting.
-- Background job entries are removed shortly after their results are consumed or recovered, while unconsumed jobs remain available for inspection.
-
-### Fixed
-
-- Fixed the transcript collapsing into a compact no-spacing layout whenever the prompt, todo HUD, or other below-transcript chrome grew a few rows; the live tail now scrolls off the top instead.
-- Fixed transcript layout and rebuilding issues that could collapse blank rows, leave tool calls displayed on one line, or show stale fragments after navigation, display changes, or compaction ([#12177](https://github.com/can1357/oh-my-pi/pull/12177) by [@shivamklr](https://github.com/shivamklr)).
-- Fixed the `security-reviewer` agent so valid findings with anchors and remediation details are accepted.
-- Stopping a subagent from Agent Hub now settles and reports its parent background job instead of leaving `hub wait` blocked indefinitely.
-- Fixed prewalk handoff detection after edits or writes dispatched through Code Mode eval cells.
-- Reduced main-thread stalls while streaming large edits by deferring AST-based matching until the edit is complete.
-- Corrected the `/handoff` description so it accurately reflects that the command creates a handoff document and compacts the current session.
-- Deferred misleading cold-cache `retry.fallbackChains` warnings until provider discovery completes.
-- Fixed `--prewalk-into @default` so an explicitly selected startup model does not replace the configured default role, including ordered fallbacks and discovery-backed candidates.
-- A corrupted or externally modified session file no longer leaves the session impossible to close; a subsequent Ctrl+C exits without rewriting the session log.
-- Fixed silent MCP requests being terminated by an undeclared idle timeout; closing a legacy SSE connection now also cancels pending requests and notifications.
-- Fixed browser reuse for Chromium installed behind Linux wrapper scripts and prevented duplicate launches when a profile is locked ([#12236](https://github.com/can1357/oh-my-pi/pull/12236) by [@shivamklr](https://github.com/shivamklr)).
-
 ## [1.3.5] - 2026-10-11
 
 ### Changed
@@ -1843,4 +1813,4 @@
 
 - Added `supportsThinkingBindingControls` to Bedrock `compat` in `models.yml`, so a Bedrock gateway or region that rejects Claude thinking-binding controls can turn them off ([#15316](https://github.com/can1357/oh-my-pi/pull/15316) by [@harshaygadekar](https://github.com/harshaygadekar))
 
-Older entries are archived in [packages/coding-agent/CHANGELOG.md@cbbc18dec1c7](https://github.com/can1357/oh-my-pi/blob/cbbc18dec1c7bc5b8c518e3721309d65cdd7b546/packages/coding-agent/CHANGELOG.md).
+Older entries are archived in [packages/coding-agent/CHANGELOG.md@84a69d31e5fe](https://github.com/can1357/oh-my-pi/blob/84a69d31e5fefb565ad4de40373f07ff2f75ec98/packages/coding-agent/CHANGELOG.md).

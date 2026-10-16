@@ -9,6 +9,7 @@
 
 ### Changed
 
+- Upstream `a536558dc2` integration (958 commits): adopted the `keep-bundled-names` attribute, the `gpt-image` family split, Vertex 1h prompt-cache retention, and the `sambanova` provider; the runtime registry stays single-provider over the bundled storoslop seed.
 - GPT Image models (`gpt-image-*`, `chatgpt-image-*`) now classify as their own `gpt-image` family instead of `gpt` or `chatgpt`, so GPT chat-model rules no longer apply to them ([#14619](https://github.com/can1357/oh-my-pi/pull/14619) by [@jimhester](https://github.com/jimhester))
 
 ## [18.11.1] - 2026-10-15

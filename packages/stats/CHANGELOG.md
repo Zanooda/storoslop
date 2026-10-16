@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Upstream `a536558dc2` integration (958 commits): adopted the grouped subscription-window reporting so Codex Team and weekly-only plans share the 7-day row.
+
 ## [18.11.0] - 2026-10-14
 
 ### Fixed

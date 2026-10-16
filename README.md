@@ -595,7 +595,7 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `f979f4639777`**, merged 2026-10-14 — 574 commits since the previous `442a83c9e7` baseline. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `a536558dc2`**, merged 2026-10-16 — 958 commits since the previous `f979f4639777` baseline. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
@@ -644,6 +644,12 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - extension plan-review observation/answer (`ctx.openPlanReview`, `ctx.resolvePlanReview` execution tiers) and the composer-replacing tool-approval prompt that keeps the composer usable mid-run
 - Cloudflare Workers AI provider, `openai-decisions`/`workers-ai-systemone` judge APIs and the `anthropic-images` provider; `task.agentSoftRequestBudget`/`task.structured`, the `o200k` tokenizer, and `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS`
 - upstream removal adopted: Codex Code Mode and its `providers.openai-codex.codeMode*` settings (Codex models always use the full direct tool surface)
+- `/jobs` subagent job tree (background jobs nested under the task that runs them, branchiest first; only your own jobs offer Cancel) and `ctx.ui.getEditorComponent()` so extensions wrap the active editor factory
+- scoped auth-gateway clients (`omp auth-gateway serve --clients=<file>`: per-client bearer tokens limited to listed models and broker OAuth accounts, with no fallback) and `lsp.requestTimeout` for language-server diagnostics and requests
+- agents send `todo` updates alongside their next tool call, and structured `task` results survive via agent frontmatter
+- multimodal image judgments in Eval `judge()`/`judge_batch()`, and click-to-dictate plus local streaming speech recognition (`stt`, `local/nemotron-streaming-en-0.6b`)
+- SambaNova Cloud provider, `keep-bundled-names` catalog attribute, and the `gpt-image` model-family split; Claude 1h prompt-cache retention on Google Vertex
+- upstream provider-recovery fixes adopted wholesale (Cursor replayed-call and mid-stream cuts, Codex SSE stalls and usage invalidation, Anthropic fallback-credit redemption, transient "temporarily unavailable"/unknown finish reasons)
 
 ### Project inputs and trust
 
