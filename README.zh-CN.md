@@ -593,12 +593,12 @@ storoslop 派生自 [Mario Zechner](https://github.com/mariozechner) 的 [pi-mon
 
 ### 上游基线与整合
 
-除 [Pi](https://github.com/badlogic/pi-mono) 血统之外，storoslop 还持续跟踪 [oh-my-pi](https://github.com/can1357/oh-my-pi) 上游（`can1357/oh-my-pi`）。最近一次集成的基线：**上游 `main` `33ea58aa7d`**，于 2026-11-04 合并——自 `a536558dc2` 以来共 4971 个提交（上游 `18.11.1` → `18.16.0`）；本 fork 自身的目标版本为 `1.4.0`。fork 是有意分叉的，因此每次集成都逐个核对重叠文件，而不是盲目接受上游：
+除 [Pi](https://github.com/badlogic/pi-mono) 血统之外，storoslop 还持续跟踪 [oh-my-pi](https://github.com/can1357/oh-my-pi) 上游（`can1357/oh-my-pi`）。最近一次集成的基线：**上游 `main` `33ea58aa7d`**，于 2026-11-04 合并——自 `a536558dc2` 以来共 4971 个提交（上游 `18.11.1` → `18.16.0`）；本 fork 自身的目标版本为 `1.3.8`。fork 是有意分叉的，因此每次集成都逐个核对重叠文件，而不是盲目接受上游：
 
 **保留 fork 的部分**（fork 有意分叉之处予以保留）：
 
 - storoslop 品牌重命名与托管截图资源
-- `1.3.x` → `1.4.0` 的版本谱系，覆盖 `Cargo.toml` 工作区版本与各工作区 `packages/*/package.json` 版本（根 `package.json` 不含 version 字段；非谱系包 `browser-relay`、`collab-web`、`metaharness`、`typescript-edit-benchmark` 各自维护自己的版本）
+- `1.3.x` → `1.3.8` 的版本谱系，覆盖 `Cargo.toml` 工作区版本与各工作区 `packages/*/package.json` 版本（根 `package.json` 不含 version 字段；非谱系包 `browser-relay`、`collab-web`、`metaharness`、`typescript-edit-benchmark` 各自维护自己的版本）
 - `bun@1.4.4` + `@types/bun` 版本固定（合并的上游已删除 1.4 之前的运行时兼容层——cowork 中止落定与 YAML 序列化稳定性——因此不再支持 1.3.x）
 - ghostty-web TUI 引擎
 - 单提供商模型注册表，读取时合并内置的 storoslop 模型

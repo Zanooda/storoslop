@@ -24,7 +24,7 @@
 - Thinking blocks stay hidden by default (`hideThinkingBlock: true`), and the fork keeps its `S` terminal title and welcome branding
 - The fork's pruned `advisor-provider-options-parity.test.ts` and `retry-fallback.test.ts` stay deleted; provider-scoped coverage remains in `agent-session-model-persistence.test.ts`
 - CI keeps the fork's GitHub-hosted runners while adopting upstream's job graph
-- The fork's version lineage moves from `1.3.7` to `1.4.0`
+- The fork's version lineage moves from `1.3.7` to `1.3.8`
 - The fork now requires Bun `>= 1.4.4` (upstream removed its pre-1.4 runtime shims), and the compiled binary enables precompiled bytecode again for a faster `--version`/boot
 
 ### Fixed

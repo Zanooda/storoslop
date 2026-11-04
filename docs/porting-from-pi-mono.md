@@ -7,7 +7,7 @@ Use it for any merge: single file, feature branch, or full release sync.
 
 **Commit:** `33ea58aa7d` (upstream `can1357/oh-my-pi` main, upstream 18.16.0)
 **Date:** 2026-11-04
-**Fork version:** `1.4.0`
+**Fork version:** `1.3.8`
 
 Update this section after each sync; do not reuse the previous range. This commit is an upstream pi-mono marker and may not exist in this repo's local object database.
 

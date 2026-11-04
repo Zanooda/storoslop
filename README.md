@@ -595,12 +595,12 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `33ea58aa7d`**, merged 2026-11-04 — 4971 commits since `a536558dc2` (upstream `18.11.1` → `18.16.0`); the fork itself targets `1.4.0`. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `33ea58aa7d`**, merged 2026-11-04 — 4971 commits since `a536558dc2` (upstream `18.11.1` → `18.16.0`); the fork itself targets `1.3.8`. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.3.x` → `1.4.0` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
+- `1.3.x` → `1.3.8` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
 - `bun@1.4.4` + `@types/bun` pin (the merged upstream deleted its pre-1.4 runtime shims — cowork abort settling and YAML stringify stability — so 1.3.x is no longer supported)
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time

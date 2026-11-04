@@ -59,7 +59,7 @@ When authorized to create or edit a contributor-submitted PR, follow the checkli
 
 ## Upstream
 
-This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`33ea58aa7d`**, merged alongside the fork's own `1.4.0` lineage on 2026-11-04 (branch `integrate/oh-my-pi-33ea58aa7d`). The fork keeps its own labels — `storoslop` command name, `~/.storoslop` config root, single-provider runtime registry, fork CI topology — while adopting upstream structure and behavior. Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
+This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`33ea58aa7d`**, merged alongside the fork's own `1.3.8` lineage on 2026-11-04 (branch `integrate/oh-my-pi-33ea58aa7d`). The fork keeps its own labels — `storoslop` command name, `~/.storoslop` config root, single-provider runtime registry, fork CI topology — while adopting upstream structure and behavior. Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
 
 ## Code Quality
 
