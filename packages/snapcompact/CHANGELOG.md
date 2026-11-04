@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-11-04
+
 ### Added
 
 - Integrated upstream oh-my-pi `33ea58aa7d`, adding `archiveIncludesThinking()` and `viewSummary()` and keeping a summary an extension wrote in its own words

@@ -2,15 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.7] - 2026-10-16
-
-### Changed
-
-- Upstream `a536558dc2` integration (958 commits): adopted the `MNEMOPI_<LABEL>_WEIGHT`/`MNEMOPI_TIER<N>_WEIGHT` recall-ranking fix and the CLI/MCP flush-before-close fix.
-### Changed
-
-- Development installs now share fastembed's ONNX runtime instead of installing a second native runtime
-
 ## [18.14.2] - 2026-10-31
 
 ### Fixed
@@ -415,3 +406,10 @@
 - Fixed `extract: true` fact extraction to continue safely when no LLM is configured by turning extraction failures into no-op background tasks
 - Fixed configured LLM fact extraction by using temperature 0 so re-ingesting the same text is deterministic and avoids near-duplicate extractions
 - Fixed `remember(..., { extract: true })` silently dropping the flag: it now schedules the LLM fact extractor (`extractFactsSafe`) over the stored content and persists the extracted facts so they become recallable. Previously the LLM extractor had no production callers and `extract` was dead.
+
+## [1.3.7] - 2026-10-16
+
+### Changed
+
+- Upstream `a536558dc2` integration (958 commits): adopted the `MNEMOPI_<LABEL>_WEIGHT`/`MNEMOPI_TIER<N>_WEIGHT` recall-ranking fix and the CLI/MCP flush-before-close fix.
+- Development installs now share fastembed's ONNX runtime instead of installing a second native runtime

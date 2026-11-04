@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-11-04
+
 ### Added
 
 - Added `isPidAlive`, `asStrictBytes`, `ensureSqliteLockShim` and `assertNotHeldOpen` (SQLite `EBUSY` guard on files this process holds open)
@@ -9,14 +11,7 @@
 ### Changed
 
 - ACP runtime validators report each failing field's path and reason in `error.issues` instead of a single `Invalid <label>`
-
-## [1.3.7] - 2026-10-16
-
-### Added
-
-- Added `getUpdateStateDir()` (`~/.omp/update`), holding the auto-update status file, its worker log, and the update install lock
-- Added `logger.setLogForwarder(forwarder)` (`LogForwarder { emit, flush }`), which routes a thread's records — `withContext` fields merged, context reduced to clone-safe JSON — to another thread instead of its own file and sinks, and `logger.emitForeign(event)`, which writes such a record with its original timestamp and runs the sinks without the caller's `withContext` fields
-- Added `expandTilde(path, home?)` (`@oh-my-pi/pi-utils/path`), which expands a leading `~` to the home directory; `@oh-my-pi/pi-coding-agent/tools/path-utils` re-exports it ([#17931](https://github.com/can1357/oh-my-pi/pull/17931) by [@will-bogusz](https://github.com/will-bogusz))
+- Upstream `a536558dc2` integration (958 commits): adopted the shared `slugify()` helper, `sqliteFileIdentity()`, and the aborted-subprocess rejection fix.
 
 ## [18.16.0] - 2026-11-02
 
@@ -153,10 +148,6 @@
 
 - Exported `sqliteFileIdentity()`, so a caller holding a long-lived SQLite connection can tell when its path now names a different file (e.g. after a corrupt store was quarantined and replaced) ([#14361](https://github.com/can1357/oh-my-pi/pull/14361) by [@F0Rextasy](https://github.com/F0Rextasy))
 - Added `slugify()`, the shared lowercase ASCII kebab-case helper with an optional `maxLength` ([#14283](https://github.com/can1357/oh-my-pi/pull/14283) by [@jaredlyon](https://github.com/jaredlyon))
-
-### Changed
-
-- Upstream `a536558dc2` integration (958 commits): adopted the shared `slugify()` helper, `sqliteFileIdentity()`, and the aborted-subprocess rejection fix.
 
 ### Fixed
 
@@ -1100,6 +1091,14 @@
 ### Added
 
 - Added an XDG-aware tiny-title model cache directory helper for coding-agent local title models.
+
+## [1.3.7] - 2026-10-16
+
+### Added
+
+- Added `getUpdateStateDir()` (`~/.omp/update`), holding the auto-update status file, its worker log, and the update install lock
+- Added `logger.setLogForwarder(forwarder)` (`LogForwarder { emit, flush }`), which routes a thread's records — `withContext` fields merged, context reduced to clone-safe JSON — to another thread instead of its own file and sinks, and `logger.emitForeign(event)`, which writes such a record with its original timestamp and runs the sinks without the caller's `withContext` fields
+- Added `expandTilde(path, home?)` (`@oh-my-pi/pi-utils/path`), which expands a leading `~` to the home directory; `@oh-my-pi/pi-coding-agent/tools/path-utils` re-exports it ([#17931](https://github.com/can1357/oh-my-pi/pull/17931) by [@will-bogusz](https://github.com/will-bogusz))
 
 ## [1.2.0] - 2026-08-31
 

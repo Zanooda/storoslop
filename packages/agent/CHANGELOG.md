@@ -2,10 +2,13 @@
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-11-04
+
 ### Changed
 
 - Deprecated `createFileOps`, `computeFileLists`, `formatFileOperations`, `upsertFileOperations`, `isUrlSchemePath` and `FileOperations` in `@oh-my-pi/pi-agent-core/compaction`; they now re-export `@oh-my-pi/snapcompact`
 - Context estimates count text with native tokenizers, and a model with no known tokenizer family counts in o200k_base instead of guessing 4 bytes per token
+- Upstream `a536558dc2` integration (958 commits): adopted `Agent.prioritizeSteering`, `Tokenizer.countLatestTurn`, and `resumedToolCallIds` on `agent_start`.
 
 ### Fixed
 
@@ -14,16 +17,6 @@
 ### Removed
 
 - Removed `PI_TOKENIZER_ACCURATE`; every model is counted with a native tokenizer
-
-## [1.3.7] - 2026-10-16
-
-### Added
-
-- Added `wireToolsFingerprint()`, a hash of the tool specs a request sends ([#17496](https://github.com/can1357/oh-my-pi/pull/17496) by [@will-bogusz](https://github.com/will-bogusz))
-- Added `Agent.queuedMessageGate`, a synchronous `QueuedMessageGate` consulted before every queued-message delivery batch (it can drop candidates) and told when claimed messages go back undelivered
-### Fixed
-
-- Fixed steering and follow-up queue notifications observing a batch before its preparation claim was installed and missing the transition to delivery, leaving pending-message snapshots stale after asynchronous preparation.
 
 ## [18.16.0] - 2026-11-02
 
@@ -162,9 +155,6 @@
 
 - `agent_start` carries `resumedToolCallIds` when a continued run first executes the calls of an unpaired assistant tail
 
-### Changed
-
-- Upstream `a536558dc2` integration (958 commits): adopted `Agent.prioritizeSteering`, `Tokenizer.countLatestTurn`, and `resumedToolCallIds` on `agent_start`.
 ### Fixed
 
 - Cancelling an `ask` after a background job finishes now reports the user cancellation instead of telling the model to retry a skipped tool ([#15985](https://github.com/can1357/oh-my-pi/issues/15985))
@@ -1840,6 +1830,17 @@
 ## [1.337.0] - 2026-01-02
 
 Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
+
+## [1.3.7] - 2026-10-16
+
+### Added
+
+- Added `wireToolsFingerprint()`, a hash of the tool specs a request sends ([#17496](https://github.com/can1357/oh-my-pi/pull/17496) by [@will-bogusz](https://github.com/will-bogusz))
+- Added `Agent.queuedMessageGate`, a synchronous `QueuedMessageGate` consulted before every queued-message delivery batch (it can drop candidates) and told when claimed messages go back undelivered
+
+### Fixed
+
+- Fixed steering and follow-up queue notifications observing a batch before its preparation claim was installed and missing the transition to delivery, leaving pending-message snapshots stale after asynchronous preparation.
 
 ## [1.3.5] - 2026-10-11
 

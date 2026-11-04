@@ -6249,7 +6249,7 @@ dependencies = [
 
 [[package]]
 name = "pi-ast"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "anyhow",
  "ast-grep-core",
@@ -6291,7 +6291,7 @@ dependencies = [
 
 [[package]]
 name = "pi-builtins"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "ansi-width",
  "anyhow",
@@ -6372,11 +6372,11 @@ dependencies = [
 
 [[package]]
 name = "pi-diff"
-version = "1.3.7"
+version = "1.3.8"
 
 [[package]]
 name = "pi-edit"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "async-trait",
  "parking_lot",
@@ -6395,7 +6395,7 @@ dependencies = [
 
 [[package]]
 name = "pi-iso"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "async-trait",
  "libc",
@@ -6407,7 +6407,7 @@ dependencies = [
 
 [[package]]
 name = "pi-natives"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "anyhow",
  "arboard",
@@ -6500,7 +6500,7 @@ dependencies = [
 
 [[package]]
 name = "pi-predict"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "anyhow",
  "candle-core",
@@ -6518,7 +6518,7 @@ dependencies = [
 
 [[package]]
 name = "pi-shell"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6555,7 +6555,7 @@ dependencies = [
 
 [[package]]
 name = "pi-vcs"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "futures",
  "gix",
@@ -6571,7 +6571,7 @@ dependencies = [
 
 [[package]]
 name = "pi-vfs"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "async-trait",
  "libc",
@@ -6584,7 +6584,7 @@ dependencies = [
 
 [[package]]
 name = "pi-voice"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "bytes",
  "flume",
@@ -6598,7 +6598,7 @@ dependencies = [
 
 [[package]]
 name = "pi-walker"
-version = "1.3.7"
+version = "1.3.8"
 dependencies = [
  "async-trait",
  "flume",

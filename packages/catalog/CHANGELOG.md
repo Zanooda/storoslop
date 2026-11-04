@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-11-04
+
 ### Added
 
 - Adopted upstream `33ea58aa7d` (`18.16.0`) model catalog wholesale, with the fork's `storoslop/deepseek-v4.1-flash` seed merged at read time so single-provider setups keep working
@@ -10,13 +12,7 @@
 ### Changed
 
 - GPT-3.5 and GPT-4 resolve the `cl100k` tokenizer, and catalog models drive native-tokenizer context estimates instead of a bytes-per-token guess
-
-## [1.3.7] - 2026-10-16
-
-### Added
-
-- Added the `supports-message-threads` compat axis (`supportsMessageThreads`), enabled for Claude 4.5 and newer on the first-party Anthropic provider
-- Added a standard Responses WebSocket capability rule for explicit opt-in through OMP settings or SDK preferences, disabled by default ([#17354](https://github.com/can1357/oh-my-pi/pull/17354) by [@TatsukiMeng](https://github.com/TatsukiMeng))
+- Upstream `a536558dc2` integration (958 commits): adopted the `keep-bundled-names` attribute, the `gpt-image` family split, Vertex 1h prompt-cache retention, and the `sambanova` provider; the runtime registry stays single-provider over the bundled storoslop seed.
 
 ## [18.16.0] - 2026-11-02
 
@@ -262,7 +258,6 @@
 
 ### Changed
 
-- Upstream `a536558dc2` integration (958 commits): adopted the `keep-bundled-names` attribute, the `gpt-image` family split, Vertex 1h prompt-cache retention, and the `sambanova` provider; the runtime registry stays single-provider over the bundled storoslop seed.
 - GPT Image models (`gpt-image-*`, `chatgpt-image-*`) now classify as their own `gpt-image` family instead of `gpt` or `chatgpt`, so GPT chat-model rules no longer apply to them ([#14619](https://github.com/can1357/oh-my-pi/pull/14619) by [@jimhester](https://github.com/jimhester))
 
 ### Fixed
@@ -2335,6 +2330,13 @@
 ### Removed
 
 - Removed the runtime enrichment layer: `enrichModelThinking` (and its non-enumerable memo-slot cache), `refreshModelThinking`, `modelOmitsReasoningEffort`, and the `model-thinking` re-exports of generator-only policies. Thinking metadata is resolved exactly once inside `buildModel`; runtime helpers (`getSupportedEfforts`, `clampThinkingLevelForModel`, `requireSupportedEffort`, the effort mappers) are pure field reads.
+
+## [1.3.7] - 2026-10-16
+
+### Added
+
+- Added the `supports-message-threads` compat axis (`supportsMessageThreads`), enabled for Claude 4.5 and newer on the first-party Anthropic provider
+- Added a standard Responses WebSocket capability rule for explicit opt-in through OMP settings or SDK preferences, disabled by default ([#17354](https://github.com/can1357/oh-my-pi/pull/17354) by [@TatsukiMeng](https://github.com/TatsukiMeng))
 
 ## [1.3.1] - 2026-09-22
 
