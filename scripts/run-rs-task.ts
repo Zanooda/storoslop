@@ -28,10 +28,19 @@ const VENDORED_FORK_EXCLUDES = ["--exclude", "cfg_aliases", "--exclude", "napi"]
 // grep-searcher's upstream ripgrep code predates the workspace clippy policy, but
 // the fork's own `search_push` (src/searcher/push.rs, see its README.md) carries
 // tests, so it is exempt from the lint gates only and still runs under test:rs.
+//
+// pi-shell is the same class at a larger scale: upstream's bash 5.3 engine was
+// adopted wholesale in the 33ea58aa7d integration (replacing the vendored brush
+// crates) and is a line-by-line port of third-party C/shell code — 800+ pedantic
+// findings, none of them ours to restyle. It stays exempt from the lint AND
+// format gates (rustfmt.toml ignores crates/pi-shell/**), and still builds,
+// runs, and is held to zero rustc warnings.
 const LINT_EXEMPT_FORK_EXCLUDES = [
 	...VENDORED_FORK_EXCLUDES,
 	"--exclude",
 	"grep-searcher",
+	"--exclude",
+	"pi-shell",
 ] as const satisfies readonly string[];
 const TASK_COMMANDS = {
 	"check:rs": [

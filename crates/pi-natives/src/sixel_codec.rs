@@ -157,7 +157,9 @@ fn median_cut(rgba: &[u8]) -> Vec<[u8; 3]> {
 				choice = Some((index, axis, count));
 			}
 		}
-		let Some((index, axis, count)) = choice else { break };
+		let Some((index, axis, count)) = choice else {
+			break;
+		};
 		let (start, end) = boxes[index];
 		bins[start..end].sort_unstable_by_key(|bin| bin.sums[axis] / bin.count);
 		let mut weight = 0;
@@ -278,9 +280,9 @@ fn dither(rgba: &[u8], width: usize, palette: &[[u8; 3]]) -> Vec<u16> {
 			for channel in 0..3 {
 				// Match the previous encoder's default 7/8 diffusion strength.
 				let error = (color[channel] - f32::from(palette[nearest.0][channel])) * 0.875 / 16.0;
-				current[ahead][channel] += error * 7.0;
-				next[behind][channel] += error * 3.0;
-				next[x + 1][channel] += error * 5.0;
+				current[ahead][channel] = f32::mul_add(error, 7.0, current[ahead][channel]);
+				next[behind][channel] = f32::mul_add(error, 3.0, next[behind][channel]);
+				next[x + 1][channel] = f32::mul_add(error, 5.0, next[x + 1][channel]);
 				next[ahead][channel] += error;
 			}
 		}
@@ -428,7 +430,10 @@ pub(super) fn decode(bytes: &[u8]) -> Result<RgbaImage> {
 				if count >= 5 {
 					match values[1] {
 						1 => palette[index] = hls(values[2], values[3], values[4]),
-						2 => palette[index] = Rgba([percent(values[2]), percent(values[3]), percent(values[4]), 255]),
+						2 => {
+							palette[index] =
+								Rgba([percent(values[2]), percent(values[3]), percent(values[4]), 255]);
+						},
 						_ => {},
 					}
 				}
@@ -492,7 +497,7 @@ fn hls(hue: usize, lightness: usize, saturation: usize) -> Rgba<u8> {
 	let hue = ((hue % 360 + 240) % 360) as f64 / 60.0;
 	let lightness = lightness.min(100) as f64 / 100.0;
 	let saturation = saturation.min(100) as f64 / 100.0;
-	let chroma = (1.0 - (2.0 * lightness - 1.0).abs()) * saturation;
+	let chroma = (1.0 - 2.0f64.mul_add(lightness, -1.0).abs()) * saturation;
 	let secondary = chroma * (1.0 - (hue % 2.0 - 1.0).abs());
 	let rgb = match hue as usize {
 		0 => [chroma, secondary, 0.0],
