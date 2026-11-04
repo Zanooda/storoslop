@@ -47,7 +47,7 @@ $NativeArchitecture = switch ($RawArchitecture.ToUpperInvariant()) {
     default { throw "Unsupported Windows architecture: $RawArchitecture" }
 }
 $BinaryName = "storoslop-windows-$NativeArchitecture.exe"
-$MinimumBunVersion = "1.3.14"
+$MinimumBunVersion = "1.4.4"
 
 # PowerShell 5.1 raises a terminating NativeCommandError for any line a native
 # executable writes to stderr while $ErrorActionPreference is "Stop", regardless

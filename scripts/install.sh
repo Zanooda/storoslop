@@ -15,7 +15,7 @@ set -e
 REPO="Zanooda/storoslop"
 INSTALL_DIR="${PI_INSTALL_DIR:-$HOME/.local/bin}"
 APP_NAME="storoslop"
-MIN_BUN_VERSION="1.3.14"
+MIN_BUN_VERSION="1.4.4"
 
 # Parse arguments
 MODE=""

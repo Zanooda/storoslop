@@ -97,7 +97,7 @@ irm https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.ps1
 mise use -g github:Zanooda/storoslop
 ```
 
-macOS · Linux · Windows · bun ≥ 1.3.14
+macOS · Linux · Windows · bun ≥ 1.4.4
 
 ### Shell completions
 
@@ -601,7 +601,7 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 
 - storoslop rebrand and hosted capture assets
 - `1.3.x` → `1.4.0` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
-- `bun@1.3.14` + `@types/bun` pin (upstream moved to `packageManager: bun@>=1.4`)
+- `bun@1.4.4` + `@types/bun` pin (the merged upstream deleted its pre-1.4 runtime shims — cowork abort settling and YAML stringify stability — so 1.3.x is no longer supported)
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time
 - GitHub-release update flow (binary-only installer; no npm / canary / `updateViaManager`)

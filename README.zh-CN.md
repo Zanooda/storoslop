@@ -94,7 +94,7 @@ irm https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.ps1
 mise use -g github:Zanooda/storoslop
 ```
 
-macOS · Linux · Windows · bun ≥ 1.3.14
+macOS · Linux · Windows · bun ≥ 1.4.4
 
 ### Shell 补全
 
@@ -599,7 +599,7 @@ storoslop 派生自 [Mario Zechner](https://github.com/mariozechner) 的 [pi-mon
 
 - storoslop 品牌重命名与托管截图资源
 - `1.3.x` → `1.4.0` 的版本谱系，覆盖 `Cargo.toml` 工作区版本与各工作区 `packages/*/package.json` 版本（根 `package.json` 不含 version 字段；非谱系包 `browser-relay`、`collab-web`、`metaharness`、`typescript-edit-benchmark` 各自维护自己的版本）
-- `bun@1.3.14` + `@types/bun` 版本固定（上游已改为 `packageManager: bun@>=1.4`）
+- `bun@1.4.4` + `@types/bun` 版本固定（合并的上游已删除 1.4 之前的运行时兼容层——cowork 中止落定与 YAML 序列化稳定性——因此不再支持 1.3.x）
 - ghostty-web TUI 引擎
 - 单提供商模型注册表，读取时合并内置的 storoslop 模型
 - GitHub Release 更新流程（仅二进制安装器；无 npm / canary / `updateViaManager`）
