@@ -27,6 +27,9 @@ rust_library(
         "src/minimizer/filters/fixtures/**",
         # `include_str!` user-visible help pages (process/zsh_help*.txt).
         "src/process/*.txt",
+        # `include_str!`/`include_bytes!` fixtures the in-crate tests read.
+        "src/bash/vm/zle/testdata/**",
+        "src/testkit/fixtures/**",
     ]),
     crate_name = "pi_shell",
     edition = "2024",
