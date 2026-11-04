@@ -108,9 +108,7 @@ export async function mcpFetch(
 	originLocked: boolean,
 ): Promise<Response> {
 	if (!originLocked) {
-		// The pinned @types/bun (1.3.14) predates Bun's `timeout` fetch option, but the
-		// runtime accepts it (see the note above); assert to keep the runtime behavior typed.
-		return fetch(url, { ...init, headers: mergeMCPHeaders(sources), timeout: false } as RequestInit);
+		return fetch(url, { ...init, headers: mergeMCPHeaders(sources), timeout: false });
 	}
 
 	const configuredOrigin = new URL(url).origin;
