@@ -1,39 +1,37 @@
 import { describe, expect, it } from "bun:test";
 import { renderFormula } from "./ci-update-brew-formula";
 
-const SUMS = {
-	"storoslop-darwin-arm64": "darwin_arm64_sha",
-	"storoslop-darwin-x64": "darwin_x64_sha",
-	"storoslop-linux-arm64": "linux_arm64_sha",
-	"storoslop-linux-x64": "linux_x64_sha",
+const BASE = "https://github.com/Zanooda/storoslop/releases/download/v1.4.0";
+const FILES = {
+	macosArm: { url: `${BASE}/storoslop-darwin-arm64`, sha256: "darwin_arm64_sha" },
+	macosIntel: { url: `${BASE}/storoslop-darwin-x64`, sha256: "darwin_x64_sha" },
+	linuxArm: { url: `${BASE}/storoslop-linux-arm64`, sha256: "linux_arm64_sha" },
+	linuxIntel: { url: `${BASE}/storoslop-linux-x64`, sha256: "linux_x64_sha" },
 };
 
 describe("renderFormula", () => {
-	const formula = renderFormula("15.12.1", SUMS);
+	const formula = renderFormula("1.4.0", FILES);
 
 	// Regression: bare-binary URLs must opt out of Homebrew's UnpackStrategy.
 	// Without `using: :nounzip` the default CurlDownloadStrategy nests the file
-	// outside the staging CWD, `Dir["omp-*"].first` returns `nil`, and
-	// `bin.install nil => "omp"` raises (issue #2398).
-	it("attaches `using: :nounzip` to every per-platform url stanza", () => {
+	// outside the staging CWD, `Dir["storoslop-*"].first` returns `nil`, and
+	// `bin.install nil => "storoslop"` raises (issue #2398).
+	// Each stanza also repeats the GitHub release asset as a mirror for proxies
+	// that block the release download's object-storage redirect.
+	it("attaches `using: :nounzip` and a GitHub release mirror to every per-platform url stanza", () => {
 		const matches = formula.match(/using: :nounzip/g) ?? [];
 		expect(matches).toHaveLength(4);
-		for (const arch of [
-			"storoslop-darwin-arm64",
-			"storoslop-darwin-x64",
-			"storoslop-linux-arm64",
-			"storoslop-linux-x64",
-		]) {
-			expect(formula).toMatch(
-				new RegExp(
-					`url "https://github\\.com/[^"]+/${arch}",\\s+using: :nounzip\\s+sha256 "${SUMS[arch as keyof typeof SUMS]}"`,
-				),
+		for (const key in FILES) {
+			const file = FILES[key as keyof typeof FILES];
+			const asset = file.url.slice(file.url.lastIndexOf("/") + 1);
+			expect(formula).toContain(
+				`url "${file.url}",\n          using: :nounzip\n      mirror "https://github.com/Zanooda/storoslop/releases/download/v1.4.0/${asset}"\n      sha256 "${file.sha256}"`,
 			);
 		}
 	});
 
 	// Regression: completions generation must run with HOME redirected so the
-	// popened binary doesn't touch the real `~/.omp` (denied by Homebrew's
+	// popened binary doesn't touch the real `~/.storoslop` (denied by Homebrew's
 	// sandbox profile) during the build (issue #2398).
 	it("wraps `generate_completions_from_executable` with a HOME redirect to buildpath", () => {
 		expect(formula).toMatch(
@@ -43,5 +41,9 @@ describe("renderFormula", () => {
 		// outside the `with_env` block.
 		const blockless = formula.replace(/with_env\(HOME: buildpath\) do[\s\S]*?end/, "");
 		expect(blockless).not.toMatch(/generate_completions_from_executable/);
+	});
+
+	it("installs the branded binary name", () => {
+		expect(formula).toContain('bin.install Dir["storoslop-*"].first => "storoslop"');
 	});
 });

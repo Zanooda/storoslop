@@ -3,10 +3,12 @@
 Core implementation package for the `storoslop` coding agent in the `storoslop` monorepo.
 
 For installation, setup, provider configuration, model roles, slash commands, and full CLI reference, see:
+
 - [Monorepo README (local)](../../README.md)
 - [Monorepo README (GitHub)](https://github.com/can1357/oh-my-pi#readme)
 
 Package-specific references:
+
 - [CHANGELOG](./CHANGELOG.md)
 - [MCP configuration guide](../../docs/mcp-config.md)
 - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
@@ -15,7 +17,7 @@ Package-specific references:
 
 ## Memory backends
 
-The agent supports three mutually-exclusive memory backends, selected via the `memory.backend` setting (Settings → Memory tab, or `~/.omp/config.yml`):
+The agent supports three mutually-exclusive memory backends, selected via the `memory.backend` setting (Settings → Memory tab, or `~/.storoslop/config.yml`):
 
 - `off` (default) — no memory subsystem runs.
 - `local` — existing rollout-summarisation pipeline; writes `memory_summary.md` and consolidated artifacts under the agent dir.

@@ -16,7 +16,7 @@ storoslop plugin marketplace add ./docs/skills/examples/mini-marketplace
 storoslop plugin install my-plugin@example-marketplace
 ```
 
-Run these paths from the repository root. Start or reload `omp` after CLI installation to load the extension; its `session_start` handler shows a notification in interactive mode.
+Run these paths from the repository root. Start or reload `storoslop` after CLI installation to load the extension; its `session_start` handler shows a notification in interactive mode.
 
 ## What it demonstrates
 

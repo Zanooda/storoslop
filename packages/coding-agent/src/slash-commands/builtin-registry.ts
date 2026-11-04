@@ -1,4 +1,4 @@
-import { clearSubmittedText } from "./helpers/draft";
+import { clearSubmittedText, restoreDetachedDraft } from "./helpers/draft";
 import type { AutocompleteItem } from "@oh-my-pi/pi-tui";
 import { BUILTIN_AUTOPROMPT_SLASH_COMMANDS } from "../autoprompt/command";
 import { COLLAB_GUEST_ALLOWED_COMMANDS } from "../collab/guest";
@@ -8,6 +8,7 @@ import {
 	buildDirectoryArgumentCompletions,
 	buildEffortArgumentCompletions,
 	buildEffortInlineHint,
+	buildLocalFileArgumentCompletions,
 	buildMcpArgumentCompletions,
 	buildModelSelectorCompletions,
 	buildStaticInlineHint,
@@ -102,6 +103,9 @@ function materializeTuiBuiltinSlashCommand(
 	} else if (cmd.name === "move") {
 		materialized.getArgumentCompletions = buildDirectoryArgumentCompletions();
 		if (cmd.inlineHint) materialized.getInlineHint = buildStaticInlineHint(cmd.inlineHint);
+	} else if (cmd.name === "local" && runtime) {
+		materialized.getArgumentCompletions = buildLocalFileArgumentCompletions(runtime);
+		if (cmd.inlineHint) materialized.getInlineHint = buildStaticInlineHint(cmd.inlineHint);
 	} else if (cmd.name === "switch" && runtime) {
 		materialized.getArgumentCompletions = buildModelSelectorCompletions(runtime);
 		if (cmd.inlineHint) materialized.getInlineHint = buildStaticInlineHint(cmd.inlineHint);
@@ -156,7 +160,12 @@ export async function executeBuiltinSlashCommand(
 	// host-only; the allowlist covers purely local/read-only commands.
 	if (runtime.ctx.collabGuest && !COLLAB_GUEST_ALLOWED_COMMANDS[command.name]) {
 		runtime.ctx.showStatus(`/${command.name} is host-only during a collab session`);
-		clearSubmittedText(runtime);
+		// A detached draft already left the editor: give it back, images included.
+		if (runtime.draftDetached) {
+			restoreDetachedDraft(runtime.ctx.editor, parsed.text, runtime.input?.images, runtime.input?.imageLinks);
+		} else {
+			clearSubmittedText(runtime);
+		}
 		return true;
 	}
 	if (command.handleTui) {
@@ -182,6 +191,7 @@ export async function executeBuiltinSlashCommand(
 			},
 			refreshCommands: () => ctx.refreshSlashCommandState(),
 			reloadPlugins: () => reloadTuiPluginState(ctx),
+			notifySessionPinChanged: (sessionId: string, pinned: boolean) => ctx.applySessionPin(sessionId, pinned),
 		};
 		const result = await command.handle(parsed, adapted);
 		clearSubmittedText(runtime);

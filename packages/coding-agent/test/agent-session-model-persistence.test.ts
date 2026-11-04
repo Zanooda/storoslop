@@ -13,7 +13,7 @@ import { getRestorableSessionModels } from "@oh-my-pi/pi-coding-agent/session/se
 import { EPHEMERAL_MODEL_CHANGE_ROLE } from "@oh-my-pi/pi-coding-agent/session/session-entries";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { encodeRawPng } from "@oh-my-pi/pi-coding-agent/utils/png-encode";
-import { AUTO_THINKING } from "@oh-my-pi/pi-tui/thinking";
+import { AUTO_THINKING, resolveProvisionalAutoLevel } from "@oh-my-pi/pi-tui/thinking";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import * as snapcompact from "@oh-my-pi/snapcompact";
 import { createAssistantMessage } from "./helpers/agent-session-setup";
@@ -23,7 +23,7 @@ describe("AgentSession model persistence", () => {
 	let session: AgentSession | undefined;
 	let sessionSettings: Settings;
 	// Auth storage (SQLite DB) and the model registry are immutable across these tests:
-	// every test sets the same anthropic runtime key and only ever reads the bundled model
+	// every test sets the same anthropic/zai runtime keys and only ever reads the bundled model
 	// list. Building them once avoids ~12 SQLite opens + registry constructions.
 	let sharedDir: TempDir;
 	let sharedAuthStorage: AuthStorage;
@@ -76,6 +76,7 @@ describe("AgentSession model persistence", () => {
 				},
 			}),
 		);
+		sharedAuthStorage.keys.setRuntime("zai", "test-key");
 		sharedModelRegistry = new ModelRegistry(sharedAuthStorage, path.join(sharedDir.path(), "models.yml"));
 	});
 
@@ -482,6 +483,39 @@ describe("AgentSession model persistence", () => {
 		expect(result.session.configuredThinkingLevel()).toBe(AUTO_THINKING);
 	});
 
+	it("keeps DEFAULT-role auto thinking on a fresh session when the model declares defaultLevel (#16370)", async () => {
+		// Fork: upstream's case used a bundled non-storoslop model (zai/glm-5.3), which the
+		// single-provider runtime registry never admits for chat roles. The bundled
+		// storoslop gateway model declares the same `thinking.defaultLevel` contract.
+		const model = getSlopModelOrThrow("deepseek-v4.1-flash");
+		expect(model.thinking?.defaultLevel).toBe(Effort.High);
+		// The /model hub stores DEFAULT-role `auto` as a bare role plus `defaultThinkingLevel: auto`.
+		const settings = Settings.isolated({ defaultThinkingLevel: AUTO_THINKING });
+		settings.setModelRole("default", modelValue(model));
+		const result = await createAgentSession({
+			cwd: tempDir.path(),
+			agentDir: tempDir.path(),
+			authStorage: sharedAuthStorage,
+			modelRegistry: sharedModelRegistry,
+			sessionManager: SessionManager.create(tempDir.path(), path.join(tempDir.path(), "fresh-auto")),
+			settings,
+			disableExtensionDiscovery: true,
+			skills: [],
+			contextFiles: [],
+			promptTemplates: [],
+			slashCommands: [],
+			enableMCP: false,
+			enableLsp: false,
+			skipPythonPreflight: true,
+		});
+		session = result.session;
+
+		expect(result.session.model?.id).toBe(model.id);
+		expect(result.session.configuredThinkingLevel()).toBe(AUTO_THINKING);
+		expect(result.session.thinkingLevel).toBe(resolveProvisionalAutoLevel(model));
+		expect(result.session.thinkingLevel).not.toBe(Effort.Max);
+	});
+
 	it("marks an incomplete process-exit transcript aborted during SDK resume without dropping history", async () => {
 		const sessionManager = SessionManager.create(tempDir.path(), path.join(tempDir.path(), "interrupted"));
 		const interruptedAssistant: AssistantMessage = {
@@ -600,7 +634,7 @@ describe("AgentSession model persistence", () => {
 		return encodeRawPng(new Uint8Array(pixels.buffer), 800, 500, 3).toString("base64");
 	}
 
-	/** Appends a 4.8 MB three-frame archive: over the 3 MB default, inside half of Anthropic's 24 MB inline-image budget. */
+	/** Appends a 4.8 MB three-frame archive: over the 3 MB default, inside half of Anthropic's 120 MB inline-image budget. */
 	function appendFrameArchive(sessionManager: SessionManager, firstKeptEntryId: string): void {
 		const frame = (seed: number) => ({
 			data: framePng(seed),

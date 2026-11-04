@@ -36,8 +36,8 @@ Legacy behavior still present:
 
 ```yaml
 providers:
-  <provider-id>:
-    # provider-level config
+   <provider-id>:
+      # provider-level config
 ```
 
 `provider-id` is the canonical provider key used across selection and auth lookup.
@@ -48,57 +48,57 @@ providers:
 
 ```yaml
 providers:
-  my-provider:
-    baseUrl: https://api.example.com/v1
-    apiKey: MY_PROVIDER_API_KEY
-    api: openai-completions
-    headers:
-      X-Team: platform
-    authHeader: true
-    auth: apiKey
-    disableStrictTools: false # set true for Anthropic-compatible endpoints that reject the strict field
-    discovery:
-      type: ollama
-      timeoutMs: 10000 # optional per-provider HTTP probe timeout in milliseconds
-    modelOverrides:
-      some-model-id:
-        name: Renamed model
-    models:
-      - id: some-model-id
-        name: Some Model
-        api: openai-completions
-        reasoning: false
-        input: [text]
-        imageInputDecoder: stb # local STB decoder; storoslop converts WebP before dispatch
-        cost:
-          input: 0
-          output: 0
-          cacheRead: 0
-          cacheWrite: 0
-        contextWindow: 128000
-        maxContextWindow: 256000 # optional extended-context window
-        maxTokens: 16384
-        headers:
-          X-Model: value
-        compat:
-          supportsStore: true
-          supportsDeveloperRole: true
-          supportsReasoningEffort: true
-          maxTokensField: max_completion_tokens
-          openRouterRouting:
-            only: [anthropic]
-          vercelGatewayRouting:
-            order: [anthropic, openai]
-          extraBody:
-            gateway: m1-01
-            controller: mlx
+   my-provider:
+      baseUrl: https://api.example.com/v1
+      apiKey: MY_PROVIDER_API_KEY
+      api: openai-completions
+      headers:
+         X-Team: platform
+      authHeader: true
+      auth: apiKey
+      disableStrictTools: false # set true for Anthropic-compatible endpoints that reject the strict field
+      discovery:
+         type: ollama
+         timeoutMs: 10000 # optional per-provider HTTP probe timeout in milliseconds
+      modelOverrides:
+         some-model-id:
+            name: Renamed model
+      models:
+         - id: some-model-id
+           name: Some Model
+           api: openai-completions
+           reasoning: false
+           input: [text]
+           imageInputDecoder: stb # local STB decoder; storoslop converts WebP before dispatch
+           cost:
+              input: 0
+              output: 0
+              cacheRead: 0
+              cacheWrite: 0
+           contextWindow: 128000
+           maxContextWindow: 256000 # optional extended-context window
+           maxTokens: 16384
+           headers:
+              X-Model: value
+           compat:
+              supportsStore: true
+              supportsDeveloperRole: true
+              supportsReasoningEffort: true
+              maxTokensField: max_completion_tokens
+              openRouterRouting:
+                 only: [anthropic]
+              vercelGatewayRouting:
+                 order: [anthropic, openai]
+              extraBody:
+                 gateway: m1-01
+                 controller: mlx
 ```
 
 `maxContextWindow` is available on both `models` entries and `modelOverrides`.
 Set `contextWindow` to the normal prompt window and `maxContextWindow` to the
 larger prompt window accepted by the provider. `/extended-context on` selects
 the larger window; `off` restores the normal one. An override specifying only
-`contextWindow` remains fixed in both modes, as before. This changes OMP's
+`contextWindow` remains fixed in both modes, as before. This changes storoslop's
 local context budget, not the provider's server-side limit; verify the endpoint
 accepts requests of the configured size.
 Configured maxima do not replace provider-advertised capacity. Models governed
@@ -114,8 +114,94 @@ An unscoped OpenRouter `baseUrl` names the `/api/v1` chat root, so OpenRouter De
 models use its `/api/alpha` sibling on the same host, e.g. a `.../api/v1` relay serves judges at
 `.../api/alpha/decisions`.
 
-`preferWebsockets` (on a model or `modelOverrides` entry) controls whether Codex requests prefer
-the WebSocket transport. `omitMaxOutputTokens` omits the model-derived output cap.
+`omitMaxOutputTokens` omits the model-derived output cap.
+
+### Standard Responses WebSockets
+
+Standard Responses uses HTTP/SSE by default, including at the official OpenAI
+endpoint. To opt in from storoslop, set this in `config.yml`:
+
+```yaml
+providers:
+  openaiResponsesWebsockets: true
+```
+
+The catalog's `supports-websockets` KDL rule marks capability, not enablement.
+It covers OpenAI `openai-responses`, including custom providers that inherit that
+provider type. Copilot, OpenRouter and other unmarked provider/API combinations
+remain on HTTP/SSE. The independent `providers.openaiWebsockets: auto|off|on` setting
+and `PI_CODEX_WEBSOCKET` continue to govern Codex only.
+
+Model and request `preferWebsockets` can only narrow storoslop's setting: **either explicit
+`false` disables WS**, even if the other is `true`. Turning the setting off cannot
+be overridden. Standalone pi-ai SDK callers have no storoslop settings dependency: they
+must explicitly opt in with a request or model `true`; either `false` still vetoes it.
+
+For a gateway with uneven support, keep the existing provider entry in `models.yml`
+and disable WS for the affected model:
+
+```yaml
+providers:
+  openai:
+    api: openai-responses
+    baseUrl: https://gateway.example.com/v1
+    modelOverrides:
+      gpt-5:
+        preferWebsockets: false
+```
+
+Custom `models` entries accept the same boolean. WS uses the existing `/responses`
+endpoint and authentication; the gateway must implement `response.create`.
+SDK `fetch` overrides affect HTTP/SSE, not sockets. Explicit WS opt-in bypasses that
+HTTP override for the socket; an HTTP fallback still uses it.
+
+Payload construction and `onPayload` precede connecting, including for cancelled
+requests. A pre-send handshake network failure, connect timeout, or upgrade
+404/405/426/501 rebuilds the full HTTP candidate with its normal storage/chaining
+rules and calls `onPayload` again. The hook may replace each candidate; it does not
+see the final socket-local delta. Other upgrade statuses retain normal error
+classification. Diagnostics preserve status and available headers, not a buffered
+rejected-upgrade body.
+
+When handshake headers are available, `onResponse` reports the physical WS
+handshake once, marked with `metadata.transport="websocket"` and
+`metadata.phase="handshake"`. Reusing the socket does not emit another handshake.
+These are not per-generation headers; no generation request ID is invented.
+`storoslop bench --json` includes the transport when response metadata makes it
+observable. Standard WS cache benchmarks still measure generation usage, but
+cannot claim per-generation request IDs or HTTP response-cache headers.
+
+A healthy retained socket can send incremental `previous_response_id` turns,
+including with `store: false`. Changed history/options, credentials, concurrent
+temporary sockets, or a replacement after the **30-second idle limit** require
+full input without an old socket's anchor. Continuation follows the same opt-outs
+as HTTP chaining: `statefulResponses: false`, `PI_OPENAI_STATEFUL=0`, or a model's
+`compat.statefulResponses: false` sends full history on every WS turn, so set the
+compat flag for gateways that ignore `previous_response_id`. Three consecutive
+stale-anchor rejections stop sending anchors for the logical session. Official HTTP
+can already use stored stateful chaining independently of that socket lifetime; WS
+is not guaranteed to save traffic or latency there.
+
+Injected `previous_response_id` and `background: true` are rejected. A definite
+first-frame stale-anchor rejection permits one full-history resend on the same
+healthy socket before generation evidence. WS does not inherit HTTP transient,
+resume, or empty-completion retries; a successful empty WS response submits once.
+
+After an uncertain send, a transport failure or stream timeout fails the call
+without hidden HTTP replay. Partial output remains available; existing Agent
+recovery may start an SSE continuation under its own rules, retaining completed
+tool results and never executing incomplete arguments. Caller abort and protocol/
+queue errors do not mark transport incompatibility.
+
+An upgrade rejection (404/405/426/501) or a post-send transport failure makes the
+SSE downgrade sticky for the logical session, endpoint and model until
+`releaseSession`/provider-state `close` or a new scope. A pre-send network failure or
+connect timeout falls back for that request only; a second consecutive one becomes
+sticky, and a completed WS exchange resets the count. Embedders retaining provider
+state must release finished sessions. Calls without a logical session ID do not
+share sticky state; without `providerSessionState`, it lasts only for that call.
+Normal idle retirement is not a downgrade. Codex's protocol and recovery remain
+independent.
 
 ### Bedrock request options
 
@@ -147,19 +233,37 @@ override matching model tags. These fields do not configure the Anthropic Messag
 - `workers-ai-systemone`
 
 `typesafe`, `openrouter-decisions`, `openai-decisions`, and `workers-ai-systemone` are judgment APIs, not chat transports: a model declared with one answers judgment requests and is selected by the `judge` model role. `typesafe` posts TypeSafe's System One body to `{baseUrl}/v1/systemone` (any System One server: TypeSafe, OpenJEV, Kev, self-hosted Clef); `openrouter-decisions` posts the same body to `{baseUrl}/decisions`; `openai-decisions` translates questions and answers to OpenAI's Decisions API at `{baseUrl}/decisions` (the bundled `openai/gpt-6-luna-decisions` row sends the wire model `gpt-6-luna`); `workers-ai-systemone` posts the System One body to Cloudflare Workers AI at `{baseUrl}/{model id}`, where `<account>` in the base URL is filled from the stored credential's account id or `CLOUDFLARE_ACCOUNT_ID`. Its `headers` carry gateway routing or custom authentication headers for that traffic.
-Judgment requests can share image attachments with vision-chat requests. Native OpenAI Decisions and Workers AI judges, plus prompted vision-chat models, support images; text-only candidates are skipped for image requests. `Judge.supportsImages` identifies compatible candidates, and a judge chain with no image-capable model fails explicitly rather than dropping images. Prompted judgments normalize images for the selected candidate, including upscaling undersized rasters and converting WebP for models with STB-backed decoders; native judges continue to receive the original image bytes.
+Judgment requests can share image attachments with vision-chat requests. Native OpenAI Decisions, TypeSafe Jev, OpenRouter Jev, and Workers AI judges, plus prompted vision-chat models, support images; text-only candidates are skipped for image requests. `Judge.supportsImages` identifies compatible candidates, and a judge chain with no image-capable model fails explicitly rather than dropping images. Prompted judgments normalize images for the selected candidate, including upscaling undersized rasters and converting WebP for models with STB-backed decoders; native judges continue to receive the original image bytes. When constructing a `NativeJudge` directly for System One, set `supportsImages: true`; `createNativeJudge` derives this flag from the catalog.
 
-OpenAI Decisions forwards embedded `ImageContent.detail` when supplied. Native image-judgment cache identities include the effective detail: different fidelity settings have separate cached answers, while omitted detail and explicit `auto` share the default setting.
+Catalog-backed native judges apply the selected model's image bounds. Direct `NativeJudge` constructors can supply `imageInput` bounds explicitly; opting into images does not inherit Jev's size limits for unrelated System One models.
 
-Image inputs are validated before any candidate runs: a malformed image fails the judgment as a caller error instead of exhausting the chain. Native judges receive the original image bytes, and each dialect's documented caps are enforced before the request is sent; Workers AI Clef accepts at most 4 PNG, JPEG, or WebP images of up to 4 MiB and 16 MP each, 8 MiB in total. Valid padded and unpadded base64, and MIME case variants, share one cache identity.
+OpenAI Decisions forwards embedded `ImageContent.detail`, and different explicit fidelity settings retain separate native image-judgment cache entries. TypeSafe Jev has no image-detail equivalent: detail is ignored on the wire and in cache identity, so requests that differ only by detail can reuse an answer. Omitted detail and explicit `auto` share the default setting.
 
-After image-capability filtering, the same native-only tail policy used for text judgments applies: a failed native judge may fall through to another compatible native, never to a prompted chat model. When no compatible native remains, eligible prompted candidates and a vision-capable session-model fallback remain available.
+Image inputs are validated before any candidate runs; malformed images fail as caller errors rather than exhausting the chain. Providers may enforce additional limits. Workers AI Clef accepts at most 4 PNG, JPEG, or WebP images of up to 4 MiB and 16 MP each, 8 MiB in total. Valid padded and unpadded base64, and MIME case variants, share one cache identity.
 
-For example, configure the judge role and attach an image in JavaScript or Python:
+After image filtering, the same native-only tail policy used for text judgments applies: a failed native judge may fall through to another compatible native, never to a prompted chat model. Filtering removes natives without image support and natives whose image-count cap the request exceeds, so when no compatible native remains, eligible prompted candidates and a vision-capable session-model fallback can still answer. Size bounds never filter a native: each image is fitted into them first (see below).
+
+#### Jev images (experimental)
+
+Native image judgments for Jev are experimental. Direct TypeSafe Jev supports `jev-latest`, `jev-preview`, `jev-1.13.0`, and `jev-1.14.0` (the default `judge` role uses `typesafe/jev-1.14.0`; `jev-latest` is TypeSafe's stable alias, currently `jev-1.13.0`). OpenRouter supports `typesafe/jev-1.13`, `typesafe/jev-1.14`, and `~typesafe/jev-latest`.
+
+Images join `state` without replacing it: an object root keeps its fields and gains them under a collision-safe `__omp_judgment_images` key (with a numeric suffix if the key is taken), an array root gains them at the end, and a string root becomes `[original, ...images]`. Direct TypeSafe requests add each image as a referenced `assets` entry and put its reference in `state`, setting `TypeSafe-Danger-Zone-Images: true` only when images are attached; caller-supplied assets (auth gateway) must each be referenced in `state`, `instructions`, or `criteria`, and each split request carries only the assets it references. OpenRouter encodes each image as an `image_url` data URL part and uses neither the TypeSafe header nor a top-level `images` field.
+
+Text-only requests retain their original request shape and bytes. Image support is limited to the listed TypeSafe Jev and OpenRouter Jev models; it does not imply support for other System One-compatible servers or OpenRouter Decisions models.
+
+Both paths accept PNG and JPEG of 280–1568 pixels per side and 78,400–2,458,624 pixels in total, and reject anything else rather than resizing it. The judge chain therefore fits every image into a native judge's bounds before sending: an image already inside them keeps its original bytes; any other is scaled down past a maximum, or up toward a minimum as far as the maximums allow, without distortion, then padded with its top-left pixel when an extreme aspect ratio still leaves a side short (a 401×41 toolbar crop becomes 1568×160 centered on 1568×280), and re-encoded as PNG, or JPEG when the PNG exceeds the byte cap. TypeSafe Jev has no image-detail equivalent, so `ImageContent.detail` is ignored on direct TypeSafe requests.
+
+[Box questions](https://docs.typesafe.ai/primitives/box) (`{ type: "box", instructions, image }`) need Jev 1.14 and go only to TypeSafe and OpenRouter Decisions judges; the chain skips every other candidate for a request that has one, with no prompted or session-model fallback. `image` indexes the request's `images` and never reaches the wire, so `instructions` must still name the image to search among several. Jev answers with edges as fractions of the image it was sent; when fitting padded that image, the chain maps the edges back onto the image you passed and clamps any edge that lands in the padding.
+
+See TypeSafe's [image documentation](https://docs.typesafe.ai/images) and OpenRouter's [multimodal Decisions guide](https://openrouter.ai/docs/guides/community/multimodal-decisions) for their image constraints.
+
+OpenRouter's guide lists a 256 px minimum side, but a [report of a live Jev 1.14 request](https://github.com/can1357/oh-my-pi/pull/15887#issuecomment-6218295982) says a 270×300 PNG received HTTP 400; the 280 px minimum side is intentional and remains in effect.
+
+For example, configure TypeSafe Jev as the judge and attach an image in JavaScript or Python:
 
 ```yaml
 modelRoles:
-  judge: openai/gpt-6-luna-decisions
+   judge: typesafe/jev-1.14.0
 ```
 
 ```js
@@ -174,15 +278,15 @@ A model or `modelOverrides` entry may also use a runner API, which serves one mo
 
 ```yaml
 providers:
-  my-gateway:
-    api: openai-responses
-    discovery:
-      type: openai-models-list
-    modelOverrides:
-      gpt-image-2:
-        api: openai-images # kind: image, generated via /images/generations
-      gpt-image-1.5:
-        kind: image # stays on openai-responses, generated via the hosted image tool
+   my-gateway:
+      api: openai-responses
+      discovery:
+         type: openai-models-list
+      modelOverrides:
+         gpt-image-2:
+            api: openai-images # kind: image, generated via /images/generations
+         gpt-image-1.5:
+            kind: image # stays on openai-responses, generated via the hosted image tool
 ```
 
 A configured `kind`, explicit or implied by a runner API, outranks the bundled catalog's classification of the same id and survives `modelOverrides` and refreshes.
@@ -194,9 +298,11 @@ Loading models.yml checks a `modelOverrides` `kind` only against an api the file
 - `auth`: `apiKey` (default), `none`, or `oauth`. `none` and `oauth` waive the custom-provider `apiKey` requirement, but `oauth` does not create credentials or register a login flow. It forces OAuth-style request shaping; a usable credential must come from stored auth, environment, or a configured key. Custom `anthropic-messages` models also use OAuth-style shaping when `auth` is omitted; set `auth: apiKey` for plain API-key shaping.
 - `discovery.type`: `ollama`, `llama.cpp`, `lm-studio`, `openai-models-list`, `proxy`, `litellm`, or `apple-foundation-models`. Apple's transport is registered implicitly on supported Macs; `apple-foundation-models` is not an allowed `api` value in this YAML schema.
 - `discovery.injectV1`: optional boolean, default `true`, for `openai-models-list`. Set `false` to fetch the model list from `{baseUrl}/models` without injecting `/v1` — for gateways that root their OpenAI-compatible surface at a versioned path (e.g. `https://api.opper.ai/v3/compat`) where the forced `/v1/models` returns a different, smaller model list. Query strings in `baseUrl` are ignored, matching the default mode.
+- `discovery.advertisedReasoning`: optional boolean, default `true`, for `openai-models-list`, `lm-studio`, and `proxy`. Discovery reads what a `/v1/models` row states about its own reasoning surface (`supported_reasoning_levels` / `default_reasoning_level` / `reasoning`, top-level or under `metadata`) and lets it outrank the bundled-reference guess, so a gateway that dispatches with its own catalog offers exactly the tiers its route accepts. A row that lists `none` gets `reasoningDisableMode: none-effort`, so a thinking-off request sends the off-switch instead of being clamped to the lowest tier. An advertised ladder also pins `defaultLevel` inside itself, so catalog policy cannot inject a tier the row omits. A row reporting `reasoning: false` overrides a reasoning-enabled reference for that id. Set the flag to `false` when an endpoint advertises levels its route rejects: discovery then builds each model's thinking surface from the bundled reference alone. A row that says nothing about reasoning is unaffected either way. Explicit `modelOverrides.<id>.thinking` and `compat.supportsReasoningEffort` still win over both. `litellm` does not accept the flag: its authoritative reasoning metadata comes from `/model_group/info`, so the setting would only apply to its `/v1/models` fallback.
 - `transport`: `pi-native` only. When set, every model under that provider is sent to an `storoslop auth-gateway` compatible `baseUrl` via `POST /v1/pi/stream`; `apiKey` is the gateway bearer.
 - `imageInputDecoder`: `stb` only. Set this on a custom model or `modelOverrides` entry when the serving backend uses an STB-compatible image decoder that cannot accept WebP; storoslop converts attached and historical WebP images before provider dispatch.
-- `tokenizer`: opt into a specific embedded local tokenizer when a proxy's model id is ambiguous or noncanonical. Allowed values: `claude-v3`, `claude-v47`, `claude-v5`, `claude-v5-sonnet`, `qwen3`, `deepseek-v3`, `kimi-k2`, `glm5`, and `o200k` (OpenAI GPT-5 and later). Omit it to use catalog identity policy; unknown models retain the fast local estimate.
+- `imageCountBudget`: positive integer. Set this on a custom model or `modelOverrides` entry to state how many images one request to its host may carry. It replaces the catalog budget, which is 5 for a provider no catalog rule names. A gateway in front of a vendor with a higher limit needs it: once a session holds more images than the budget, storoslop drops the oldest ones, which changes the cached prompt prefix.
+- `tokenizer`: opt into a specific embedded local tokenizer when a proxy's model id is ambiguous or noncanonical. Allowed values: `claude-v3`, `claude-v47`, `claude-v5`, `claude-v5-sonnet`, `qwen3`, `deepseek-v3`, `kimi-k2`, `glm5`, `cl100k` (OpenAI GPT-3.5 and GPT-4) and `o200k` (OpenAI GPT-5 and later). Omit it to use catalog identity policy; models without one count in o200k.
 
 ## Validation rules (current)
 
@@ -243,6 +349,11 @@ use native OpenAI compaction without an opt-in, for any provider id. Set
 `enabled: false` to turn it off, or `v2StreamingEnabled: false` to keep only
 the V1 `/responses/compact` request. See [compaction](./compaction.md).
 
+Bedrock Converse Claude models compact natively through a Bedrock Runtime side request on AWS endpoints;
+a custom non-AWS `baseUrl` needs `remoteCompaction.enabled: true`, and `enabled: false` opts out. See
+[compaction](./compaction.md#summary-generation). The separate Anthropic Messages `/anthropic` route has
+its own [setup](./models.md#claude-on-bedrocks-anthropic-messages-api-anthropic).
+
 ### Model value checks
 
 - `id` is required and non-empty; optional `name`, model `baseUrl`, `contextPromotionTarget`, and `compactionModel` must also be non-empty
@@ -263,10 +374,10 @@ Provider `apiKey` values and provider/model `headers` values may start with `!` 
 
 ```yaml
 providers:
-  openai:
-    apiKey: "!op read op://dev/openai/api-key"
-    headers:
-      X-Team-Key: "!bw get password omp-team-key"
+   openai:
+      apiKey: "!op read op://dev/openai/api-key"
+      headers:
+         X-Team-Key: "!bw get password storoslop-team-key"
 ```
 
 Successful command outputs are cached for the process lifetime, and concurrent requests share an in-flight execution. Failures back off for 30 seconds. Refresh callers that request `refreshCommandCredentials` (including the model hub's explicit refresh) and 401 credential recovery invalidate the relevant cached API keys and headers; an ordinary catalog refresh does not. Runtime API-key overrides, including `--api-key`, take precedence over configured credentials.
@@ -303,11 +414,11 @@ non-authoritative snapshots use a five-minute retry interval.
 
 ### Shared catalog refresh
 
-The bundled catalog remains the startup and offline baseline. Startup loads configuration and cached rows, materializing provider slices lazily; a local-only credential-scoped hydration pass precedes selector validation. Background refresh fetches the shared models.dev catalog through `https://catalog.stencil.so/models.json.zstd` for supported providers. New model IDs are merged additively into each provider's bundled slice, normalized through that provider's catalog descriptor, and persisted in the model-cache database. This allows newly published models to appear without waiting for a new OMP binary.
+The bundled catalog remains the startup and offline baseline. Startup loads configuration and cached rows, materializing provider slices lazily; a local-only credential-scoped hydration pass precedes selector validation. Background refresh fetches the shared models.dev catalog through `https://catalog.stencil.so/models.json.zstd` for supported providers. New model IDs are merged additively into each provider's bundled slice, normalized through that provider's catalog descriptor, and persisted in the model-cache database. This allows newly published models to appear without waiting for a new storoslop binary.
 
 Remote rows can supply current limits, pricing, modalities, and capability flags for newly added IDs, but they cannot introduce code, arbitrary headers, or an unregistered provider. Providers whose descriptors declare endpoint discovery authoritative use that result for their available chat roster. The shared catalog is not authoritative: it does not remove bundled models when a remote row disappears.
 
-Fresh cached snapshots avoid a network request. If refresh fails, OMP keeps the last usable cached snapshot and marks it stale; without a cache, it falls back to the bundled catalog. Provider discovery state records `source` (`bundled`, `models.dev`, `provider`, or `cache`) and `fetchedAt` so callers can distinguish current remote data from an offline fallback.
+Fresh cached snapshots avoid a network request. If refresh fails, storoslop keeps the last usable cached snapshot and marks it stale; without a cache, it falls back to the bundled catalog. Provider discovery state records `source` (`bundled`, `models.dev`, `provider`, or `cache`) and `fetchedAt` so callers can distinguish current remote data from an offline fallback.
 
 ## Provider and model identity
 
@@ -320,7 +431,7 @@ Provider defaults vs per-model overrides:
 - Provider `headers`, `compat`, and `remoteCompaction` are baselines.
 - Model `headers` override provider header keys.
 - `modelOverrides` can override model metadata (`name`, `api`, `kind`, `reasoning`, `thinking`, `input`,
-  `imageInputDecoder`, `tokenizer`, `supportsTools`, `cost`, `promptCache`, `premiumMultiplier`, `contextWindow`,
+  `imageInputDecoder`, `imageCountBudget`, `tokenizer`, `supportsTools`, `cost`, `promptCache`, `premiumMultiplier`, `contextWindow`,
   `maxContextWindow`, `maxTokens`, `omitMaxOutputTokens`, `preferWebsockets`, `headers`, `compat`,
   `contextPromotionTarget`, `compactionModel`, and `remoteCompaction`).
 - `compat` is deep-merged for nested routing blocks (`openRouterRouting`, `vercelGatewayRouting`,
@@ -329,16 +440,16 @@ Provider defaults vs per-model overrides:
 ## Prompt cache lifetimes
 
 `promptCache` states how long the provider keeps a prompt cache entry alive for each retention tier
-OMP can request (`short` is normally the default; Anthropic OAuth subscriber requests default to
+storoslop can request (`short` is normally the default; Anthropic OAuth subscriber requests default to
 `long` where supported, unless an explicit retention setting or `PI_CACHE_RETENTION` overrides it). Values are seconds and are
 estimates: providers publish ranges, so pick the conservative end.
 
 ```yaml
 providers:
-  anthropic:
-    modelOverrides:
-      claude-sonnet-5:
-        promptCache: { short: 300, long: 3600 }
+   anthropic:
+      modelOverrides:
+         claude-sonnet-5:
+            promptCache: { short: 300, long: 3600 }
 ```
 
 An explicit `promptCache` replaces the model's catalog lifetimes rather than
@@ -356,7 +467,9 @@ command.
 
 Direct Anthropic keeps its existing 5 min / 1 h lifetimes (`short: 300`, `long: 3600`),
 defaulting to 5 min for API keys and 1 h for OAuth subscriber sessions; API keys can
-explicitly select `long`. Claude on native Amazon Bedrock Converse has a 5 min TTL; 1 h is
+explicitly select `long`. Factory Droid's Claude models have the same 5 min / 1 h lifetimes and
+default to 5 min; `long` writes 1 h entries on the Anthropic, Vertex, Bedrock and Azure upstreams
+and stays 5 min elsewhere. Claude on native Amazon Bedrock Converse has a 5 min TTL; 1 h is
 available only where both catalog metadata and the request wire support it. Claude on
 Bedrock Runtime or Mantle's Anthropic Messages route has a 5 min lifetime under existing
 request support; an explicit `long` request falls back to `short` when unsupported. Other Amazon Bedrock models,
@@ -367,7 +480,7 @@ with `promptCache` once the backing cache behavior is known. See `providers.cach
 
 ## Usage costs and time-based pricing
 
-OMP estimates token costs from the selected provider/model's catalog pricing, preferring server-reported monetary costs when available. Completed messages retain their recorded costs: crossing a pricing boundary, switching models, or reopening a session does not reprice accumulated usage.
+storoslop estimates token costs from the selected provider/model's catalog pricing, preferring server-reported monetary costs when available. Completed messages retain their recorded costs: crossing a pricing boundary, switching models, or reopening a session does not reprice accumulated usage.
 
 For the first-party `deepseek` provider, the catalog follows [DeepSeek's official pricing](https://api-docs.deepseek.com/quick_start/pricing):
 
@@ -375,9 +488,9 @@ For the first-party `deepseek` provider, the catalog follows [DeepSeek's officia
 - Flash pricing covers `deepseek-flash` and the retired-but-still-accepted `deepseek-v4-flash` and `deepseek-v4-flash-vision-exp` ids, all billed at the Flash card. Peak rates per million tokens are $0.30 uncached input, $0.006 cached input, and $1.20 output.
 - `deepseek-v4-pro` initially uses peak rates of $1.32 uncached input, $0.044 cached input, and $3.96 output per million tokens. From **2026-09-14 04:00 UTC**, its estimates use the Flash rate card, with the same peak/off-peak schedule.
 
-Some catalog prices change on a date without a peak/off-peak tariff. Gemini 4 Argon on `google`, `google-vertex`, `google-antigravity`, and `cursor` is estimated at $2 input / $0.10 cached input / $10 output per million tokens through 2026-11-30, and at Google's $4 / $0.20 / $20 list price from **2026-12-01 08:00 UTC** (midnight US Pacific). The request's timestamp picks the price, so a model loaded before the change prices later requests at the new rate without a catalog update, and the model browser and `omp models --json` show the price in force.
+Some catalog prices change on a date without a peak/off-peak tariff. Gemini 4 Argon on `google`, `google-vertex`, `google-antigravity`, and `cursor` is estimated at $2 input / $0.10 cached input / $10 output per million tokens through 2026-11-30, and at Google's $4 / $0.20 / $20 list price from **2026-12-01 08:00 UTC** (midnight US Pacific). The request's timestamp picks the price, so a model loaded before the change prices later requests at the new rate without a catalog update, and the model browser and `storoslop models --json` show the price in force.
 
-Local estimates use the assistant message's **request-start timestamp** to choose both the rate card and tariff for the whole request. This is OMP's estimation convention: DeepSeek's pricing page does not specify how its server bills a request spanning a boundary. When importing historical usage without recorded cost, the stats importer leaves scheduled pricing unpriced if no request timestamp can be recovered, rather than choosing a wall-clock tariff.
+Local estimates use the assistant message's **request-start timestamp** to choose both the rate card and tariff for the whole request. This is storoslop's estimation convention: DeepSeek's pricing page does not specify how its server bills a request spanning a boundary. When importing historical usage without recorded cost, the stats importer leaves scheduled pricing unpriced if no request timestamp can be recovered, rather than choosing a wall-clock tariff.
 
 The status line's `cost` segment appends **↑** for peak or **↓** for off-peak pricing on the **currently active provider/model**, using the current wall clock. It refreshes at tariff boundaries even while idle; the arrow is not a label for the accumulated session total. Models without a peak/off-peak tariff, including dated price changes and explicit flat-price overrides, show no arrow.
 
@@ -419,7 +532,7 @@ Runtime discovery calls llama.cpp model endpoints and synthesizes model entries 
 
 The provider `api` is the default for discovered models; catalog rules can override it per model class. Qwen-class models on any `discovery.type: llama.cpp` provider (implicit or explicit) are discovered as `openai-completions`, because the Responses API cannot carry the chat template's thinking controls (`enable_thinking` / `chat_template_kwargs`). The override lives in `packages/catalog/src/compat/rules/providers/llama.cpp.kdl` (`discovery-api`).
 
-After a first response loads a lazy llama.cpp model, OMP re-probes its runtime context and input
+After a first response loads a lazy llama.cpp model, storoslop re-probes its runtime context and input
 metadata. Explicit custom-model and `modelOverrides` limits take precedence over that probe.
 The implicit provider is keyless only when no credential source is configured.
 
@@ -434,8 +547,13 @@ If `lm-studio` is not explicitly configured, registry adds an implicit discovera
 
 Runtime discovery fetches the OpenAI-compatible model list and native LM Studio metadata when
 available. Native `loaded_context_length` takes precedence over the training window; after a first
-response JIT-loads a model, OMP refreshes that runtime metadata. Explicit custom-model and
+response JIT-loads a model, storoslop refreshes that runtime metadata. Explicit custom-model and
 `modelOverrides` limits remain authoritative. Discovered LM Studio models use `imageInputDecoder: stb`.
+
+Decision models (`type: "decision"` in LM Studio's native `GET /api/v1/models`) are discovered as
+`judge` models on the `openai-decisions` API: judgments post to `{baseUrl}/decisions`, LM Studio's
+OpenAI-compatible Decisions endpoint, instead of chat completions. They accept images when LM Studio
+reports `has_vision_adapter: true`. Select one with `modelRoles.judge: lm-studio/<model>`.
 
 This path also works for local OpenAI-compatible servers that are not LM Studio. For example, if oMLX is bound to Ollama's usual port, set `LM_STUDIO_BASE_URL=http://127.0.0.1:11434/v1` to discover it through the existing `/v1/models` flow. Running oMLX and Ollama side by side requires assigning a different port to one of them. Do not configure oMLX as `ollama`: Ollama discovery uses native `/api/tags` and `/api/show` endpoints, not OpenAI `/v1/models`.
 
@@ -455,7 +573,7 @@ Its internal API is `apple-foundation-models`; no HTTP endpoint is used.
 When `litellm` is active (for example through `LITELLM_API_KEY` or stored auth), runtime discovery uses the LiteLLM proxy:
 
 - provider: `litellm`
-- api: `openai-responses` for OpenAI-backed models; `openai-completions` for other models
+- api: `openai-decisions` (kind `judge`) for model groups with `mode: decisions`; `openai-responses` for OpenAI-backed models; `openai-completions` for other models
 - base URL: explicit provider `baseUrl` / `models.yml` config, otherwise `LITELLM_BASE_URL`, otherwise `http://localhost:4000/v1`
 - auth mode: `LITELLM_API_KEY` or stored LiteLLM auth when the proxy requires a key
 
@@ -482,7 +600,7 @@ Anthropic-routed models use an 8,192-token fallback output cap.
 
 A row advertising only image output becomes an image-generation runner; embedding-only output
 becomes an embedding runner. Mixed outputs remain chat models. These runners are visible with
-`omp models --kind all`, not the default chat listing.
+`storoslop models --kind all`, not the default chat listing.
 
 ### Explicit provider discovery
 
@@ -490,31 +608,31 @@ You can configure discovery yourself:
 
 ```yaml
 providers:
-  ollama:
-    baseUrl: http://127.0.0.1:11434
-    api: openai-responses
-    auth: none
-    discovery:
-      type: ollama
+   ollama:
+      baseUrl: http://127.0.0.1:11434
+      api: openai-responses
+      auth: none
+      discovery:
+         type: ollama
 
-  llama.cpp:
-    baseUrl: http://127.0.0.1:8080
-    api: openai-responses
-    auth: none
-    discovery:
-      type: llama.cpp
+   llama.cpp:
+      baseUrl: http://127.0.0.1:8080
+      api: openai-responses
+      auth: none
+      discovery:
+         type: llama.cpp
 ```
 
 Custom LiteLLM gateways can use the same rich discovery path:
 
 ```yaml
 providers:
-  litellm-gateway:
-    baseUrl: http://gateway.example:4000/v1
-    apiKey: LITELLM_API_KEY
-    api: openai-completions
-    discovery:
-      type: litellm
+   litellm-gateway:
+      baseUrl: http://gateway.example:4000/v1
+      apiKey: LITELLM_API_KEY
+      api: openai-completions
+      discovery:
+         type: litellm
 ```
 
 LiteLLM metadata endpoints use the configured base URL with a trailing `/v1` stripped for discovery only, preserving any preceding proxy path. Runtime model calls keep the configured OpenAI-compatible `/v1` base URL.
@@ -537,13 +655,13 @@ from `baseUrl` before appending `/v1/messages`, so a single discovery `baseUrl`
 
 ```yaml
 providers:
-  newapi-reseller:
-    baseUrl: https://api.example.com/v1
-    apiKey: xxxx
-    authHeader: true # injects Authorization: Bearer for openai models
-    disableStrictTools: true # most anthropic-fronted proxies reject `strict`
-    discovery:
-      type: proxy
+   newapi-reseller:
+      baseUrl: https://api.example.com/v1
+      apiKey: xxxx
+      authHeader: true # injects Authorization: Bearer for openai models
+      disableStrictTools: true # most anthropic-fronted proxies reject `strict`
+      discovery:
+         type: proxy
 ```
 
 ### Extension provider registration
@@ -583,7 +701,7 @@ If `authHeader: true` and provider `apiKey` is set, models get:
 Resolution does not fail for a missing variable: with `apiKey: MY_PROVIDER_API_KEY`
 and `authHeader: true`, an unset or empty `MY_PROVIDER_API_KEY` produces
 `Authorization: Bearer MY_PROVIDER_API_KEY`. Launchers using env-backed keys must
-check that the variable is set and non-empty before starting OMP.
+check that the variable is set and non-empty before starting storoslop.
 
 [Command-resolved secrets](#command-resolved-secrets) do not use this literal
 fallback: a failing command or empty trimmed stdout resolves to no value, so it
@@ -618,7 +736,7 @@ not an allowlist of model transports.
 
 - exact `provider/modelId`
 - exact model id (provider inferred)
-- fuzzy/substring matching
+- fuzzy/substring matching for bare ids (`opus`, `gpt-5.2`); a `provider/modelId` selector must match exactly
 - glob scope patterns in `--models` (e.g. `openai/*`, `*sonnet*`)
 - optional `:thinkingLevel` suffix (`off|minimal|low|medium|high|xhigh|max|auto|inherit`)
 - `@upstream` routing suffix on OpenRouter and Vercel Gateway selectors (for example, `openrouter/anthropic/claude-sonnet-5@anthropic:high`); an exact literal model id still wins
@@ -631,7 +749,9 @@ Resolution precedence for exact selectors:
 1. exact `provider/modelId` reference
 2. exact bare id (case-insensitive); when several providers carry the same id, a preference ranking picks the winner (see below)
 3. retired effort-tier variant alias (collapsed catalog entries, e.g. `X`/`X-thinking` twins)
-4. provider-scoped fuzzy match, then substring matching with an alias-vs-dated pick
+4. substring matching with an alias-vs-dated pick (bare ids only)
+
+A `provider/modelId` selector whose provider is known stops after the exact phases: it never runs a similarly named sibling. A miss fails with `Model "…" not found`, which suggests up to three close ids from that provider. A configured default model that misses produces a warning naming it and the model that runs instead, unless a configured `retry.fallbackChains` entry takes over; a configured dictation model that misses warns the same way.
 
 Glob scope patterns (used by `enabledModels` and CLI `--models`) run separately over concrete models after exact matching.
 
@@ -700,11 +820,11 @@ In `/models`, press `s` in the Roles view to save the current setup under a name
 
 ```yaml
 modelPresets:
-  deep:
-    modelRoles:
-      default: anthropic/claude-opus-4-5:high
-      smol: anthropic/claude-sonnet-4-5
-    defaultThinkingLevel: high
+   deep:
+      modelRoles:
+         default: anthropic/claude-opus-4-5:high
+         smol: anthropic/claude-sonnet-4-5
+      defaultThinkingLevel: high
 ```
 
 Switching writes roles the way the model picker does: into the scope chosen by `modelRoleStorage`, clearing roles the preset leaves out and replacing `--model`/`--smol` session overrides. The preset's `defaultThinkingLevel` is written to the global config. It then switches the active model to the resulting `default` (an automatic provider-default selection when the preset has none) and sets the session's thinking level from the `:level` suffix on that selector, or else the preset's `defaultThinkingLevel`; a `:inherit` suffix leaves the level the model switch set. When a preset's `default` model is unavailable, nothing is changed. Roles that another layer still decides — a `--config` file, a project config in `global` storage, or the global config in `project` storage — are listed in the switch message with the layer that wins, instead of being reported as switched. The same goes for a `defaultThinkingLevel` set by a project config or `--config` file: the session still switches to the preset's level, but the message names that layer, whose level returns on the next start.
@@ -720,6 +840,7 @@ Related settings:
 - `modelProviderOrder` (provider precedence when equivalent concrete choices share an id)
 - `providers.kimiApiFormat` (`auto|openai|anthropic`; `auto` follows server-declared model metadata)
 - `providers.openaiWebsockets` (`auto|off|on` websocket preference for OpenAI Codex transport)
+- `providers.openaiResponsesWebsockets` (opt-in standard Responses transport; see [Standard Responses WebSockets](#standard-responses-websockets))
 - `providers.openaiLiveSteering` (deliver mid-response user messages into GPT-6 responses over the Codex WebSocket)
 
 `modelRoles` stores model selectors such as `provider/modelId`; `enabledModels` and CLI `--models`
@@ -731,15 +852,15 @@ models stay available for their roles, so entries naming them are accepted but h
 
 ```yaml
 enabledModels:
-  - claude-sonnet-4-5
-  - path: ~/work
-    models:
-      - anthropic/claude-opus-4-5
+   - claude-sonnet-4-5
+   - path: ~/work
+     models:
+        - anthropic/claude-opus-4-5
 disabledProviders:
-  - ollama
-  - path: ~/private
-    providers:
-      - anthropic
+   - ollama
+   - path: ~/private
+     providers:
+        - anthropic
 ```
 
 String entries apply everywhere. Scoped entries apply when the current working directory is the configured path or one of its subdirectories. Use `path`, `paths`, `pathPrefix`, or `pathPrefixes`; use `models` for `enabledModels`, `providers` for either provider setting, or `values` for any of them.
@@ -749,8 +870,8 @@ String entries apply everywhere. Scoped entries apply when the current working d
 Both surfaces keep provider-prefixed concrete models visible and selectable.
 
 - `/model` / `/models` opens the model hub with role assignments and provider catalogs; the session-only picker changes the active model without saving a role assignment.
-- `omp models` (default `ls` action) prints provider-grouped tables of available **chat** models; `--kind <kind>` selects another catalog kind and `--kind all` includes every kind.
-- `omp models find <substring>` filters by provider, id, or name; `omp models refresh` forces an online catalog re-fetch ignoring the model cache TTL; a provider name doubles as an `ls` filter (e.g. `omp models openai-codex`).
+- `storoslop models` (default `ls` action) prints provider-grouped tables of available **chat** models; `--kind <kind>` selects another catalog kind and `--kind all` includes every kind.
+- `storoslop models find <substring>` filters by provider, id, or name; `storoslop models refresh` forces an online catalog re-fetch ignoring the model cache TTL; a provider name doubles as an `ls` filter (e.g. `storoslop models openai-codex`).
 - Other flags: `--json`, `-e <path>` / `--extension <path>` (repeatable), `--no-extensions` (skip ambient discovery; explicit `-e` still loads), and `--config <overlay>` (repeatable).
 
 JSON includes `provider`, `kind`, `id`, `selector`, `name`, limits, reasoning/thinking metadata,
@@ -814,10 +935,10 @@ Example (`models.yml`) for an explicit OpenAI promotion target:
 
 ```yaml
 providers:
-  openai-codex:
-    modelOverrides:
-      gpt-5.5:
-        contextPromotionTarget: openai-codex/gpt-5.4
+   openai-codex:
+      modelOverrides:
+         gpt-5.5:
+            contextPromotionTarget: openai-codex/gpt-5.4
 ```
 
 Do not rely on a model-name-derived chain: configure the target explicitly or use a target supplied
@@ -964,8 +1085,8 @@ that authenticate via a query parameter instead of a header:
 
 ```yaml
 providers:
-  amazon-bedrock:
-    baseUrl: https://vpce-0123456789abcdef0.bedrock-runtime.us-east-1.vpce.amazonaws.com
+   amazon-bedrock:
+      baseUrl: https://vpce-0123456789abcdef0.bedrock-runtime.us-east-1.vpce.amazonaws.com
 ```
 
 One host shape is not taken literally: a `baseUrl` of exactly
@@ -988,10 +1109,10 @@ its endpoints. AWS recommends `bedrock-runtime` for new applications
 Claude Opus 4.7 and later are served here; Opus 4.6 and earlier stay on Converse
 ([Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock)).
 
-| Route | Base URL | Provider | Model id |
-| --- | --- | --- | --- |
+| Route           | Base URL                                                   | Provider         | Model id                                               |
+| --------------- | ---------------------------------------------------------- | ---------------- | ------------------------------------------------------ |
 | bedrock-runtime | `https://bedrock-runtime.<region>.amazonaws.com/anthropic` | `amazon-bedrock` | inference profile, e.g. `us.anthropic.claude-opus-5-5` |
-| bedrock-mantle | `https://bedrock-mantle.<region>.api.aws/anthropic` | `bedrock-mantle` | `anthropic.claude-opus-5-5` |
+| bedrock-mantle  | `https://bedrock-mantle.<region>.api.aws/anthropic`        | `bedrock-mantle` | `anthropic.claude-opus-5-5`                            |
 
 The FIPS host (`bedrock-runtime-fips.<region>.amazonaws.com`) and AWS PrivateLink endpoint-specific
 hosts (`<vpce-id>[-<az>].bedrock-runtime.<region>.vpce.amazonaws.com`, likewise for
@@ -1001,43 +1122,43 @@ private DNS enabled needs no change: it answers on the public hostnames
 
 Define the model under the provider shown in the table, with `api: anthropic-messages`. Those two
 provider ids carry the catalog rule that enables Claude's on-demand compaction
-([Compaction](./compaction.md)). Set `auth: apiKey` so OMP sends plain API-key requests; without
+([Compaction](./compaction.md)). Set `auth: apiKey` so storoslop sends plain API-key requests; without
 it, custom `anthropic-messages` models get Claude Code request shaping. The examples authenticate
 with an [Amazon Bedrock API key](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys.html);
-OMP does not sign runtime-route requests with SigV4. Write the region into the runtime URL. Mantle
-URLs may keep `{region}`, which OMP fills in from your AWS region settings.
+storoslop does not sign runtime-route requests with SigV4. Write the region into the runtime URL. Mantle
+URLs may keep `{region}`, which storoslop fills in from your AWS region settings.
 
 ```yaml
 providers:
-  amazon-bedrock:
-    baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com
-    apiKey: AWS_BEARER_TOKEN_BEDROCK
-    auth: apiKey
-    models:
-      - id: us.anthropic.claude-opus-5-5
-        api: anthropic-messages
-        baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com/anthropic
-        reasoning: true
-        input: [text, image]
-  bedrock-mantle:
-    baseUrl: https://bedrock-mantle.{region}.api.aws/openai/v1
-    apiKey: AWS_BEARER_TOKEN_BEDROCK
-    auth: apiKey
-    models:
-      - id: anthropic.claude-opus-5-5
-        api: anthropic-messages
-        baseUrl: https://bedrock-mantle.{region}.api.aws/anthropic
-        reasoning: true
-        input: [text, image]
+   amazon-bedrock:
+      baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com
+      apiKey: AWS_BEARER_TOKEN_BEDROCK
+      auth: apiKey
+      models:
+         - id: us.anthropic.claude-opus-5-5
+           api: anthropic-messages
+           baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com/anthropic
+           reasoning: true
+           input: [text, image]
+   bedrock-mantle:
+      baseUrl: https://bedrock-mantle.{region}.api.aws/openai/v1
+      apiKey: AWS_BEARER_TOKEN_BEDROCK
+      auth: apiKey
+      models:
+         - id: anthropic.claude-opus-5-5
+           api: anthropic-messages
+           baseUrl: https://bedrock-mantle.{region}.api.aws/anthropic
+           reasoning: true
+           input: [text, image]
 ```
 
-Requests on these routes are shaped by `compat.bedrockMessagesApi`, which OMP detects from a Bedrock
-`/anthropic` `baseUrl` under any provider id. Both routes reject the tool `strict` field, so OMP drops
-it. OMP also fits `metadata.user_id` to
+Requests on these routes are shaped by `compat.bedrockMessagesApi`, which storoslop detects from a Bedrock
+`/anthropic` `baseUrl` under any provider id. Both routes reject the tool `strict` field, so storoslop drops
+it. storoslop also fits `metadata.user_id` to
 Bedrock's [request-metadata pattern](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html),
 which the runtime route enforces: a value that fits is kept, otherwise its session id is sent,
 otherwise it is left out. Both run after any `onPayload` hook. Both routes verify thinking
-signatures, so by default OMP does not replay unsigned thinking to them.
+signatures, so by default storoslop does not replay unsigned thinking to them.
 
 The URL check cannot see a Bedrock route behind a proxy or an `ANTHROPIC_BASE_URL` reroute of the
 first-party `anthropic` provider; those keep plain Anthropic requests unless you opt in. Set the flag
@@ -1046,9 +1167,9 @@ out:
 
 ```yaml
 providers:
-  anthropic:
-    compat:
-      bedrockMessagesApi: true # ANTHROPIC_BASE_URL points at bedrock-runtime /anthropic
+   anthropic:
+      compat:
+         bedrockMessagesApi: true # ANTHROPIC_BASE_URL points at bedrock-runtime /anthropic
 ```
 
 On-demand compaction still needs a model line the catalog grants it to (`amazon-bedrock`,
@@ -1063,22 +1184,22 @@ Third-party providers that front the Anthropic API (AWS Bedrock, Azure, self-hos
 
 ```yaml
 providers:
-  bedrock-anthropic:
-    baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com/anthropic
-    apiKey: AWS_BEARER_TOKEN
-    api: anthropic-messages
-    disableStrictTools: true
-    models:
-      - id: claude-sonnet-4-20250514
-        name: Claude Sonnet 4 (Bedrock)
-        input: [text, image]
-        contextWindow: 200000
-        maxTokens: 16384
-        cost:
-          input: 3.00
-          output: 15.00
-          cacheRead: 0.30
-          cacheWrite: 3.75
+   bedrock-anthropic:
+      baseUrl: https://bedrock-runtime.us-east-1.amazonaws.com/anthropic
+      apiKey: AWS_BEARER_TOKEN
+      api: anthropic-messages
+      disableStrictTools: true
+      models:
+         - id: claude-sonnet-4-20250514
+           name: Claude Sonnet 4 (Bedrock)
+           input: [text, image]
+           contextWindow: 200000
+           maxTokens: 16384
+           cost:
+              input: 3.00
+              output: 15.00
+              cacheRead: 0.30
+              cacheWrite: 3.75
 ```
 
 `disableStrictTools` is a provider-level flag that applies to all models in the provider. It disables the Anthropic `strict` marker only for tools that storoslop would otherwise mark strict; it does not change runtime tool argument validation. storoslop can automatically retry without strict tools after Anthropic reports a strict-grammar-too-large error before the first streamed token, but proxies that reject the `strict` field for other reasons should set this flag explicitly.
@@ -1097,86 +1218,86 @@ and the per-provider dispatcher mapping.
 
 ```yaml
 providers:
-  local-openai:
-    baseUrl: http://127.0.0.1:8000/v1
-    auth: none
-    api: openai-completions
-    models:
-      - id: Qwen/Qwen2.5-Coder-32B-Instruct
-        name: Qwen 2.5 Coder 32B (local)
+   local-openai:
+      baseUrl: http://127.0.0.1:8000/v1
+      auth: none
+      api: openai-completions
+      models:
+         - id: Qwen/Qwen2.5-Coder-32B-Instruct
+           name: Qwen 2.5 Coder 32B (local)
 ```
 
 For oMLX or another local OpenAI-compatible server with a discoverable `/v1/models` endpoint, prefer discovery instead of listing models by hand. Set `api` to the endpoint family your server actually exposes: `openai-completions` uses `/v1/chat/completions`; servers that expose `/v1/responses` need `openai-responses` instead.
 
 ```yaml
 providers:
-  omlx:
-    baseUrl: http://127.0.0.1:11434/v1
-    auth: none
-    api: openai-completions
-    discovery:
-      type: openai-models-list
+   omlx:
+      baseUrl: http://127.0.0.1:11434/v1
+      auth: none
+      api: openai-completions
+      discovery:
+         type: openai-models-list
 ```
 
 The built-in vLLM provider can be pointed at a non-default endpoint without declaring a custom discovery type. storoslop uses vLLM's `/v1/models` metadata and preserves vLLM's `max_model_len` field as the discovered context window.
 
 ```yaml
 providers:
-  vllm:
-    baseUrl: http://192.168.5.3:8085/v1
-    auth: none
+   vllm:
+      baseUrl: http://192.168.5.3:8085/v1
+      auth: none
 ```
 
 For multiple vLLM endpoints, use arbitrary provider IDs with the generic OpenAI-compatible discovery path. Set `auth: none` for local no-auth servers or `apiKey` for authenticated ones. Generic discovery reads `max_model_len` first and then `context_length` as a generic OpenAI-compatible fallback.
 
 ```yaml
 providers:
-  vllm-fast:
-    baseUrl: http://host-a:8000/v1
-    auth: none
-    api: openai-completions
-    discovery:
-      type: openai-models-list
-  vllm-long:
-    baseUrl: http://host-b:8000/v1
-    auth: none
-    api: openai-completions
-    discovery:
-      type: openai-models-list
+   vllm-fast:
+      baseUrl: http://host-a:8000/v1
+      auth: none
+      api: openai-completions
+      discovery:
+         type: openai-models-list
+   vllm-long:
+      baseUrl: http://host-b:8000/v1
+      auth: none
+      api: openai-completions
+      discovery:
+         type: openai-models-list
 ```
 
 ### Hosted proxy with env-based key
 
 ```yaml
 providers:
-  anthropic-proxy:
-    baseUrl: https://proxy.example.com/anthropic
-    apiKey: ANTHROPIC_PROXY_API_KEY
-    api: anthropic-messages
-    auth: apiKey
-    authHeader: true
-    disableStrictTools: true # if the proxy doesn't support strict tool schemas
-    models:
-      - id: claude-sonnet-4-20250514
-        name: Claude Sonnet 4 (Proxy)
-        reasoning: true
-        input: [text, image]
+   anthropic-proxy:
+      baseUrl: https://proxy.example.com/anthropic
+      apiKey: ANTHROPIC_PROXY_API_KEY
+      api: anthropic-messages
+      auth: apiKey
+      authHeader: true
+      disableStrictTools: true # if the proxy doesn't support strict tool schemas
+      models:
+         - id: claude-sonnet-4-20250514
+           name: Claude Sonnet 4 (Proxy)
+           reasoning: true
+           input: [text, image]
 ```
 
 ### Override built-in provider route + model metadata
 
 ```yaml
 providers:
-  openrouter:
-    baseUrl: https://my-proxy.example.com/v1
-    headers:
-      X-Team: platform
-    modelOverrides:
-      anthropic/claude-sonnet-4:
-        name: Sonnet 4 (Corp)
-        compat:
-          openRouterRouting:
-            only: [anthropic]
+   openrouter:
+      baseUrl: https://my-proxy.example.com/v1
+      headers:
+         X-Team: platform
+      modelOverrides:
+         anthropic/claude-sonnet-4:
+            name: Sonnet 4 (Corp)
+            compat:
+               openRouterRouting:
+                  only: [anthropic]
 ```
 
 ## Legacy consumer caveat

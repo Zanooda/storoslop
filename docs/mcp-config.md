@@ -21,7 +21,7 @@ storoslop can discover MCP servers from multiple tools (`.claude/`, `.cursor/`, 
 
 The native provider also reads `.storoslop/.mcp.json` and `~/.storoslop/agent/.mcp.json` for compatibility, but storoslop writes to the primary `mcp.json` paths above.
 
-These user paths are defaults: `PI_CONFIG_DIR` changes the home config root, and `PI_CODING_AGENT_DIR` can override the default-profile agent directory. Named profiles derive their own agent directory rather than inheriting that override. Project config remains in `.omp/`.
+These user paths are defaults: `PI_CONFIG_DIR` changes the home config root, and `PI_CODING_AGENT_DIR` can override the default-profile agent directory. Named profiles derive their own agent directory rather than inheriting that override. Project config remains in `.storoslop/`.
 
 storoslop also accepts fallback standalone files in the project root:
 
@@ -54,7 +54,7 @@ Named profiles (`storoslop --profile <name>` or `OMP_PROFILE`/`PI_PROFILE`) isol
 
 Discovery, the `/mcp` commands, and the config writer all follow the active profile, so a profile sees **only** its own user-level servers — never the default profile's `~/.storoslop/agent/mcp.json`. Add a server to a profile by launching under it (`storoslop --profile <name>`) and running `/mcp add` → User level, or by editing `~/.storoslop/profiles/<name>/agent/mcp.json` directly.
 
-Project-scoped MCP config (`.storoslop/mcp.json`) is keyed to the working directory, not the profile, so it applies under every profile. External-tool configs (`.claude/`, `.cursor/`, etc.) are also profile-independent because they belong to those tools rather than to an storoslop profile.
+Project-scoped MCP config (`.storoslop/mcp.json`) is keyed to the working directory, not the profile, so it applies under every profile. External-tool configs (`.claude/`, `.cursor/`, etc.) are also profile-independent because they belong to those tools rather than to a storoslop profile.
 
 MCP follows the same profile rules as the rest of storoslop-native config; see [Configuration Discovery → Profiles](./config-usage.md#profiles).
 
@@ -64,12 +64,12 @@ Add this line at the top of the file for editor autocomplete and validation:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {}
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {}
 }
 ```
 
-storoslop now writes this automatically when `/mcp add`, `/mcp enable`, `/mcp disable`, `/mcp reauth`, or other config-writing flows create or update an storoslop-managed MCP file.
+storoslop now writes this automatically when `/mcp add`, `/mcp enable`, `/mcp disable`, `/mcp reauth`, or other config-writing flows create or update a storoslop-managed MCP file.
 
 ## File shape
 
@@ -77,15 +77,15 @@ storoslop supports this top-level structure:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "server-name": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "some-mcp-server"]
-    }
-  },
-  "disabledServers": ["server-name"]
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"server-name": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["-y", "some-mcp-server"]
+		}
+	},
+	"disabledServers": ["server-name"]
 }
 ```
 
@@ -113,11 +113,11 @@ Disable instructions when a server's guidance conflicts with your tool policy or
 
 `OMP_MCP_TIMEOUT_MS` has process-wide precedence over every per-server `timeout`. Set it to `0` to disable client-side timeouts, or to a positive millisecond value such as `120000`. If it is unset or invalid, storoslop uses the server value and then the 30-second default; invalid values are logged and ignored.
 
-Claude marketplace plugins follow [Claude Code's per-server timeout rule](https://code.claude.com/docs/en/mcp): their `.mcp.json` values are milliseconds, and values below `1000` are ignored with a discovery warning so OMP's normal timeout fallback applies. This restriction does not change OMP-native configurations, where `0` still disables timeouts.
+Claude marketplace plugins follow [Claude Code's per-server timeout rule](https://code.claude.com/docs/en/mcp): their `.mcp.json` values are milliseconds, and values below `1000` are ignored with a discovery warning so storoslop's normal timeout fallback applies. This restriction does not change storoslop-native configurations, where `0` still disables timeouts.
 
 These request deadlines also govern subagent MCP calls over borrowed parent connections. The proxy adds no independent timeout; caller cancellation still stops the subagent's wait.
 
-Initial MCP discovery returns after a 250 ms window while slower connections continue in the background. Set `mcp.startupTimeoutMs` or override it with `OMP_MCP_STARTUP_TIMEOUT_MS` to change the window; `0` waits for the initial connection attempts to settle. In print mode (`-p`, `--mode text|json`), OMP additionally waits for all configured servers to load tools or fail before the first turn, up to `OMP_MCP_TIMEOUT_MS` (default 30 seconds). `OMP_MCP_TIMEOUT_MS=0` disables this barrier deadline too, so an unresponsive server can block print mode indefinitely. Servers still unavailable at the deadline are named on stderr; `OMP_MCP_REQUIRE_READY=1` instead exits with code 1 before the turn. These print-mode waits do not affect interactive, RPC, or ACP startup. In interactive and `--mode rpc-ui` sessions, which connect MCP servers in the background, the first turn waits up to 1.5 s for MCP startup, so its system prompt includes servers connected by then; slower servers register later and change the next turn's prompt.
+Initial MCP discovery returns after a 250 ms window while slower connections continue in the background. Set `mcp.startupTimeoutMs` or override it with `OMP_MCP_STARTUP_TIMEOUT_MS` to change the window; `0` waits for the initial connection attempts to settle. In print mode (`-p`, `--mode text|json`), storoslop additionally waits for all configured servers to load tools or fail before the first turn, up to `OMP_MCP_TIMEOUT_MS` (default 30 seconds). `OMP_MCP_TIMEOUT_MS=0` disables this barrier deadline too, so an unresponsive server can block print mode indefinitely. Servers still unavailable at the deadline are named on stderr; `OMP_MCP_REQUIRE_READY=1` instead exits with code 1 before the turn. These print-mode waits do not affect interactive, RPC, or ACP startup. In interactive and `--mode rpc-ui` sessions, which connect MCP servers in the background, the first turn waits up to 1.5 s for MCP startup, so its system prompt includes servers connected by then; slower servers register later and change the next turn's prompt.
 
 Client-generated remote protocol headers take precedence over configured headers case-insensitively. Streamable HTTP owns `MCP-Protocol-Version`: it ignores configured copies and sends the negotiated version after initialization. Portable Agent Plugins' configured headers are origin-locked and are not forwarded to another origin on redirects.
 
@@ -142,18 +142,13 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/Users/alice/projects",
-        "/Users/alice/Documents"
-      ]
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"filesystem": {
+			"command": "npx",
+			"args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/alice/projects", "/Users/alice/Documents"]
+		}
+	}
 }
 ```
 
@@ -174,13 +169,13 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"github": {
+			"type": "http",
+			"url": "https://api.githubcopilot.com/mcp/"
+		}
+	}
 }
 ```
 
@@ -201,13 +196,13 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "legacy-remote": {
-      "type": "sse",
-      "url": "https://example.com/mcp/sse"
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"legacy-remote": {
+			"type": "sse",
+			"url": "https://example.com/mcp/sse"
+		}
+	}
 }
 ```
 
@@ -221,12 +216,12 @@ storoslop understands two auth-related objects.
 
 ```json
 {
-  "type": "oauth",
-  "credentialId": "optional-stored-credential-id",
-  "tokenUrl": "optional-token-endpoint",
-  "clientId": "optional-client-id",
-  "clientSecret": "optional-client-secret",
-  "resource": "optional-mcp-resource-uri"
+	"type": "oauth",
+	"credentialId": "optional-stored-credential-id",
+	"tokenUrl": "optional-token-endpoint",
+	"clientId": "optional-client-id",
+	"clientSecret": "optional-client-secret",
+	"resource": "optional-mcp-resource-uri"
 }
 ```
 
@@ -260,17 +255,21 @@ profile for untrusted checkouts.
 
 ```json
 {
-  "clientId": "...",
-  "clientSecret": "...",
-  "scope": "optional space-separated scopes",
-  "redirectUri": "...",
-  "callbackPort": 3334,
-  "callbackPath": "/oauth/callback",
-  "prompt": "consent"
+	"clientId": "...",
+	"clientSecret": "...",
+	"scope": "optional space-separated scopes",
+	"redirectUri": "...",
+	"callbackPort": 3334,
+	"callbackPath": "/oauth/callback",
+	"prompt": "consent"
 }
 ```
 
 Use `oauth` when the MCP server requires explicit OAuth client, scope, or callback settings. The callback listener defaults to port `3000` and path `/callback`; an HTTP loopback `redirectUri` supplies its own port/path unless explicitly overridden. An HTTPS loopback redirect requires a distinct `callbackPort` for the local HTTP listener behind your TLS terminator.
+
+During `/mcp reauth`, scopes advertised by the protected resource or its authentication challenge take precedence; `oauth.scope` supplies the fallback. Authorization-server `scopes_supported` is a catalogue of available scopes, not a request to grant all of them. storoslop does not copy that catalogue into the login request. If the resource advertises no scopes, set `oauth.scope` to the scopes allowed for your registered client (for example, `"openid"` for an OpenID Connect login), or leave it unset to use the authorization server's defaults.
+
+Scopes from resource-server-hosted `/oauth/metadata` and `/.mcp/auth` documents are also preserved, including nested `oauth`, `authorization`, and `auth` blocks. Their `scopes_supported` arrays are not treated as resource requirements when those paths are probed on an explicitly identified authorization server.
 
 `prompt` controls the OAuth `prompt` authorization parameter. By default storoslop omits it, except that a requested `offline_access` scope defaults to `"consent"` so the provider can issue refresh access. Set it explicitly to a provider-supported value such as `"consent"` or `"select_account"`, or to `""` to force omission.
 
@@ -278,23 +277,23 @@ Example:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "slack": {
-      "type": "http",
-      "url": "https://mcp.slack.com/mcp",
-      "oauth": {
-        "clientId": "YOUR_SLACK_CLIENT_ID",
-        "clientSecret": "YOUR_SLACK_CLIENT_SECRET"
-      },
-      "auth": {
-        "type": "oauth",
-        "tokenUrl": "https://slack.com/api/oauth.v2.user.access",
-        "clientId": "YOUR_SLACK_CLIENT_ID",
-        "clientSecret": "YOUR_SLACK_CLIENT_SECRET"
-      }
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"slack": {
+			"type": "http",
+			"url": "https://mcp.slack.com/mcp",
+			"oauth": {
+				"clientId": "YOUR_SLACK_CLIENT_ID",
+				"clientSecret": "YOUR_SLACK_CLIENT_SECRET"
+			},
+			"auth": {
+				"type": "oauth",
+				"tokenUrl": "https://slack.com/api/oauth.v2.user.access",
+				"clientId": "YOUR_SLACK_CLIENT_ID",
+				"clientSecret": "YOUR_SLACK_CLIENT_SECRET"
+			}
+		}
+	}
 }
 ```
 
@@ -310,18 +309,13 @@ Relevant Slack endpoints from Slack's docs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/absolute/path/one",
-        "/absolute/path/two"
-      ]
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"filesystem": {
+			"command": "npx",
+			"args": ["-y", "@modelcontextprotocol/server-filesystem", "/absolute/path/one", "/absolute/path/two"]
+		}
+	}
 }
 ```
 
@@ -329,13 +323,13 @@ Relevant Slack endpoints from Slack's docs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"github": {
+			"type": "http",
+			"url": "https://api.githubcopilot.com/mcp/"
+		}
+	}
 }
 ```
 
@@ -343,23 +337,16 @@ Relevant Slack endpoints from Slack's docs:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "github": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "GITHUB_PERSONAL_ACCESS_TOKEN",
-        "ghcr.io/github/github-mcp-server"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "GITHUB_PERSONAL_ACCESS_TOKEN"
-      }
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"github": {
+			"command": "docker",
+			"args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
+			"env": {
+				"GITHUB_PERSONAL_ACCESS_TOKEN": "GITHUB_PERSONAL_ACCESS_TOKEN"
+			}
+		}
+	}
 }
 ```
 
@@ -369,23 +356,23 @@ This matches GitHub's official local Docker image `ghcr.io/github/github-mcp-ser
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "mcpServers": {
-    "slack": {
-      "type": "http",
-      "url": "https://mcp.slack.com/mcp",
-      "oauth": {
-        "clientId": "YOUR_SLACK_CLIENT_ID",
-        "clientSecret": "YOUR_SLACK_CLIENT_SECRET"
-      },
-      "auth": {
-        "type": "oauth",
-        "tokenUrl": "https://slack.com/api/oauth.v2.user.access",
-        "clientId": "YOUR_SLACK_CLIENT_ID",
-        "clientSecret": "YOUR_SLACK_CLIENT_SECRET"
-      }
-    }
-  }
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"mcpServers": {
+		"slack": {
+			"type": "http",
+			"url": "https://mcp.slack.com/mcp",
+			"oauth": {
+				"clientId": "YOUR_SLACK_CLIENT_ID",
+				"clientSecret": "YOUR_SLACK_CLIENT_SECRET"
+			},
+			"auth": {
+				"type": "oauth",
+				"tokenUrl": "https://slack.com/api/oauth.v2.user.access",
+				"clientId": "YOUR_SLACK_CLIENT_ID",
+				"clientSecret": "YOUR_SLACK_CLIENT_SECRET"
+			}
+		}
+	}
 }
 ```
 
@@ -401,15 +388,15 @@ Example:
 
 ```json
 {
-  "mcpServers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer ${GITHUB_TOKEN}"
-      }
-    }
-  }
+	"mcpServers": {
+		"github": {
+			"type": "http",
+			"url": "https://api.githubcopilot.com/mcp/",
+			"headers": {
+				"Authorization": "Bearer ${GITHUB_TOKEN}"
+			}
+		}
+	}
 }
 ```
 
@@ -428,12 +415,12 @@ Examples:
 
 ```json
 {
-  "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "GITHUB_PERSONAL_ACCESS_TOKEN"
-  },
-  "headers": {
-    "X-MCP-Insiders": "true"
-  }
+	"env": {
+		"GITHUB_PERSONAL_ACCESS_TOKEN": "GITHUB_PERSONAL_ACCESS_TOKEN"
+	},
+	"headers": {
+		"X-MCP-Insiders": "true"
+	}
 }
 ```
 
@@ -452,13 +439,13 @@ The active profile's user file supplies two cross-source overrides:
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/Zanooda/storoslop/main/packages/coding-agent/src/config/mcp-schema.json",
-  "disabledServers": ["github"],
-  "enabledServers": ["tool-owned-server"]
+	"$schema": "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json",
+	"disabledServers": ["github"],
+	"enabledServers": ["tool-owned-server"]
 }
 ```
 
-`/mcp enable` and `/mcp disable` update `enabled` directly when the definition is in an storoslop-owned writable file. storoslop does not mutate another tool's config: for such sources, those commands maintain the user-level allowlist or denylist instead and remove a conflicting stale override.
+`/mcp enable` and `/mcp disable` update `enabled` directly when the definition is in a storoslop-owned writable file. storoslop does not mutate another tool's config: for such sources, those commands maintain the user-level allowlist or denylist instead and remove a conflicting stale override.
 
 ## `/mcp add` vs editing JSON directly
 
@@ -505,13 +492,13 @@ storoslop loads providers in descending priority. The MCP-capable order is:
 7. OpenCode
 8. Cursor and Windsurf
 9. VS Code
-10. root `mcp.json` / `.mcp.json` fallback files
+10.   root `mcp.json` / `.mcp.json` fallback files
 
 Across providers, the first definition wins. Duplicate names are not merged; OpenCode's internal config layers are the exception described above. A differently named definition is also shadowed when its transport, endpoint/command inputs, auth, and request-id mode are equivalent to a higher-priority definition.
 
 Within storoslop native config, project `.storoslop/mcp.json` precedes `.storoslop/.mcp.json`, then the active profile's user `mcp.json` and `.mcp.json`. Root fallback `mcp.json` precedes root `.mcp.json`. In practice:
 
-- prefer `.storoslop/mcp.json` or the active profile's user `mcp.json` for an storoslop-specific override
+- prefer `.storoslop/mcp.json` or the active profile's user `mcp.json` for a storoslop-specific override
 - keep names and endpoint definitions unique across tools when possible
 - use the user `disabledServers` list when a third-party config keeps reintroducing an unwanted server
 - set `mcp.enableProjectConfig: false` to exclude every project-level source before deduplication, allowing a same-named user entry to survive
@@ -541,11 +528,11 @@ Run `/mcp list`. storoslop discovers many third-party MCP files, but project-lev
 
 ### A browser MCP server is configured but never loads
 
-OMP drops recognized browser-automation servers at config load, before any connection attempt, whenever the built-in browser prelude is callable: `browser.enabled` is true (the default), Eval is registered and active, and the session is not restricted to explicitly named tools. The filter matches servers named `playwright`, `puppeteer`, `browserbase`, `browser-tools`, `browser-use` or `browser`, stdio servers whose command or args match one of a fixed set of recognized browser-MCP package patterns (`@playwright/mcp`, `@modelcontextprotocol/server-puppeteer`, `@browserbasehq/mcp-server-browserbase`, `@agentdeskai/browser-tools-mcp`, `@agent-infra/mcp-server-browser`, `puppeteer-mcp`, `playwright-mcp`, `pptr-mcp`, `browser-use-mcp`, `mcp-browser-use`), or HTTP/SSE servers whose URL points at browserbase.com or browser-use.com. Any other package (for example `chrome-devtools-mcp` under a server name outside the list above) is not matched. This filter is separate from `disabledServers`.
+storoslop drops recognized browser-automation servers at config load, before any connection attempt, whenever the built-in browser prelude is callable: `browser.enabled` is true (the default), Eval is registered and active, and the session is not restricted to explicitly named tools. The filter matches servers named `playwright`, `puppeteer`, `browserbase`, `browser-tools`, `browser-use` or `browser`, stdio servers whose command or args match one of a fixed set of recognized browser-MCP package patterns (`@playwright/mcp`, `@modelcontextprotocol/server-puppeteer`, `@browserbasehq/mcp-server-browserbase`, `@agentdeskai/browser-tools-mcp`, `@agent-infra/mcp-server-browser`, `puppeteer-mcp`, `playwright-mcp`, `pptr-mcp`, `browser-use-mcp`, `mcp-browser-use`), or HTTP/SSE servers whose URL points at browserbase.com or browser-use.com. Any other package (for example `chrome-devtools-mcp` under a server name outside the list above) is not matched. This filter is separate from `disabledServers`.
 
-The drop is quiet, but not equally visible everywhere: servers from any source other than the two primary files (`~/.omp/agent/mcp.json` and `.omp/mcp.json`) never reach `/mcp list`. Third-party configs, root `mcp.json` / `.mcp.json` fallbacks, and servers from OMP extension packages all vanish once filtered. An entry in one of the two primary files still shows up there as `not connected`, so a missing server with a primary-file entry may have been filtered. No error or warning is recorded either way.
+The drop is quiet, but not equally visible everywhere: servers from any source other than the two primary files (`~/.storoslop/agent/mcp.json` and `.storoslop/mcp.json`) never reach `/mcp list`. Third-party configs, root `mcp.json` / `.mcp.json` fallbacks, and servers from storoslop extension packages all vanish once filtered. An entry in one of the two primary files still shows up there as `not connected`, so a missing server with a primary-file entry may have been filtered. No error or warning is recorded either way.
 
-To run a browser MCP server instead of the native browser tool, set `browser.enabled: false` in your settings. `omp read` does not apply this filter.
+To run a browser MCP server instead of the native browser tool, set `browser.enabled: false` in your settings. `storoslop read` does not apply this filter.
 
 ### A namespaced server works but the editor rejects its name
 

@@ -1,19 +1,40 @@
 #!/usr/bin/env bun
 //
-// Render the Homebrew formula for `omp` from a published GitHub release and write
-// it to a tap checkout. The release publishes per-platform bare binaries
-// (omp-<platform>-<arch>); this reads their sha256 digests straight from the
-// release metadata so the formula never drifts from the shipped assets.
+// Render the Homebrew formula for `storoslop` from a published GitHub release and
+// write it to a tap checkout. The release publishes per-platform bare binaries
+// (storoslop-<platform>-<arch>); this reads their sha256 digests straight from
+// the release metadata so the formula never drifts from the shipped assets.
 //
 // Usage:
 //   bun scripts/ci-update-brew-formula.ts <tag> --out <path/to/Formula/omp.rb>
-//   bun scripts/ci-update-brew-formula.ts v15.10.3        # prints to stdout
+//   bun scripts/ci-update-brew-formula.ts v1.4.0        # prints to stdout
+//
+// Environment:
+//   OMP_REPO   release repository (default Zanooda/storoslop)
 
 import { $ } from "bun";
 
-const REPO = process.env.OMP_REPO ?? "can1357/oh-my-pi";
+const REPO = process.env.OMP_REPO ?? "Zanooda/storoslop";
 const HOMEPAGE = "https://omp.sh";
 const DESC = "Coding agent with the IDE wired in";
+/** GitHub release assets: the bare binaries the release pipeline publishes. */
+const RELEASE_DOWNLOAD_URL = `https://github.com/${REPO}/releases/download`;
+
+/** Release asset name of each formula stanza. */
+const FORMULA_TARGETS = {
+	macosArm: "storoslop-darwin-arm64",
+	macosIntel: "storoslop-darwin-x64",
+	linuxArm: "storoslop-linux-arm64",
+	linuxIntel: "storoslop-linux-x64",
+} as const;
+
+type FormulaTarget = keyof typeof FORMULA_TARGETS;
+
+/** A formula `url` stanza: where Homebrew downloads the binary and its sha256. */
+export interface FormulaFile {
+	url: string;
+	sha256: string;
+}
 
 interface ReleaseAsset {
 	name: string;
@@ -52,9 +73,17 @@ function sha256For(assets: readonly ReleaseAsset[], name: string): string {
 	return asset.digest.slice("sha256:".length);
 }
 
+/** The formula file for `version`/`target` from the release's assets. */
+function resolveFile(version: string, asset: string, assets: readonly ReleaseAsset[]): FormulaFile {
+	return {
+		url: `${RELEASE_DOWNLOAD_URL}/v${version}/${asset}`,
+		sha256: sha256For(assets, asset),
+	};
+}
+
 // `${...}` is JS interpolation; the literal `#{version}` / `#{bin}` below are
 // Ruby interpolations Homebrew resolves when it evaluates the formula.
-export function renderFormula(version: string, sums: Record<string, string>): string {
+export function renderFormula(version: string, files: Record<FormulaTarget, FormulaFile>): string {
 	// Each `url` carries `using: :nounzip` because the release assets are bare
 	// Mach-O/ELF executables, not archives. Without it Homebrew's default
 	// CurlDownloadStrategy routes through UnpackStrategy::Uncompressed#extract_nestedly,
@@ -63,8 +92,14 @@ export function renderFormula(version: string, sums: Record<string, string>): st
 	//
 	// `with_env(HOME: buildpath)` redirects the CLI's `os.homedir()` lookup to
 	// the writable staging dir so `generate_completions_from_executable` does
-	// not touch the real `/Users/<user>/.omp` (denied by Homebrew's sandbox
-	// profile, which would otherwise fail the popen).
+	// not touch the real `~/.storoslop` (denied by Homebrew's sandbox profile,
+	// which would otherwise fail the popen).
+	//
+	// Each `mirror` repeats the GitHub release asset. Homebrew tries it when the
+	// primary download fails (e.g. a proxy blocks GitHub's redirect to its object
+	// storage); `sha256` still checks the bytes.
+	const mirror = (file: FormulaFile) =>
+		`${RELEASE_DOWNLOAD_URL}/v${version}/${file.url.slice(file.url.lastIndexOf("/") + 1)}`;
 	return `class Omp < Formula
   desc "${DESC}"
   homepage "${HOMEPAGE}"
@@ -73,27 +108,31 @@ export function renderFormula(version: string, sums: Record<string, string>): st
 
   on_macos do
     on_arm do
-      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-darwin-arm64",
+      url "${files.macosArm.url}",
           using: :nounzip
-      sha256 "${sums["storoslop-darwin-arm64"]}"
+      mirror "${mirror(files.macosArm)}"
+      sha256 "${files.macosArm.sha256}"
     end
     on_intel do
-      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-darwin-x64",
+      url "${files.macosIntel.url}",
           using: :nounzip
-      sha256 "${sums["storoslop-darwin-x64"]}"
+      mirror "${mirror(files.macosIntel)}"
+      sha256 "${files.macosIntel.sha256}"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-linux-arm64",
+      url "${files.linuxArm.url}",
           using: :nounzip
-      sha256 "${sums["storoslop-linux-arm64"]}"
+      mirror "${mirror(files.linuxArm)}"
+      sha256 "${files.linuxArm.sha256}"
     end
     on_intel do
-      url "https://github.com/${REPO}/releases/download/v#{version}/storoslop-linux-x64",
+      url "${files.linuxIntel.url}",
           using: :nounzip
-      sha256 "${sums["storoslop-linux-x64"]}"
+      mirror "${mirror(files.linuxIntel)}"
+      sha256 "${files.linuxIntel.sha256}"
     end
   end
 
@@ -106,7 +145,7 @@ export function renderFormula(version: string, sums: Record<string, string>): st
   end
 
   test do
-    assert_match version.to_s, shell_output("#{bin}/omp --version")
+    assert_match version.to_s, shell_output("#{bin}/storoslop --version")
   end
 end
 `;
@@ -117,11 +156,10 @@ async function main(): Promise<void> {
 	const version = tag.replace(/^v/, "");
 	const assets = await fetchAssets(tag);
 
-	const targets = ["storoslop-darwin-arm64", "storoslop-darwin-x64", "storoslop-linux-arm64", "storoslop-linux-x64"];
-	const sums: Record<string, string> = {};
-	for (const name of targets) sums[name] = sha256For(assets, name);
-
-	const formula = renderFormula(version, sums);
+	const entries = (Object.entries(FORMULA_TARGETS) as [FormulaTarget, string][]).map(
+		([key, asset]) => [key, resolveFile(version, asset, assets)] as const,
+	);
+	const formula = renderFormula(version, Object.fromEntries(entries) as Record<FormulaTarget, FormulaFile>);
 	if (out) {
 		await Bun.write(out, formula);
 		console.log(`wrote ${out} for ${tag}`);

@@ -1,6 +1,10 @@
-# actionlint only knows GitHub-hosted labels; register the self-hosted ARC
-# runner scale set (infra/docs/04-arc-and-caching.md) so `runs-on: omp-kata`
-# lints clean.
-self-hosted-runner:
-   labels:
-      - omp-kata
+# actionlint config.
+#
+# No self-hosted runner labels are in use: every workflow job declares a
+# GitHub-hosted runner (see .github/workflows/ci.yml). actionlint knows those
+# labels itself, so `self-hosted-runner:` stays unset. If a job is ever pointed
+# at a self-hosted label again, register it here as well:
+#
+# self-hosted-runner:
+#    labels:
+#       - <label>

@@ -19,7 +19,7 @@ With `storoslop --profile <name>`, use `~/.storoslop/profiles/<name>/agent/exten
 ```yaml
 # ~/.storoslop/agent/config.yml
 extensions:
-  - /path/to/hello-extension
+   - /path/to/hello-extension
 ```
 
 **Option C — load once via CLI flag:**

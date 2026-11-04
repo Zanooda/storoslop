@@ -61,11 +61,11 @@ The capability type defines this manifest shape:
 
 ```ts
 interface ExtensionManifest {
-  name?: string;
-  description?: string;
-  mcpServers?: Record<string, Omit<MCPServer, "name" | "_source">>;
-  tools?: unknown[];
-  context?: unknown;
+	name?: string;
+	description?: string;
+	mcpServers?: Record<string, Omit<MCPServer, "name" | "_source">>;
+	tools?: unknown[];
+	context?: unknown;
 }
 ```
 
@@ -121,9 +121,9 @@ Notes:
 
 - Invalid JSON, or a syntactically valid falsy JSON literal, in a non-empty
   manifest file:
-  - provider warning: `Invalid JSON in <manifestPath>`
+   - provider warning: `Invalid JSON in <manifestPath>`
 - A surviving item with a falsy name:
-  - registry warning: `[Gemini CLI] Invalid item at <manifestPath>: Missing extension name`
+   - registry warning: `[Gemini CLI] Invalid item at <manifestPath>: Missing extension name`
 
 The registry prefixes provider warnings with `[Gemini CLI]`.
 
@@ -164,7 +164,7 @@ Because dedup is “first seen wins”, provider-local item order matters.
 - Gemini loader appends **user first**, then **project**.
 - Therefore, duplicate names between `~/.gemini/extensions` and `<cwd>/.gemini/extensions` keep the user entry and shadow the project entry.
 
-By contrast, the native provider scans `<cwd>/.omp/extensions` before
+By contrast, the native provider scans `<cwd>/.storoslop/extensions` before
 `<getAgentDir()>/extensions`, so native intra-provider shadowing is
 project-first. It also reads `gemini-extension.json`, but skips dot-prefixed
 child directories and uses `manifest.name || directoryName` rather than `??`.
@@ -189,7 +189,7 @@ does **not** identify a runnable TS/JS entry point.
 
 The Gemini provider separately populates the `extension-module` capability by
 scanning the enabled roots for direct `.ts`/`.js` files,
-`<name>/index.ts` / `index.js`, and `package.json` `omp`/`pi` extension entries.
+`<name>/index.ts` / `index.js`, and `package.json` `storoslop`/`pi` extension entries.
 Declared package entries take precedence over an implicit index; otherwise
 `index.ts` wins over `index.js`. The shared module scanner also supports
 top-level symlinked extension directories. Those module records are independent

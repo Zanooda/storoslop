@@ -8,18 +8,36 @@ This repo contains multiple packages, but **`packages/coding-agent/`** is the pr
 
 ### Package Structure
 
-| Package                 | Description                                                                             |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `packages/ai`           | Multi-provider LLM client with streaming support                                        |
-| `packages/catalog`      | Model catalog: bundled models.json, provider descriptors, model identity/classification |
-| `packages/agent`        | Agent runtime with tool calling and state management                                    |
-| `packages/coding-agent` | Main CLI application (primary focus)                                                    |
-| `packages/tui`          | Terminal UI library with differential rendering                                         |
-| `packages/natives`      | Bindings for native text/image/grep operations                                          |
-| `packages/stats`        | Local observability dashboard (`storoslop stats`)                                             |
-| `packages/omptype`      | ArkType-compatible schema validation with a lazy JIT runtime                            |
-| `packages/utils`        | Shared utilities (logger, streams, temp files)                                          |
-| `crates/pi-natives`     | Rust crate for performance-critical text/grep ops                                       |
+|Package|Description|
+|---|---|
+|`packages/ai`|Multi-provider LLM client with streaming support|
+|`packages/catalog`|Model catalog: bundled models.json, provider descriptors, model identity/classification|
+|`packages/agent`|Agent runtime with tool calling and state management|
+|`packages/coding-agent`|Main CLI application (primary focus)|
+|`packages/tui`|Terminal UI library with differential rendering|
+|`packages/natives`|Bindings for native text/image/grep operations|
+|`packages/stats`|Local observability dashboard (`storoslop stats`)|
+|`packages/omptype`|ArkType-compatible schema validation with a lazy JIT runtime|
+|`packages/utils`|Shared utilities (logger, streams, temp files)|
+|`packages/mnemopi`|Local SQLite memory engine for agents|
+|`packages/snapcompact`|Bitmap-frame context compression for vision-capable LLMs|
+|`packages/wire`|Shared wire protocol types|
+|`packages/browser-relay`|Chrome extension and relay client that let the browser tool drive existing tabs|
+|`packages/collab-web`|Browser guest client and local relay tools for collab live sessions|
+|`packages/metaharness`|Unified benchmark runners, Harbor run storage, REST/SSE APIs, live dashboard|
+|`packages/typescript-edit-benchmark`|Edit benchmark suite built from TypeScript source mutations|
+|`crates/pi-natives`|Rust crate for performance-critical text/grep ops|
+|`crates/pi-shell`|Embedded bash 5.3 engine with its OS and VFS hosts and persistent sessions|
+|`crates/pi-builtins`|uutils-style utilities and process builtins for the embedded shell|
+|`crates/pi-walker`|Parallel filesystem walking, globbing, and content search|
+|`crates/pi-iso`|Cross-platform isolation PAL|
+|`crates/pi-predict`|In-house word-completion engines for the prompt composer|
+|`crates/pi-vfs`|Injectable asynchronous filesystem shared by the shell and coreutils|
+|`crates/pi-ast`|Syntax-aware code analysis primitives|
+|`crates/pi-edit`|Edit engine: parsing, matching, application, diff, streaming previews|
+|`crates/pi-diff`|jsdiff-compatible diff primitives without an FFI dependency|
+|`crates/pi-vcs`|In-process git and Jujutsu interface for the coding agent|
+|`crates/pi-voice`|Native voice engine: capture, playback, WebRTC live conversation|
 
 **Catalog import convention**: code in this repo imports catalog _values_ (bundled models, model-thinking helpers, identity, descriptors, model manager/cache) from `@oh-my-pi/pi-catalog/<module>` — never via `@oh-my-pi/pi-ai`. The pi-ai barrel re-exports only the model/effort _types_ its own signatures use (`Model`, `Api`, `ThinkingConfig`, `Effort`, …); type-only imports of those from `@oh-my-pi/pi-ai` are fine.
 
@@ -41,7 +59,7 @@ When authorized to create or edit a contributor-submitted PR, follow the checkli
 
 ## Upstream
 
-This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`442a83c9e7`**, merged alongside the fork's own `1.3.x` lineage on 2026-10-11 (branch `integrate/oh-my-pi-442a83c9e7`). Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
+This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`33ea58aa7d`**, merged alongside the fork's own `1.4.0` lineage on 2026-11-04 (branch `integrate/oh-my-pi-33ea58aa7d`). The fork keeps its own labels — `storoslop` command name, `~/.storoslop` config root, single-provider runtime registry, fork CI topology — while adopting upstream structure and behavior. Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
 
 ## Code Quality
 
@@ -80,20 +98,20 @@ Use Bun APIs where they provide a cleaner alternative; fall back to `node:*` onl
 
 ### Quick reference
 
-| Operation       | Use                                       | Not                                |
-| --------------- | ----------------------------------------- | ---------------------------------- |
-| File read/write | `Bun.file()`, `Bun.write()`               | `readFileSync`, `writeFileSync`    |
-| Spawn process   | `` $`cmd` ``, `Bun.spawn()`               | `child_process`                    |
-| Sleep           | `Bun.sleep(ms)`                           | `setTimeout` promise               |
-| Binary lookup   | `$which("git")` from `@oh-my-pi/pi-utils` | `spawnSync(["which", "git"])`      |
-| HTTP server     | `Bun.serve()`                             | `http.createServer()`              |
-| SQLite          | `bun:sqlite`                              | `better-sqlite3`                   |
-| Hashing         | `Bun.hash()`, `Bun.password.*`, WebCrypto | `node:crypto`                      |
-| Path resolution | `import.meta.dir`, `import.meta.path`     | `fileURLToPath` dance              |
-| JSON5           | `Bun.JSON5.parse()` / `.stringify()`      | `json5` package                    |
-| JSONL           | `Bun.JSONL.parse()` / `.parseChunk()`     | `text.split("\n").map(JSON.parse)` |
-| String width    | `Bun.stringWidth()`                       | `get-east-asian-width`, custom     |
-| Text wrapping   | `Bun.wrapAnsi()`                          | custom ANSI-aware wrappers         |
+|Operation|Use|Not|
+|---|---|---|
+|File read/write|`Bun.file()`, `Bun.write()`|`readFileSync`, `writeFileSync`|
+|Spawn process|`` $`cmd` ``, `Bun.spawn()`|`child_process`|
+|Sleep|`Bun.sleep(ms)`|`setTimeout` promise|
+|Binary lookup|`$which("git")` from `@oh-my-pi/pi-utils`|`spawnSync(["which", "git"])`|
+|HTTP server|`Bun.serve()`|`http.createServer()`|
+|SQLite|`bun:sqlite`|`better-sqlite3`|
+|Hashing|`Bun.hash()`, `Bun.password.*`, WebCrypto|`node:crypto`|
+|Path resolution|`import.meta.dir`, `import.meta.path`|`fileURLToPath` dance|
+|JSON5|`Bun.JSON5.parse()` / `.stringify()`|`json5` package|
+|JSONL|`Bun.JSONL.parse()` / `.parseChunk()`|`text.split("\n").map(JSON.parse)`|
+|String width|`Bun.stringWidth()`|`get-east-asian-width`, custom|
+|Text wrapping|`Bun.wrapAnsi()`|custom ANSI-aware wrappers|
 
 ### Process execution
 
@@ -229,7 +247,7 @@ logger.warn("Theme file invalid, using fallback", { path });
 logger.debug("LSP fallback triggered", { reason });
 ```
 
-Logs go to `~/.omp/logs/omp.YYYY-MM-DD.log` with automatic rotation. Standalone CLI commands that exit without entering the TUI MAY use `console.*` or process streams for intentional user-facing output. Keep structured stdout clean. This exception is semantic, not filename-based; shared code must use `logger` or an explicit output sink.
+Logs go to `~/.storoslop/logs/storoslop.YYYY-MM-DD.log` with automatic rotation; `bun test` processes write theirs to a per-user `omp-test-logs-<uid>/` under the OS temp dir instead. Standalone CLI commands that exit without entering the TUI MAY use `console.*` or process streams for intentional user-facing output. Keep structured stdout clean. This exception is semantic, not filename-based; shared code must use `logger` or an explicit output sink.
 
 ## TUI Sanitization
 
@@ -265,18 +283,19 @@ For the bash tool specifically:
 - NEVER commit unless asked.
 - Never use `tsc`/`npx tsc` — always `bun check`.
 - Never run `cargo test` directly for Rust tests — use `bun run test:rs`. It runs `cargo nextest run` (config: `.config/nextest.toml`) followed by a `cargo test --doc` pass, because nextest does not execute doctests. The doctest pass runs every runnable doctest in the workspace's lib crates; today that is tree-sitter-go's one example (pi-natives is a `cdylib`, which rustdoc skips; pi-builtins' examples are `ignore`d vendored uutils docs).
+- `bun check`'s Rust half runs only when the branch changed a Rust-affecting file (`*.rs`, `crates/`, Cargo/toolchain files) since its merge base with `upstream/main` or `origin/main`, committed or not; it always runs in GitHub Actions, when that cannot be determined (e.g. shallow clone), or with `OMP_FORCE_RUST_TASKS=1`.
 - Merge commits (maintainer merges of PRs) follow: `Merge PR #<number>: <conventional PR subject> (@<author>)` — e.g. `Merge PR #6386: feat(catalog): add native Meta Model API provider (@eggpeat)`.
 ## Rust Build Profiles
 
 Profiles live in the root `Cargo.toml`; `.cargo/config.toml` carries the settings Cargo.toml cannot express. Both are committed, so no local `~/.cargo/config.toml` is required.
 
-| Profile | Use |
-| --- | --- |
-| `dev` | Default. Line tables for our crates, no debuginfo for deps, deps at `opt-level = 2`. |
-| `release` | Shipping build: fat LTO, 1 codegen unit, stripped. |
-| `local` | Fast local release iteration: thin LTO, 16 codegen units, incremental. |
-| `profiling` | `release` codegen with symbols kept, for `perf`/`samply`/Instruments. |
-| `ci` | Thin LTO, no debuginfo, stripped. |
+|Profile|Use|
+|---|---|
+|`dev`|Default. Line tables for our crates, no debuginfo for deps, deps at `opt-level = 2`.|
+|`release`|Shipping build: fat LTO, 1 codegen unit, stripped.|
+|`local`|Fast local release iteration: thin LTO, 16 codegen units, incremental.|
+|`profiling`|`release` codegen with symbols kept, for `perf`/`samply`/Instruments.|
+|`ci`|Thin LTO, no debuginfo, stripped.|
 
 **Never set `split-debuginfo = "off"` on a profile that has debuginfo.** On Mach-O the linker never merges DWARF into the executable — it writes a debug map (`N_OSO`) pointing at the `.o` files, and `"unpacked"` is what keeps those files. With `"off"` every backtrace frame in our own crates silently loses `file:line`; the `panicked at foo.rs:3` header still prints (that is `#[track_caller]`, not debuginfo), which makes the loss easy to miss. `ci` may use `"off"` only because it sets `debug = false`.
 

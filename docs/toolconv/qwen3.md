@@ -5,29 +5,30 @@ Tool-calling convention of Alibaba's **Qwen3** family (`Qwen/Qwen3-*`: dense `0.
 Verified against: Qwen's canonical function-calling guide (`qwen.readthedocs.io/en/latest/framework/function_call.html`, read in full incl. the Qwen-Agent + vLLM sections), the byte-exact `chat_template` field of `Qwen/Qwen3-8B`'s `tokenizer_config.json` (HF resolve-cache commit `b968826d9c46dd6066d109eabc6255188de91218`, rendered locally with Jinja2 for the raw streams below) and its `added_tokens_decoder` for token IDs, the NousResearch `Hermes-Function-Calling` README, and the vLLM tool-calling docs (`hermes` parser + Qwen models section).
 
 The template/tokenizer details below refer to the Qwen3-8B reference listed
-above, not every later Qwen deployment. OMP's owned converter does not execute
+above, not every later Qwen deployment. storoslop's owned converter does not execute
 that template or apply `enable_thinking`; see
-[omp / pi converter behavior](#omp--pi-converter-behavior) for the implemented
+[storoslop / pi converter behavior](#omp--pi-converter-behavior) for the implemented
 request and scanner behavior.
 
 ## Special tokens
 
 Only the three ChatML markers are "special" control tokens (`special=true`, skipped by `skip_special_tokens`). The reasoning and tool markers are also single vocabulary tokens (one ID each) but are registered with `special=false`, i.e. they render as ordinary text and are **not** stripped by `skip_special_tokens`. The `<tools>`/`</tools>` wrapper has **no** dedicated token at all — it is plain text that BPE-splits into several tokens. IDs are from `Qwen/Qwen3-8B` `added_tokens_decoder`.
 
-| Token (verbatim) | ID | `special` | Purpose |
-|---|---|---|---|
-| `<\|im_start\|>` | 151644 | true | Start of a turn; followed immediately by the role name + `\n` |
-| `<\|im_end\|>` | 151645 | true | End of a turn; the chat stop token |
-| `<\|endoftext\|>` | 151643 | true | Base EOS / pad token |
-| `<think>` | 151667 | false | Opens the reasoning block |
-| `</think>` | 151668 | false | Closes the reasoning block |
-| `<tool_call>` | 151657 | false | Opens one tool call |
-| `</tool_call>` | 151658 | false | Closes one tool call |
-| `<tool_response>` | 151665 | false | Opens one tool result |
-| `</tool_response>` | 151666 | false | Closes one tool result |
-| `<tools>` … `</tools>` | — | — | Plain text wrapper around the tool list in the system turn (not a single token) |
+| Token (verbatim)       | ID     | `special` | Purpose                                                                         |
+| ---------------------- | ------ | --------- | ------------------------------------------------------------------------------- |
+| `<\|im_start\|>`       | 151644 | true      | Start of a turn; followed immediately by the role name + `\n`                   |
+| `<\|im_end\|>`         | 151645 | true      | End of a turn; the chat stop token                                              |
+| `<\|endoftext\|>`      | 151643 | true      | Base EOS / pad token                                                            |
+| `<think>`              | 151667 | false     | Opens the reasoning block                                                       |
+| `</think>`             | 151668 | false     | Closes the reasoning block                                                      |
+| `<tool_call>`          | 151657 | false     | Opens one tool call                                                             |
+| `</tool_call>`         | 151658 | false     | Closes one tool call                                                            |
+| `<tool_response>`      | 151665 | false     | Opens one tool result                                                           |
+| `</tool_response>`     | 151666 | false     | Closes one tool result                                                          |
+| `<tools>` … `</tools>` | —      | —         | Plain text wrapper around the tool list in the system turn (not a single token) |
 
 Notes on exactness:
+
 - All markers use the ASCII pipe `|` (U+007C) and ASCII angle brackets. Qwen3 has **no** fullwidth (`｜` U+FF5C) or `▁` (U+2581) variants — that is DeepSeek/SentencePiece territory, not Qwen.
 - `<|im_start|>` and `<|im_end|>` are the only tokens that matter for splitting turns. Because `<tool_call>`, `</tool_call>`, `<tool_response>`, `<think>`, `</think>` are `special=false`, they survive a `skip_special_tokens=True` decode, which is exactly why the regex-based `hermes` parser can recover them from decoded text.
 - The model card confirms `</think>` = token `151668` (used by the reference parsing snippet `output_ids[::-1].index(151668)`).
@@ -174,10 +175,10 @@ With `--enable-auto-tool-choice --tool-call-parser hermes`, vLLM converts the ra
 - `finish_reason`: `"tool_calls"` when the turn ended on tool calls (otherwise `"stop"`).
 - `message.role`: `"assistant"`; `message.content`: `null` for a pure tool-call turn (any pre-call prose becomes `content`).
 - `message.tool_calls[]`: one entry per `<tool_call>` block, each:
-  - `id`: server-generated, e.g. `"chatcmpl-tool-924d705adb044ff88e0ef3afdd155f15"` (the model emits no ID).
-  - `type`: `"function"`.
-  - `function.name`: the call's `name`.
-  - `function.arguments`: a **JSON string** at the API boundary, e.g. `'{"location": "San Francisco, CA, USA"}'`. The wire format is a nested object, but the server re-serializes it to a string here (`json.loads(...)` it before use), matching OpenAI and Qwen-Agent.
+   - `id`: server-generated, e.g. `"chatcmpl-tool-924d705adb044ff88e0ef3afdd155f15"` (the model emits no ID).
+   - `type`: `"function"`.
+   - `function.name`: the call's `name`.
+   - `function.arguments`: a **JSON string** at the API boundary, e.g. `'{"location": "San Francisco, CA, USA"}'`. The wire format is a nested object, but the server re-serializes it to a string here (`json.loads(...)` it before use), matching OpenAI and Qwen-Agent.
 - With thinking + `--reasoning-parser deepseek_r1`, the `<think>…</think>` content is split out into `message.reasoning_content` and removed from `content`.
 - Feeding results back: append `{"role": "tool", "content": <result>, "tool_call_id": <id-from-the-call>}` for each result. `tool_call_id` links a result to its call (Qwen3's template ignores the id when rendering — ordering is what reaches the model — but the API still requires it).
 
@@ -192,7 +193,7 @@ message.tool_calls = [
 ]
 ```
 
-## omp / pi converter behavior
+## storoslop / pi converter behavior
 
 The repository's `qwen3` dialect is an **owned in-band converter**. Select it
 with `tools.format: qwen3` in agent configuration or `PI_DIALECT=qwen3`.
@@ -205,7 +206,7 @@ tool catalog to the system prompt, removes native provider tools and tool
 choice, rewrites earlier calls/results as text, and scans streamed output back
 into canonical pi events. `hermes` remains a separate selectable dialect even
 though both emit the same basic JSON-in-`<tool_call>` convention (see
-[hermes.md](hermes.md)). OMP uses `packages/ai/src/dialect/prompt-template.md`,
+[hermes.md](hermes.md)). storoslop uses `packages/ai/src/dialect/prompt-template.md`,
 not the upstream Qwen template's byte-exact system preamble.
 
 The catalog's family-affinity helper maps model ids classified as `qwen` to
@@ -214,7 +215,7 @@ simple substring check. The default `tools.format: auto` uses that fallback
 only when the model has `supportsTools: false`; otherwise it keeps native
 tools. For a Coder endpoint requiring its native XML protocol, set
 `tools.format: native`, unset `PI_DIALECT`, and configure the serving endpoint's
-`qwen3_xml` parser. `qwen3_xml` is not an storoslop-owned dialect or a valid
+`qwen3_xml` parser. `qwen3_xml` is not a storoslop-owned dialect or a valid
 `tools.format` value.
 
 There is a separate `QwenXmlInbandScanner` in
@@ -225,7 +226,7 @@ section closes. This is a recovery helper, not a selectable owned dialect.
 Automatic healer selection currently chooses Kimi, DSML, or thinking-only,
 not this mode.
 
-The omp renderer always writes a nested `arguments` object and renders
+The storoslop renderer always writes a nested `arguments` object and renders
 parallel calls newline-separated. Results become newline-delimited
 `<tool_response>` blocks inside the synthetic user history message. Results
 carry neither name nor id and have no success/error marker; images are retained
@@ -275,7 +276,7 @@ double dispatch.
 - **Reasoning models + stopword templates:** Qwen warns against ReAct-style stopword tool templates for Qwen3, since reasoning text may contain the stopwords and corrupt parsing — use this native Hermes template instead.
 - **Robustness:** the format is prompt/template-driven, so malformed output is possible
   (truncated JSON, missing `</tool_call>`, prose mixed into a call, or stringified
-  arguments). vLLM may fall back to content depending on its parser path; omp's
+  arguments). vLLM may fall back to content depending on its parser path; storoslop's
   owned scanner consumes recognized blocks; a block without a recoverable name
   produces no call, but an already-started partial call survives a later parse
   failure. Named / `required` tool choice can route

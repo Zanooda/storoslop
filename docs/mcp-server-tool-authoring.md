@@ -26,8 +26,8 @@ Config sources (.storoslop/.claude/.cursor/.vscode/mcp.json, mcp.json, etc.)
 
 `timeout` is in milliseconds, defaults to 30,000, and accepts `0` to disable
 client-side timeouts. A valid `OMP_MCP_TIMEOUT_MS` environment value overrides
-the per-server timeout. `requestIdFormat` and `instructions` are OMP-specific;
-native configs, standalone MCP JSON, and OMP plugins parse them, while foreign
+the per-server timeout. `requestIdFormat` and `instructions` are storoslop-specific;
+native configs, standalone MCP JSON, and storoslop plugins parse them, while foreign
 tool-format providers generally do not.
 
 `validateServerConfig()` (`src/mcp/config.ts`) enforces transport basics:
@@ -293,21 +293,21 @@ tools retain their prior selection. Changes take effect without restarting.
 Common error strings users/operators see:
 
 - add/update validation failures:
-  - `Invalid server config: ...`
-  - `Server "<name>" already exists in <path>`
+   - `Invalid server config: ...`
+   - `Server "<name>" already exists in <path>`
 - quick-add argument issues:
-  - `Use either --url or -- <command...>, not both.`
-  - `--token requires --url (HTTP/SSE transport).`
+   - `Use either --url or -- <command...>, not both.`
+   - `--token requires --url (HTTP/SSE transport).`
 - connect/test failures:
-  - `Failed to connect to "<name>": <message>`
-  - timeout help text suggests increasing timeout
-  - auth help text for `401/403`
+   - `Failed to connect to "<name>": <message>`
+   - timeout help text suggests increasing timeout
+   - auth help text for `401/403`
 - auth/OAuth flows:
-  - `Authentication required ... OAuth endpoints could not be discovered`
-  - `OAuth flow timed out. Please try again.`
-  - `OAuth authentication failed: ...`
+   - `Authentication required ... OAuth endpoints could not be discovered`
+   - `OAuth flow timed out. Please try again.`
+   - `OAuth authentication failed: ...`
 - disabled server usage:
-  - `Server "<name>" is disabled. Run /mcp enable <name> first.`
+   - `Server "<name>" is disabled. Run /mcp enable <name> first.`
 
 Bad source JSON in discovery is generally handled as warnings/logs; config-writer paths throw explicit errors.
 

@@ -13,18 +13,18 @@ In the TUI, `/marketplace` with no arguments opens the interactive plugin browse
 
 ## Concepts
 
-A **marketplace** is a Git repository (or local directory) containing a catalog file at `.storoslop-plugin/marketplace.json` (preferred) or `.claude-plugin/marketplace.json` (Claude Code-compatible fallback). The catalog lists available plugins with their sources, descriptions, and metadata.
+A **marketplace** is a Git repository (or local directory) containing a catalog file at `.omp-plugin/marketplace.json` (preferred) or `.claude-plugin/marketplace.json` (Claude Code-compatible fallback). The catalog lists available plugins with their sources, descriptions, and metadata.
 
-A **plugin** is a directory containing Claude/storoslop plugin content such as skills, commands, agents, rules, hooks, tools, MCP servers, LSP servers, or DAP adapters. Root `plugin.json` packages declaring the Agent Plugins 1.0.0 schema use the portable `agent-plugins` discovery provider for skills and `mcp.json`; hybrid packages can still expose OMP-specific content. Marketplace installs also load extension modules declared by `package.json` `storoslop.extensions`: installation symlinks the cached plugin into the scope's `node_modules` tree and records it in `storoslop-plugins.lock.json`, the same runtime surfaces used by npm-installed and `storoslop plugin link`ed plugins. Plugins are identified by `name@marketplace` (e.g. `code-review@claude-plugins-official`).
+A **plugin** is a directory containing Claude/storoslop plugin content such as skills, commands, agents, rules, hooks, tools, MCP servers, LSP servers, or DAP adapters. Root `plugin.json` packages declaring the Agent Plugins 1.0.0 schema use the portable `agent-plugins` discovery provider for skills and `mcp.json`; hybrid packages can still expose storoslop-specific content. Marketplace installs also load extension modules declared by `package.json` `omp.extensions`: installation symlinks the cached plugin into the scope's `node_modules` tree and records it in `omp-plugins.lock.json`, the same runtime surfaces used by npm-installed and `storoslop plugin link`ed plugins. Plugins are identified by `name@marketplace` (e.g. `code-review@claude-plugins-official`).
 
 **Scopes**: marketplace plugins can be installed at two scopes:
 
 - **user** (default) -- available in all projects, stored in the user plugins data root's `installed_plugins.json` (`~/.storoslop/plugins/installed_plugins.json` by default)
-- **project** -- available only in the active project, stored in `.storoslop/plugins/installed_plugins.json` under the nearest ancestor with `.omp/`, or the nearest Git root if no `.omp/` exists. An explicit project install can create this tree in cwd when neither anchor exists; the home directory is not treated as a project.
+- **project** -- available only in the active project, stored in `.storoslop/plugins/installed_plugins.json` under the nearest ancestor with `.storoslop/`, or the nearest Git root if no `.storoslop/` exists. An explicit project install can create this tree in cwd when neither anchor exists; the home directory is not treated as a project.
 
 Enabled project-scoped installs shadow enabled user-scoped installs of the same plugin. A disabled project install does not shadow the user install.
 
-On Linux and macOS, `storoslop config init-xdg` initializes the XDG data, state, and cache roots; it does not move existing data. With `XDG_DATA_HOME` set and its `omp/` directory initialized, user marketplace/plugin state resolves under `$XDG_DATA_HOME/storoslop` (including `marketplaces.json` and `plugins/`). Named profiles use their own roots; XDG routing requires the corresponding `omp/profiles/<name>/` directory. The `~/.storoslop` paths below are the default-profile, non-XDG defaults.
+On Linux and macOS, `storoslop config init-xdg` initializes the XDG data, state, and cache roots; it does not move existing data. With `XDG_DATA_HOME` set and its `storoslop/` directory initialized, user marketplace/plugin state resolves under `$XDG_DATA_HOME/storoslop` (including `marketplaces.json` and `plugins/`). Named profiles use their own roots; XDG routing requires the corresponding `storoslop/profiles/<name>/` directory. The `~/.storoslop` paths below are the default-profile, non-XDG defaults.
 
 On first XDG registry resolution, an existing config-root `marketplaces.json` is copied best-effort if the XDG target is absent; the old file remains. Plugin installation trees are not copied by this helper.
 
@@ -32,8 +32,8 @@ On first XDG registry resolution, an existing config-root `marketplaces.json` is
 
 ### Interactive mode
 
-| Command        | Effect                                    |
-| -------------- | ----------------------------------------- |
+| Command                                  | Effect                                    |
+| ---------------------------------------- | ----------------------------------------- |
 | `/marketplace` or `/marketplace install` | Open interactive plugin browser (install) |
 
 ### Marketplace management
@@ -55,8 +55,8 @@ On first XDG registry resolution, an existing config-root `marketplaces.json` is
 | `/marketplace installed`                                                  | List installed marketplace plugins                 |
 | `/marketplace upgrade [--scope user\|project] [name@marketplace]`         | Upgrade one or all plugins                         |
 | `/plugins list`                                                           | List npm/link and marketplace plugins              |
-| `/plugins enable [--scope user\|project] <plugin>`                         | Enable an npm/link or marketplace plugin           |
-| `/plugins disable [--scope user\|project] <plugin>`                        | Disable an npm/link or marketplace plugin          |
+| `/plugins enable [--scope user\|project] <plugin>`                        | Enable an npm/link or marketplace plugin           |
+| `/plugins disable [--scope user\|project] <plugin>`                       | Disable an npm/link or marketplace plugin          |
 
 ### CLI equivalents
 
@@ -70,7 +70,7 @@ storoslop plugin marketplace list
 storoslop plugin discover [marketplace]
 storoslop plugin install [--dry-run] [--force] [--scope user|project] name@marketplace
 storoslop plugin uninstall [--dry-run] [--scope user|project] name@marketplace
-storoslop plugin upgrade [--scope user|project] [name@marketplace]
+storoslop plugin upgrade [--dry-run] [--scope user|project] [name@marketplace]
 storoslop plugin enable [--scope user|project] name@marketplace
 storoslop plugin disable [--scope user|project] name@marketplace
 storoslop plugin list
@@ -79,7 +79,7 @@ storoslop plugin list
 
 TUI `/plugins enable` and `/plugins disable` refresh the active session's skills, slash commands, task agents, and MCP servers immediately; `--scope` selects a marketplace install when needed and npm/link toggles are global. Other TUI marketplace mutations (explicit commands and the selector) update disk state and invalidate discovery caches but do not refresh the active session. Run `/reload-plugins` after those mutations to refresh task agents, skills, slash commands, and MCP servers; restart the session for newly installed non-MCP tools, hooks, or extension modules. ACP/RPC marketplace handlers refresh skills and slash commands automatically; ACP also refreshes task-agent discovery. Neither remote handler reconnects MCP servers or rebuilds every initialized capability set.
 
-CLI `--dry-run` install validates the cached catalog, scope, existing install, and locally checkable source constraints without fetching plugin repositories or writing plugin state. Uninstall previews retain installed-scope ambiguity checks without removing anything. TUI/ACP/RPC slash commands do not accept `--dry-run`.
+CLI `--dry-run` install validates the cached catalog, scope, existing install, and locally checkable source constraints without fetching plugin repositories or writing plugin state. Uninstall previews retain installed-scope ambiguity checks without removing anything. `upgrade --dry-run` with no id lists each outdated plugin and scope as `from -> to` against the cached catalogs, the pairs a real `upgrade` reinstalls; `storoslop update --plugins --check` prints the same list. `upgrade name@marketplace --dry-run` lists every scope the real command reinstalls, as an upgrade, reinstall (same version) or downgrade, because naming a plugin always forces a reinstall of the catalog's current version. Neither installs anything. `upgrade` of an npm/git plugin, `marketplace add`, `remove` and `update`, `enable` and `disable` reject `--dry-run` with an error and change nothing. TUI/ACP/RPC slash commands do not accept `--dry-run`.
 
 ## Marketplace sources
 
@@ -93,44 +93,44 @@ When you run `/marketplace add <source>`, the system classifies the source:
 | `git@...` / `ssh://...`         | Git repository                                     | `git@github.com:org/repo.git`          |
 | `./path` or `~/path` or `/path` | Local directory                                    | `./my-marketplace`                     |
 
-Git and local sources must contain a catalog at `.storoslop-plugin/marketplace.json` (preferred) or `.claude-plugin/marketplace.json` (Claude Code-compatible fallback). Direct catalog URLs cache only the JSON catalog; plugins in URL-sourced catalogs cannot use relative string sources like `"./plugins/foo"`.
+Git and local sources must contain a catalog at `.omp-plugin/marketplace.json` (preferred) or `.claude-plugin/marketplace.json` (Claude Code-compatible fallback). Direct catalog URLs cache only the JSON catalog; plugins in URL-sourced catalogs cannot use relative string sources like `"./plugins/foo"`.
 
 ## Catalog format (marketplace.json)
 
-A marketplace catalog lives at `.storoslop-plugin/marketplace.json` in the repository root. When storoslop is the only intended consumer, prefer this path. To remain Claude Code-compatible (storoslop loads the same shape from either path), publish at `.claude-plugin/marketplace.json` instead — storoslop uses it as a fallback when `.storoslop-plugin/marketplace.json` is absent. A repository may ship both: storoslop reads the `.storoslop-plugin/` copy, Claude Code reads the `.claude-plugin/` copy. Same catalog format either way:
+A marketplace catalog lives at `.omp-plugin/marketplace.json` in the repository root. When storoslop is the only intended consumer, prefer this path. To remain Claude Code-compatible (storoslop loads the same shape from either path), publish at `.claude-plugin/marketplace.json` instead — storoslop uses it as a fallback when `.omp-plugin/marketplace.json` is absent. A repository may ship both: storoslop reads the `.omp-plugin/` copy, Claude Code reads the `.claude-plugin/` copy. Same catalog format either way:
 
 ```json
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "my-marketplace",
-  "owner": {
-    "name": "Your Name",
-    "email": "you@example.com"
-  },
-  "metadata": {
-    "description": "A collection of plugins",
-    "version": "1.0.0",
-    "pluginRoot": "plugins"
-  },
-  "plugins": [
-    {
-      "name": "my-plugin",
-      "description": "What this plugin does",
-      "source": "./my-plugin",
-      "category": "development",
-      "homepage": "https://github.com/you/my-plugin"
-    }
-  ]
+	"$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+	"name": "my-marketplace",
+	"owner": {
+		"name": "Your Name",
+		"email": "you@example.com"
+	},
+	"metadata": {
+		"description": "A collection of plugins",
+		"version": "1.0.0",
+		"pluginRoot": "plugins"
+	},
+	"plugins": [
+		{
+			"name": "my-plugin",
+			"description": "What this plugin does",
+			"source": "./my-plugin",
+			"category": "development",
+			"homepage": "https://github.com/you/my-plugin"
+		}
+	]
 }
 ```
 
 ### Required fields
 
-| Field        | Description                                                                                                      |
-| ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Field        | Description                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `name`       | Marketplace name. ASCII letters, digits, hyphens, and dots. Must start and end with a letter or digit. Max 64 chars. |
-| `owner.name` | Marketplace owner name                                                                                           |
-| `plugins`    | Array of plugin entries                                                                                          |
+| `owner.name` | Marketplace owner name                                                                                               |
+| `plugins`    | Array of plugin entries                                                                                              |
 
 Top-level `metadata.description`, `metadata.version`, and `metadata.pluginRoot` are optional. When `metadata.pluginRoot` is set, it is prepended to relative plugin `source` paths.
 
@@ -232,7 +232,7 @@ Invalid catalog JSON or invalid required top-level fields reject the catalog. An
   marketplaces.json              # Registry of added marketplaces
   plugins/
     installed_plugins.json       # User-scoped marketplace plugins (version: 2)
-    storoslop-plugins.lock.json         # Runtime enable/feature state
+    omp-plugins.lock.json         # Runtime enable/feature state and plugin settings
     node_modules/<package>        # Symlink to the cached plugin
     cache/
       marketplaces/<name>/       # Cached marketplace clone/catalog
@@ -241,9 +241,11 @@ Invalid catalog JSON or invalid required top-level fields reject the catalog. An
 <project>/.storoslop/
   plugins/
     installed_plugins.json       # Project-scoped marketplace plugins (version: 2)
-    storoslop-plugins.lock.json         # Project runtime enable/feature state
+    omp-plugins.lock.json         # Project runtime enable/feature state
     node_modules/<package>        # Symlink to the cached plugin
 ```
+
+The lockfile also holds plugin settings, including values a plugin marks `secret`, so it is written with owner-only permissions (`0600`).
 
 ## Naming rules
 

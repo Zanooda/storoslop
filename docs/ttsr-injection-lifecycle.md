@@ -29,18 +29,14 @@ const ttsrSettings = cfgTtsr.get(settings);
 // Live source: enable/repeat/interrupt/context changes apply on the next check.
 const ttsrManager = new TtsrManager(() => cfgTtsr.get(settings));
 const rulesResult =
-  options.rules !== undefined
-    ? { items: options.rules, warnings: undefined }
-    : await loadCapability<Rule>(ruleCapability.id, { cwd, agentDir });
-const { rulebookRules, alwaysApplyRules } = bucketRules(
-  rulesResult.items,
-  ttsrManager,
-  {
-    builtinRules: ttsrSettings.builtinRules,
-    disabledRules: ttsrSettings.disabledRules,
-    agentName: resolvedAgentName,
-  },
-);
+	options.rules !== undefined
+		? { items: options.rules, warnings: undefined }
+		: await loadCapability<Rule>(ruleCapability.id, { cwd, agentDir });
+const { rulebookRules, alwaysApplyRules } = bucketRules(rulesResult.items, ttsrManager, {
+	builtinRules: ttsrSettings.builtinRules,
+	disabledRules: ttsrSettings.disabledRules,
+	agentName: resolvedAgentName,
+});
 ```
 
 `bucketRules(...)` drops names listed in `ttsr.disabledRules`, drops embedded builtin-defaults rules when `ttsr.builtinRules === false`, drops rules whose `agents` globs do not match this session's agent, registers accepted TTSR rules, and then routes the remaining rules to always-apply/rulebook buckets.
@@ -170,12 +166,14 @@ Non-interrupting matches split by `matchContext.source`:
 
 - **`source === "tool"` (tool-source match).** The rule is bucketed into `TtsrCoordinator.#perToolInjections`, keyed by the matched tool call's `id`, and marked injected in memory immediately. There is **no** deferred follow-up turn and the stream is not aborted. When the tool actually produces a result, the `afterToolCall` hook returns a rendered `ttsr-tool-reminder.md` block as passive `additionalContext`; agent-core emits it in a separate developer message after the tool result, never as part of tool output (calls dispatched outside the agent loop are covered by the next bullet). It also persists a `ttsr_injection` entry with the consumed rule names. The template payload is:
 
-  ```xml
-  <system-reminder reason="rule_violation" rule="{{name}}" path="{{path}}">
-  ...
-  {{content}}
-  </system-reminder>
-  ```
+   ```xml
+   <system-reminder reason="rule_violation" rule="{{name}}" path="{{path}}">
+   ...
+   {{content}}
+   </system-reminder>
+   ```
+
+   The opening line depends on where the rule comes from: a bundled `builtin-defaults` rule says a built-in style rule matched and asks the model to check what it wrote against the rule, exceptions included, and fix only a real violation; every other rule says a user-defined rule matched and must be complied with.
 
 - **Bridged AgentTool calls (Cursor exec handlers, eval).** These dispatches bypass the agent loop, so `afterToolCall` never runs for them. Finalized inner calls are checked at the `ExtensionToolWrapper` boundary, which passes the call's tool context to `TtsrCoordinator.afterBridgedToolCall`. When that context carries an `addAdditionalContext` sink, the reminder is delivered through it as passive context (the Cursor exec bridge installs a sink whenever the session supplies a tool context, and delivers after its buffered results on the next provider request) and the bridged result stays untouched. A bridged call with no sink has no trusted channel, so the reminder is prepended to its result as a leading text block instead; eval-bridged calls take this fallback today. Prelude host calls (`browser.*`, `computer.*`, `tab.run`) are not AgentTool dispatches and stay outside this path.
 
@@ -280,7 +278,7 @@ During the timer window, state can change. The retry is guarded by retry token, 
 - Tools without `matcherPaths`/`matcherEntries` keep the generic top-level path scan and combined `matcherDigest` behavior — the per-file hooks are additive.
 - Default scope monitors text and tools, not thinking.
 - `contextMode: "keep"`: partial violating output can remain in context before reminder retry.
-- `interruptMode: "never"`: prose-source matches queue a deferred hidden injection after a successful assistant message; tool-source matches return an OMP-authored `<system-reminder>` through `afterToolCall.additionalContext`, which agent-core emits as a separate developer message after the matched call's tool result (no tool-output mutation, mid-stream abort, or extra follow-up turn). Bridged calls use their own passive-context sink the same way; only a bridged call without one (eval) folds the reminder into its result.
+- `interruptMode: "never"`: prose-source matches queue a deferred hidden injection after a successful assistant message; tool-source matches return a storoslop-authored `<system-reminder>` through `afterToolCall.additionalContext`, which agent-core emits as a separate developer message after the matched call's tool result (no tool-output mutation, mid-stream abort, or extra follow-up turn). Bridged calls use their own passive-context sink the same way; only a bridged call without one (eval) folds the reminder into its result.
 - Tool-source non-interrupting buckets are cleared when the parent assistant message ends with `stopReason === "aborted"` or `"error"`. Their match-time in-memory suppression remains until repeat policy permits another trigger (or reload discards the unpersisted record).
 - Repeat-after-gap depends on turn count increments at `turn_end`; after reload, restored injection ages restart at zero.
 - Judged (`question`) rules never appear in `checkDelta`/`checkSnapshot`/`checkAstSnapshot` results; see §10.
@@ -308,4 +306,4 @@ A rule with `question` is judged: its natural-language question goes to the `jud
 
 `/omfg` generates `condition`, `astCondition`, or `question` rules, instructed to prefer the pattern triggers. It validates candidates against conversation history through the same completed-output view (`TtsrToolInspector.outputs`); a `question` candidate must pass its scope/prefilter and get a yes from the judge on one of the 8 most recent in-scope outputs. With no judge available, the user decides whether to save it unconfirmed.
 
-`omp ttsr list` shows each rule's `question`. `omp ttsr test` never calls the judge, so question rules report as not triggered, with their question shown. `omp ttsr scan` skips question rules: their conditions are prefilters, not violations.
+`storoslop ttsr list` shows each rule's `question`. `storoslop ttsr test` never calls the judge, so question rules report as not triggered, with their question shown. `storoslop ttsr scan` skips question rules: their conditions are prefilters, not violations.

@@ -4,7 +4,7 @@ Bitmap-frame context compression for vision-capable LLMs.
 
 Instead of asking an LLM to summarize discarded conversation history, snapcompact serializes it and renders the text into dense PNG frames of pixel-font glyphs that vision models read back directly. The whole pass is local and deterministic — no LLM call, no API key, no latency beyond rendering. Rasterization and PNG encoding happen in native code (`@oh-my-pi/pi-natives`).
 
-Built for [omp](https://github.com/can1357/oh-my-pi)'s compaction pipeline, but the rendering API works on arbitrary text.
+Built for [storoslop](https://github.com/Zanooda/storoslop)'s compaction pipeline, but the rendering API works on arbitrary text.
 
 ## How it works
 
@@ -34,7 +34,7 @@ A host that downscales images before the model reads them (catalog `image-max-ed
 bun add @oh-my-pi/snapcompact
 ```
 
-Ships TypeScript source directly (no build step); requires Bun ≥ 1.3.14.
+Ships TypeScript source directly (no build step); requires Bun ≥ 1.4.4.
 
 ## Usage
 

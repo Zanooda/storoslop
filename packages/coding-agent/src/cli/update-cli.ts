@@ -9,9 +9,19 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { $env, $which, APP_NAME, compareVersions, isCompiledBinary, isEnoent, VERSION } from "@oh-my-pi/pi-utils";
+import {
+	$env,
+	$which,
+	APP_NAME,
+	compareVersions,
+	getUpdateStateDir,
+	isCompiledBinary,
+	isEnoent,
+	VERSION,
+	WhichCachePolicy,
+} from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
-import { withFileLock } from "@oh-my-pi/pi-utils/file-lock";
+import { type FileLockHandle, tryAcquireFileLock, withFileLock } from "@oh-my-pi/pi-utils/file-lock";
 import { $ } from "bun";
 
 import { theme } from "@oh-my-pi/pi-tui/theme";
@@ -70,6 +80,18 @@ const SUPPORTED_NATIVE_TAGS: ReadonlySet<string> = new Set([
 function currentNativeTag(): string {
 	return `${process.platform}-${process.arch}`;
 }
+
+/**
+ * Live progress of an install, for callers that display it (the auto-update
+ * banner). `installing` covers the binary swap and package-manager runs, which
+ * report no byte count.
+ */
+export type UpdateProgress =
+	| { phase: "downloading"; version: string; received: number; total: number }
+	| { phase: "installing"; version: string };
+
+/** Receives {@link UpdateProgress} while an update installs. */
+export type UpdateProgressListener = (progress: UpdateProgress) => void;
 
 /** Distribution channel advertised by a release's published npm manifest. */
 export type ReleaseDist = "npm" | "binary";
@@ -406,6 +428,8 @@ export interface VerifiedBinaryDownloadOptions {
 	expectedSize: number;
 	expectedDigest: string;
 	fetchImpl?: Fetch;
+	/** Receives the running byte count; `expectedSize` is the total. */
+	onProgress?: (received: number) => void;
 }
 
 /**
@@ -446,6 +470,7 @@ export async function downloadVerifiedBinary(options: VerifiedBinaryDownloadOpti
 				return;
 			}
 			hash.update(chunk);
+			options.onProgress?.(size);
 			callback(null, chunk);
 		},
 	});
@@ -611,6 +636,18 @@ export async function managedInstallName(binaryPath: string): Promise<string | u
 	if (!isRecord(manifest)) return undefined;
 	const name = typeof manifest.name === "string" && manifest.name ? manifest.name : manifest.manager;
 	return typeof name === "string" && name ? name : undefined;
+}
+
+/**
+ * Whether the running omp may install its own updates: not a source checkout
+ * (git updates it), not kept by a managing app (Tern updates its omp itself),
+ * and not in the Nix store. Judged from the running build alone, without the
+ * package-manager probes `omp update` runs.
+ */
+export async function canSelfUpdate(): Promise<boolean> {
+	if (isSourceCheckout()) return false;
+	if (isPathInDirectory(isCompiledBinary() ? process.execPath : import.meta.dir, NIX_STORE_DIR)) return false;
+	return (await managedInstallName(process.execPath)) === undefined;
 }
 
 function isSymlinkPath(p: string): boolean {
@@ -1252,8 +1289,10 @@ async function validateExistingUpdateTarget(targetPath: string): Promise<void> {
 /**
  * Run the PATH-resolved omp binary and check if it reports the expected version.
  */
-async function verifyInstalledVersion(expectedVersion: string): Promise<InstalledVersionVerification> {
-	const ompPath = resolveOmpPath();
+export async function verifyInstalledVersion(expectedVersion: string): Promise<InstalledVersionVerification> {
+	// A fresh lookup: the install may have moved what PATH resolves to (a Windows
+	// shim takeover retires `omp.cmd` for `omp.exe`) since the target was resolved.
+	const ompPath = $which(APP_NAME, { cache: WhichCachePolicy.Fresh }) ?? undefined;
 	if (!ompPath) return { ok: false };
 	const binaryPath = tryRealpath(ompPath) ?? ompPath;
 	return await verifyBinaryAtPath(binaryPath, expectedVersion);
@@ -1795,6 +1834,8 @@ export async function updateViaBinaryAt(
 		/** Refuse replacement unless the existing path is a non-script OMP executable. */
 		validateExistingTarget?: boolean;
 		verifyInstalledVersion?: typeof verifyInstalledVersion;
+		/** Live install progress for the auto-update banner. */
+		onProgress?: UpdateProgressListener;
 	} = {},
 ): Promise<void> {
 	if (options.validateExistingTarget) await validateExistingUpdateTarget(targetPath);
@@ -1825,8 +1866,11 @@ export async function updateViaBinaryAt(
 		expectedSize: asset.size,
 		expectedDigest: asset.digest,
 		fetchImpl: options.fetchImpl,
+		onProgress: received =>
+			options.onProgress?.({ phase: "downloading", version: asset.version, received, total: asset.size }),
 	});
 	console.log(chalk.dim(`Verified ${asset.digest}`));
+	options.onProgress?.({ phase: "installing", version: asset.version });
 
 	// Serialize the target swap and stale-artifact sweep per target so two
 	// overlapping `omp update` runs never replace the same binary concurrently
@@ -1887,6 +1931,8 @@ export async function updateViaShimTakeover(
 		githubToken?: string;
 		allowPrerelease?: boolean;
 		verifyBinary?: typeof verifyBinaryAtPath;
+		/** Live install progress for the auto-update banner. */
+		onProgress?: UpdateProgressListener;
 	} = {},
 ): Promise<void> {
 	const binaryName = options.binaryName ?? getBinaryName();
@@ -1908,8 +1954,11 @@ export async function updateViaShimTakeover(
 		expectedSize: asset.size,
 		expectedDigest: asset.digest,
 		fetchImpl: options.fetchImpl,
+		onProgress: received =>
+			options.onProgress?.({ phase: "downloading", version: asset.version, received, total: asset.size }),
 	});
 	console.log(chalk.dim(`Verified ${asset.digest}`));
+	options.onProgress?.({ phase: "installing", version: asset.version });
 	const forwarded: Array<{ launcher: string; original: string }> = [];
 	const stuck: string[] = [];
 	// Serialize the launcher swap and artifact sweep so two overlapping updates
@@ -2000,94 +2049,231 @@ function installerHint(): string {
 		: "curl -fsSL https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.sh | sh -s -- --binary";
 }
 
-/**
- * Run the update command.
- */
-export async function runUpdateCommand(opts: { force: boolean; check: boolean }): Promise<void> {
-	console.log(chalk.dim(`Current version: ${VERSION}`));
+/** What `omp update` was asked to do. */
+interface UpdateRequest {
+	force: boolean;
+	check: boolean;
+	onProgress?: UpdateProgressListener;
+}
 
-	// Check for updates
+/** Options for {@link runUpdateCommand}: the `omp update` flags, plus a progress listener for background runs. */
+export interface UpdateOptions {
+	force: boolean;
+	check: boolean;
+	onProgress?: UpdateProgressListener;
+}
+
+/** How {@link runUpdateCommand} ended without an error. */
+export type UpdateOutcome =
+	/** Nothing newer to install. */
+	| { kind: "current" }
+	/** `--check` found `version`; nothing was installed. */
+	| { kind: "available"; version: string }
+	/** This install cannot update itself (a managing app, Nix). */
+	| { kind: "unsupported"; reason: string }
+	/** The installer ran for `version`; whether the launcher now reports it was printed, not checked. */
+	| { kind: "installed"; version: string };
+
+/** `<what>: <reason>`, keeping `err` as the cause. */
+function updateError(what: string, err: unknown): Error {
+	return new Error(`${what}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+}
+
+/**
+ * Lock held while an update installs, so `omp update` and the background
+ * auto-update never run two installers (two `bun install -g`, or a package
+ * manager racing a binary swap) against the same install.
+ */
+function acquireInstallLock(): FileLockHandle {
+	const dir = getUpdateStateDir();
+	fs.mkdirSync(dir, { recursive: true });
+	const lock = tryAcquireFileLock(path.join(dir, "install"));
+	if (!lock) throw new Error(`Another ${APP_NAME} update is already running; try again once it finishes.`);
+	return lock;
+}
+
+/**
+ * Print how the offered `version` relates to the running build. Returns false
+ * when there is nothing to install: not newer and `--force` was not given.
+ */
+function announceOffer(version: string, request: UpdateRequest): boolean {
+	const comparison = compareVersions(version, VERSION);
+	if (comparison <= 0 && !request.force) {
+		const icon = theme?.status?.success ?? "✔";
+		console.log(chalk.green(`${icon} Already up to date`));
+		return false;
+	}
+	if (comparison > 0) {
+		console.log(chalk.cyan(`New version available: ${version}`));
+	} else {
+		console.log(chalk.yellow(`Forcing reinstall of ${version}`));
+	}
+	return true;
+}
+
+type BinaryUpdateTarget = Extract<UpdateTarget, { method: "binary" }>;
+type ManagedUpdateTarget = Exclude<UpdateTarget, { method: "binary" }>;
+
+/**
+ * Update a standalone binary install from the fork's GitHub release: the
+ * newest `v<version>` tag carries the platform asset. npm is never consulted.
+ */
+async function runBinaryUpdate(
+	target: BinaryUpdateTarget | undefined,
+	targetError: unknown,
+	request: UpdateRequest,
+): Promise<UpdateOutcome> {
 	let release: ReleaseInfo;
 	try {
 		release = await getLatestRelease();
 	} catch (err) {
-		console.error(chalk.red(`Failed to check for updates: ${err}`));
-		process.exit(1);
+		throw updateError("Failed to check for updates", err);
 	}
+	if (!announceOffer(release.version, request)) return { kind: "current" };
+	if (request.check) return { kind: "available", version: release.version };
 
-	const comparison = compareVersions(release.version, VERSION);
-
-	if (comparison <= 0 && !opts.force) {
-		console.log(chalk.green(`${theme.status.success} Already up to date`));
-		return;
+	try {
+		if (!target) throw targetError;
+		if (target.replacesSymlink) {
+			console.log(chalk.dim("Replacing the package-manager launcher with the standalone binary."));
+		}
+		await updateViaBinaryAt(target.path, release.version, {
+			allowPrerelease: false,
+			validateExistingTarget: target.validateExistingTarget,
+			onProgress: request.onProgress,
+		});
+		if (target.replacesSymlink) {
+			console.log(chalk.yellow(`This install is no longer managed by bun/npm. ${unmanagedHint()}`));
+		}
+	} catch (err) {
+		throw updateError("Update failed", err);
 	}
+	return { kind: "installed", version: release.version };
+}
 
-	if (comparison > 0) {
-		console.log(chalk.cyan(`New version available: ${release.version}`));
-	} else {
-		console.log(chalk.yellow(`Forcing reinstall of ${release.version}`));
+/** Recovery line printed after a manager launcher is replaced by the binary. */
+function unmanagedHint(): string {
+	return `Removing the old global package may delete this launcher; if it does, reinstall with: ${installerHint()}`;
+}
+
+/**
+ * Replace a bun/npm install with the standalone binary because the release is
+ * binary-only ({@link shouldForceBinaryUpdate}).
+ *
+ * The launcher is resolved again without package-manager routing: a manager
+ * symlink is taken over in place, a Windows script launcher gets `omp.exe`
+ * beside it.
+ */
+async function updateToStandaloneBinary(
+	manager: "bun" | "npm",
+	release: ReleaseInfo,
+	onProgress?: UpdateProgressListener,
+): Promise<string> {
+	const target = await resolveUpdateTarget({ allowPackageManagers: false });
+	if (target.method === "binary") {
+		if (target.replacesSymlink) {
+			console.log(chalk.dim("Replacing the package-manager launcher with the standalone binary."));
+		}
+		await updateViaBinaryAt(target.path, release.version, {
+			allowPrerelease: false,
+			validateExistingTarget: target.validateExistingTarget,
+			onProgress,
+		});
+		if (target.replacesSymlink)
+			console.log(chalk.yellow(`This install is no longer managed by ${manager}. ${unmanagedHint()}`));
+		return release.version;
 	}
+	// Without package-manager routing only a Windows script launcher resolves
+	// to a manager (the bun/npm bin-dir probes are skipped), so its path is known.
+	if (target.method !== "npm" || !target.path) throw new Error(`Could not resolve ${APP_NAME} launcher path in PATH`);
+	console.log(chalk.dim("This release ships as a standalone binary; replacing the script launcher."));
+	await updateViaShimTakeover(target.path, release.version, { allowPrerelease: false, onProgress });
+	console.log(chalk.yellow(`This install is no longer managed by ${manager}. ${unmanagedHint()}`));
+	return release.version;
+}
+
+/**
+ * Update a package-manager install (bun, npm, Homebrew, mise, Nix) to the
+ * fork's GitHub release version.
+ */
+async function runManagedUpdate(
+	target: ManagedUpdateTarget | undefined,
+	targetError: unknown,
+	request: UpdateRequest,
+): Promise<UpdateOutcome> {
+	let release: ReleaseInfo;
+	try {
+		release = await getLatestRelease();
+	} catch (err) {
+		throw updateError("Failed to check for updates", err);
+	}
+	if (!announceOffer(release.version, request)) return { kind: "current" };
 	if (release.packages.pkg !== PACKAGE) {
 		console.log(chalk.cyan(`The npm package moved to ${release.packages.pkg}; updating migrates this install.`));
 	}
+	if (request.check) return { kind: "available", version: release.version };
 
-	if (opts.check) {
-		// Just check, don't install
-		return;
-	}
-
-	// Choose update method based on the prioritized omp binary in PATH. For
-	// binary-only releases the package managers are never consulted: a bun/npm
-	// symlink resolves to method "binary" and is replaced in place, keeping the
-	// same PATH entry live.
+	let installed = release.version;
 	try {
-		const forceBinary = shouldForceBinaryUpdate(release);
-		const allowPrerelease = false;
-		const target = await resolveUpdateTarget({ allowPackageManagers: !forceBinary });
+		if (!target) throw targetError;
 		if (target.method === "nix") {
-			console.log(chalk.yellow("This installation is managed by Nix and cannot update itself."));
+			const reason = "This installation is managed by Nix and cannot update itself.";
+			console.log(chalk.yellow(reason));
 			console.log(chalk.dim("Update the flake input or profile that provides omp, then rebuild."));
-		} else if (target.method === "brew") {
-			await updateViaHomebrew(release.version, opts.force);
+			return { kind: "unsupported", reason };
+		}
+		const installing = (): void => request.onProgress?.({ phase: "installing", version: release.version });
+		if (target.method === "brew") {
+			installing();
+			await updateViaHomebrew(release.version, request.force);
 		} else if (target.method === "mise") {
-			await updateViaMise(release.version, opts.force);
-		} else if (target.method === "bun" || target.method === "npm") {
-			if (forceBinary) {
-				// Reachable in forced mode only through a Windows script
-				// launcher resolved from PATH (the bun/npm bin-dir probes are
-				// skipped), so the launcher path is always known.
-				if (!target.path) throw new Error(`Could not resolve ${APP_NAME} launcher path in PATH`);
-				console.log(chalk.dim("This release ships as a standalone binary; replacing the script launcher."));
-				await updateViaShimTakeover(target.path, release.version, { allowPrerelease });
-				console.log(
-					chalk.yellow(
-						`This install is no longer managed by ${target.method}. Removing the old global package may delete this launcher; if it does, reinstall with: ${installerHint()}`,
-					),
-				);
-			} else if (target.method === "bun") {
+			installing();
+			await updateViaMise(release.version, request.force);
+		} else if (shouldForceBinaryUpdate(release)) {
+			installed = await updateToStandaloneBinary(target.method, release, request.onProgress);
+		} else {
+			installing();
+			if (target.method === "bun") {
 				await updateViaBun(release);
 			} else {
 				await updateViaNpm(release);
 			}
-		} else {
-			if (forceBinary && target.replacesSymlink) {
-				console.log(chalk.dim("Replacing the package-manager launcher with the standalone binary."));
-			}
-			await updateViaBinaryAt(target.path, release.version, {
-				allowPrerelease,
-				validateExistingTarget: target.validateExistingTarget,
-			});
-			if (forceBinary && target.replacesSymlink) {
-				console.log(
-					chalk.yellow(
-						`This install is no longer managed by bun/npm. Removing the old global package may delete this launcher; if it does, reinstall with: ${installerHint()}`,
-					),
-				);
-			}
 		}
 	} catch (err) {
-		console.error(chalk.red(`Update failed: ${err}`));
-		process.exit(1);
+		throw updateError("Update failed", err);
+	}
+	return { kind: "installed", version: installed };
+}
+
+/**
+ * Run the update command.
+ *
+ * The installer that owns the PATH `omp` decides the flow: a standalone
+ * binary downloads the fork's GitHub release asset, a package-manager install
+ * re-runs its manager (and is replaced by the binary when the release is
+ * binary-only). When no target resolves, `--check` still answers; installing
+ * then fails on the unresolved target.
+ *
+ * Progress and results print to stdout. Throws when the check or the install
+ * fails, or when another update holds the install lock.
+ */
+export async function runUpdateCommand(opts: UpdateOptions): Promise<UpdateOutcome> {
+	console.log(chalk.dim(`Current version: ${VERSION}`));
+	const request: UpdateRequest = { force: opts.force, check: opts.check, onProgress: opts.onProgress };
+	const lock = opts.check ? undefined : acquireInstallLock();
+	try {
+		let target: UpdateTarget | undefined;
+		let targetError: unknown;
+		try {
+			target = await resolveUpdateTarget({ allowPackageManagers: true });
+		} catch (err) {
+			targetError = err;
+		}
+		if (target?.method === "binary") return await runBinaryUpdate(target, targetError, request);
+		if (!target && isCompiledBinary()) return await runBinaryUpdate(undefined, targetError, request);
+		return await runManagedUpdate(target, targetError, request);
+	} finally {
+		lock?.release();
 	}
 }
 

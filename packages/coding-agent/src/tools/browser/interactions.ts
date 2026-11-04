@@ -3,8 +3,9 @@ import { untilAborted } from "@oh-my-pi/pi-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import type {
 	ElementHandle,
-	FileChooser,
+	Frame,
 	JSHandle,
+	KeyboardTypeOptions,
 	KeyInput,
 	KeyPressOptions,
 	MouseButton,
@@ -14,6 +15,7 @@ import type {
 import { ToolAbortError, throwIfAborted } from "../tool-errors";
 import { splitKeyCombo, ternKey } from "./tern/keys";
 import { devtoolsFrameId } from "./frames";
+import { untilAbortedOrReleased } from "./op-timeouts";
 import {
 	createFilePicker,
 	openUploadSources,
@@ -90,6 +92,14 @@ interface PageShadowRoot {
 	elementFromPoint(x: number, y: number): PageElement | null;
 }
 
+/** An element on the way up to a contenteditable's editing host. */
+interface EditableAncestor {
+	isContentEditable: boolean;
+	parentElement: EditableAncestor | null;
+	focus(): void;
+	contains(other: unknown): boolean;
+}
+
 interface PageElement {
 	readonly tagName: string;
 	id: string;
@@ -104,6 +114,8 @@ interface PageElement {
 	readonly dataset: Record<string, string>;
 	readonly style: Record<string, string>;
 	parentElement: PageElement | null;
+	/** The `<slot>` rendering this node, its parent in the flat tree; `null` when unslotted. */
+	assignedSlot: PageElement | null;
 	shadowRoot: PageShadowRoot | null;
 	getBoundingClientRect(): PageRect;
 	getClientRects(): ArrayLike<PageRect>;
@@ -137,6 +149,10 @@ interface PageGlobals {
 	File: new (parts: Uint8Array[], name: string, options: { type: string; lastModified?: number }) => unknown;
 	DataTransfer: new () => { items: { add(file: unknown): void }; files: unknown };
 	DragEvent: new (type: string, options: { bubbles: boolean; cancelable: boolean; dataTransfer: unknown }) => unknown;
+	MessageChannel: new () => {
+		port1: { onmessage: (() => void) | null; close(): void };
+		port2: { postMessage(message: null): void; close(): void };
+	};
 }
 
 /** A click aborted while its element was still refused; `refusal` names the last failed check. */
@@ -149,19 +165,33 @@ export class ClickRefusedError extends ToolAbortError {
 	}
 }
 
+/**
+ * Text entry aborted after input reached the page; `progress` says what the field may already hold.
+ * The per-op timeout reports this instead of an actionability hint, since the element did take input.
+ */
+export class TypingInterruptedError extends ToolAbortError {
+	constructor(
+		readonly progress: string,
+		options?: ErrorOptions,
+	) {
+		super(undefined, options);
+	}
+}
+
 function requireFiniteNumber(value: number, label: string): void {
 	if (!Number.isFinite(value)) throw new ToolError(`${label} must be a finite number`);
 }
 
 /**
  * Page function (self-contained; serialisable via `.toString()`): whether `descendant` is `ancestor` or
- * sits inside it, crossing the shadow-root boundaries `Node.contains` stops at.
+ * renders inside it — its flat-tree ancestry, which follows slot assignment into shadow trees and climbs
+ * shadow-root boundaries out to their hosts, where `Node.contains` stops.
  */
 export function composedContains(ancestor: unknown, descendant: unknown): boolean {
 	for (let current = descendant as PageElement | null; current;) {
 		if (current === ancestor) return true;
 		const root: PageRoot = current.getRootNode();
-		current = current.parentElement ?? root.host ?? null;
+		current = current.assignedSlot ?? current.parentElement ?? root.host ?? null;
 	}
 	return false;
 }
@@ -232,7 +262,7 @@ function checkClickActionable(
 		let current: PageElement | null = hit;
 		while (current && current !== owner) {
 			if (current.matches(interactiveContent)) return false;
-			current = current.parentElement ?? current.getRootNode().host ?? null;
+			current = current.assignedSlot ?? current.parentElement ?? current.getRootNode().host ?? null;
 		}
 		return current === owner;
 	};
@@ -369,12 +399,7 @@ export async function clickElement(
 		}),
 	);
 	try {
-		await untilAborted(signal, () =>
-			handle.frame.page().mouse.click(point.x, point.y, {
-				button: options.button,
-				count: options.clickCount,
-			}),
-		);
+		await clickPoint(handle.frame.page(), point.x, point.y, options, signal);
 	} catch (error) {
 		// The page may be stuck; tidy up without waiting on it.
 		void watch
@@ -406,74 +431,298 @@ export async function clickElement(
  * had focus; a read-only one drops them. The check runs after `focus()` so a
  * focus handler that locks the field is seen.
  */
-export async function focusTextEntryTarget(
+async function focusTextEntryTarget(
 	handle: ElementHandle,
 	action: "fill" | "type into",
 	signal?: AbortSignal,
 ): Promise<void> {
 	const refusal = await untilAborted(signal, () =>
-		handle.evaluate(el => {
+		handle.evaluate((el, replacing) => {
 			const node = el as unknown as {
 				readOnly?: boolean;
+				isContentEditable?: boolean;
 				focus?: () => void;
 				matches(selector: string): boolean;
+				ownerDocument: {
+					createRange(): { selectNodeContents(node: unknown): void };
+					getSelection(): { removeAllRanges(): void; addRange(range: unknown): void } | null;
+				};
 			};
+			// Focusing a contenteditable puts the caret at its start, which an editor syncs into its own state
+			// and may apply back to the page a task later (Slate renders it), over the selection fill makes. A
+			// fill selects the contents first, so focusing keeps them selected and the editor syncs that.
+			if (replacing && node.isContentEditable) {
+				const range = node.ownerDocument.createRange();
+				range.selectNodeContents(node);
+				const selection = node.ownerDocument.getSelection();
+				selection?.removeAllRanges();
+				selection?.addRange(range);
+			}
 			node.focus?.();
 			if (node.matches(":disabled")) return "disabled";
 			if (node.readOnly) return "read-only";
 			return null;
-		}),
+		}, action === "fill"),
 	);
 	if (refusal) throw new ToolError(`Cannot ${action} a ${refusal} element`);
 }
 
 /**
- * Focus a field that can take text, clear any existing value, then retype.
+ * Type into the focused element one code point at a time, checking `signal` before each key.
+ * Puppeteer's `keyboard.type()` cannot be cancelled, so awaiting it whole under a deadline would leave
+ * the rest of the text typing behind a rejected call.
+ *
+ * @throws TypingInterruptedError when `signal` aborts after at least one key was sent.
+ */
+async function typeKeys(
+	page: Page,
+	text: string,
+	signal: AbortSignal | undefined,
+	options?: Readonly<KeyboardTypeOptions>,
+): Promise<void> {
+	const characters = Array.from(text);
+	let typed = 0;
+	try {
+		for (const character of characters) {
+			throwIfAborted(signal);
+			await untilAborted(signal, () => page.keyboard.type(character, options));
+			typed++;
+		}
+	} catch (error) {
+		if (signal?.aborted && typed > 0) {
+			throw new TypingInterruptedError(
+				`typing stopped after ${typed} of ${characters.length} characters (the field keeps what was typed)`,
+				{ cause: signal.reason },
+			);
+		}
+		throw error;
+	}
+}
+
+/** Focus a text-entry target, then type `text` so an abort stops before the next key; see {@link typeKeys}. */
+export async function typeIntoElement(
+	handle: ElementHandle,
+	text: string,
+	signal?: AbortSignal,
+	options?: Readonly<KeyboardTypeOptions>,
+): Promise<void> {
+	await focusTextEntryTarget(handle, "type into", signal);
+	await typeKeys(handle.frame.page(), text, signal, options);
+}
+
+/**
+ * Input types set through a picker or slider, with an example of the value each takes. Typing into
+ * one fills its segments by keystroke rules (`2026-10-12` became `61012-02-02`) or nothing at all
+ * (a colour stayed `#000000`, a range at its midpoint), so fill sets their value instead.
+ */
+const PICKER_VALUE_EXAMPLES: Record<string, string> = {
+	color: '"#ff8800"',
+	date: '"2026-10-12"',
+	"datetime-local": '"2026-10-12T14:30"',
+	month: '"2026-10"',
+	time: '"14:30"',
+	week: '"2026-W41"',
+	range: "a number within its min, max and step",
+};
+const PICKER_INPUT_TYPES = Object.keys(PICKER_VALUE_EXAMPLES);
+
+/**
+ * Focus a field that can take text, clear any existing value, then retype. A colour, date, time or
+ * range input gets its value set the way its picker would, and refuses one it rejects. A
+ * contenteditable element has its contents selected and replaced by one text insertion (or deleted
+ * by Backspace for an empty value), as a paste would.
  *
  * Every step is a DOM evaluation or an input dispatch, so this works on tabs
  * that produce no animation frames — unlike Puppeteer's `Locator.fill`, whose
  * viewport/stability/enabled preconditions wait on `requestAnimationFrame`
  * and `IntersectionObserver` callbacks that a backgrounded headless tab never
- * delivers (#12892).
- *
- * `type` overrides how the value is entered, for callers that need their own
- * abort-aware keyboard loop.
+ * delivers (#12892). Typing stops at the next key once `signal` aborts.
  */
-export async function fillViaHandle(
-	handle: ElementHandle,
-	value: string,
-	signal?: AbortSignal,
-	type: (text: string) => Promise<unknown> = text => handle.type(text, { delay: 0 }),
-): Promise<void> {
+export async function fillViaHandle(handle: ElementHandle, value: string, signal?: AbortSignal): Promise<void> {
 	await focusTextEntryTarget(handle, "fill", signal);
-	await untilAborted(signal, () =>
-		handle.evaluate((el, clearing) => {
-			const node = el as unknown as {
-				value?: string;
-				focus?: () => void;
-				isContentEditable?: boolean;
-				innerText?: string;
-				dispatchEvent(event: unknown): boolean;
-			};
-			node.focus?.();
-			const before = node.isContentEditable ? node.innerText : node.value;
-			if (node.isContentEditable) node.innerText = "";
-			else if ("value" in node) {
-				// The prototype setter bypasses value trackers that frameworks (React) install on the
-				// element, so they see the cleared value as a change instead of their own write.
-				const setValue = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(node), "value")?.set;
-				if (setValue) setValue.call(node, "");
-				else node.value = "";
-			}
-			// Typing a value fires its own input events; an empty value types nothing,
-			// so report the clear itself when there was something to clear.
-			if (!clearing || !before) return;
-			const { Event } = globalThis as unknown as PageGlobals;
-			node.dispatchEvent(new Event("input", { bubbles: true }));
-			node.dispatchEvent(new Event("change", { bubbles: true }));
-		}, value === ""),
+	const prepared = await untilAborted(signal, () =>
+		handle.evaluate(
+			(el, wanted, pickerTypes) => {
+				const node = el as unknown as {
+					localName?: string;
+					type?: string;
+					value?: string;
+					focus?: () => void;
+					isContentEditable?: boolean;
+					parentElement: EditableAncestor | null;
+					getRootNode(): { activeElement: { contains(other: unknown): boolean } | null };
+					contains(other: unknown): boolean;
+					getAttribute(name: string): string | null;
+					namespaceURI: string | null;
+					ownerDocument: {
+						createElementNS(
+							namespace: string | null,
+							tag: "input",
+						): { value: string; setAttribute(name: string, value: string): void };
+						createRange(): {
+							readonly collapsed: boolean;
+							selectNodeContents(node: unknown): void;
+							getClientRects(): ArrayLike<{ width: number; height: number }>;
+						};
+						getSelection(): { removeAllRanges(): void; addRange(range: unknown): void } | null;
+					};
+					dispatchEvent(event: unknown): boolean;
+				};
+				node.focus?.();
+				// The native setter bypasses value trackers that frameworks (React) install on the element, so
+				// they see the new value as a change instead of their own write. It is looked up past the
+				// prototypes of a customized built-in (`<input is=…>`), which do not own `value`. A page class
+				// that defines its own `value` accessor is not on the chain this function sees, so that accessor
+				// never runs here.
+				let proto = Object.getPrototypeOf(node);
+				let descriptor: PropertyDescriptor | undefined;
+				while (proto && !(descriptor = Object.getOwnPropertyDescriptor(proto, "value"))) {
+					proto = Object.getPrototypeOf(proto);
+				}
+				const setValue = descriptor?.set;
+				const write = (next: string) => (setValue ? setValue.call(node, next) : (node.value = next));
+				// Like the browser's own, input leaves a shadow root and change stays inside it.
+				const report = () => {
+					const { Event } = globalThis as unknown as PageGlobals;
+					node.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+					node.dispatchEvent(new Event("change", { bubbles: true }));
+				};
+				const kind = node.type?.toLowerCase() ?? "";
+				// localName, not tagName: an XHTML page keeps the tag's lower case.
+				if (node.localName === "input" && pickerTypes.includes(kind)) {
+					const before = node.value ?? "";
+					// Tried on a plain input with the same type, min, max and step: a value written to the live
+					// control and then put back would still cut it off from its value attribute, and a copy of a
+					// customized built-in would run the page's constructor. It takes the target's namespace, which
+					// an XML document's createElement would drop for a generic element that keeps any value.
+					const probe = node.ownerDocument.createElementNS(node.namespaceURI, "input");
+					for (const name of ["type", "min", "max", "step"]) {
+						const attribute = node.getAttribute(name);
+						if (attribute !== null) probe.setAttribute(name, attribute);
+					}
+					probe.value = wanted;
+					// The browser normalises what it accepts (a colour to #rrggbb, a time's seconds), turns what
+					// it rejects into "" (a colour into #000000, a range into its midpoint) and clamps a range. A
+					// colour stored as #000000 is accepted only if it draws black, so the browser resolves it rather
+					// than a parser saying it is well-formed (`var(--missing)` is, and is still refused). A
+					// rejected range number can land on the midpoint it coerces to (`0x5`), so its spelling is
+					// checked against the decimal form the browser parses. Only the date and time types can be
+					// cleared.
+					const actual = probe.value;
+					let refused: boolean;
+					if (kind === "color") {
+						const { OffscreenCanvas } = globalThis as unknown as {
+							OffscreenCanvas: new (
+								width: number,
+								height: number,
+							) => {
+								getContext(type: "2d"): {
+									fillStyle: string;
+									fillRect(x: number, y: number, width: number, height: number): void;
+									getImageData(
+										x: number,
+										y: number,
+										width: number,
+										height: number,
+									): { data: ArrayLike<number> };
+								} | null;
+							};
+						};
+						// A colour the canvas cannot parse keeps the white set first, so it draws white.
+						const paint = new OffscreenCanvas(1, 1).getContext("2d");
+						let drawsBlack = false;
+						if (paint) {
+							paint.fillStyle = "#ffffff";
+							paint.fillStyle = wanted;
+							paint.fillRect(0, 0, 1, 1);
+							const [red, green, blue] = Array.from(paint.getImageData(0, 0, 1, 1).data);
+							drawsBlack = red === 0 && green === 0 && blue === 0;
+						}
+						refused = actual === "#000000" && !drawsBlack;
+					} else if (kind === "range") {
+						refused =
+							!/^-?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?$/i.test(wanted) || Number(actual) !== Number(wanted);
+					} else {
+						refused = wanted !== "" && actual === "";
+					}
+					// A picker reports a pick that changes the value, not one that keeps it.
+					if (!refused && actual !== before) {
+						write(wanted);
+						report();
+					}
+					return { target: "picker" as const, kind, refused };
+				}
+				if (node.isContentEditable) {
+					// An element inside an editing host is usually not focusable, so its host is focused. Input goes to
+					// whatever holds focus, so focus has to end on the host or on an element between it and the target;
+					// a host whose focus handler moved it elsewhere (or an inert one, which leaves it on the body) would
+					// have the replacement land outside it. The element's own root (its document, or a shadow root,
+					// closed ones included) says which of its elements holds focus.
+					let host: EditableAncestor | null = node.parentElement?.isContentEditable ? node.parentElement : null;
+					while (host?.parentElement?.isContentEditable) host = host.parentElement;
+					host?.focus();
+					const active = node.getRootNode().activeElement;
+					if (!active?.contains(node) || !(host ?? node).contains(active)) return { target: "unfocused" as const };
+					// Rich-text editors (Slate, Lexical) keep their own document and either undo a direct DOM write
+					// or stop tracking the element, so the old text is selected for the input that replaces it.
+					const range = node.ownerDocument.createRange();
+					range.selectNodeContents(node);
+					const selection = node.ownerDocument.getSelection();
+					selection?.removeAllRanges();
+					selection?.addRange(range);
+					// The browser keeps a deletion inside the editing host, so a host with any contents is cleared.
+					// Inside a host, Backspace over contents that draw nothing deletes the character before them, so
+					// an element there is cleared only when its contents draw something (text, an image).
+					const deletable = node.parentElement?.isContentEditable
+						? Array.from(range.getClientRects()).some(rect => rect.width > 0 && rect.height > 0)
+						: !range.collapsed;
+					return { target: "editable" as const, deletable };
+				}
+				const before = node.value;
+				if ("value" in node) write("");
+				// Typing a value fires its own input events; an empty value types nothing,
+				// so report the clear itself when there was something to clear.
+				if (wanted === "" && before) report();
+				return { target: "field" as const };
+			},
+			value,
+			PICKER_INPUT_TYPES,
+		),
 	);
-	await untilAborted(signal, () => type(value));
+	const page = handle.frame.page();
+	switch (prepared.target) {
+		case "picker":
+			if (prepared.refused) {
+				throw new ToolError(
+					`<input type=${prepared.kind}> does not accept ${JSON.stringify(value)}; give its value format, e.g. ${PICKER_VALUE_EXAMPLES[prepared.kind]}`,
+				);
+			}
+			return;
+		case "unfocused":
+			throw new ToolError("Cannot fill an element that does not keep focus");
+		case "editable":
+			if (!value && !prepared.deletable) return;
+			throwIfAborted(signal);
+			try {
+				// One `Input.insertText` replaces the selection the way a paste does; the editor's own
+				// beforeinput handling applies it to its model. Backspace is a real deletion of the selection.
+				await untilAborted(signal, () =>
+					value ? page.keyboard.sendCharacter(value) : page.keyboard.press("Backspace"),
+				);
+			} catch (error) {
+				// The input was already sent and cannot be recalled, so the editor may hold its result.
+				if (signal?.aborted) {
+					throw new TypingInterruptedError(
+						`the ${value ? "replacement text" : "deletion"} was already sent and may have reached the editor`,
+						{ cause: signal.reason },
+					);
+				}
+				throw error;
+			}
+			return;
+		case "field":
+			await typeKeys(page, value, signal);
+	}
 }
 
 interface QueryCandidate {
@@ -533,7 +782,7 @@ function measureBoxInPage(el: unknown): MeasuredBox {
 			if (!nested || nested === hit) break;
 			hit = nested;
 		}
-		for (let node = hit; node; node = node.parentElement ?? node.getRootNode().host ?? null) {
+		for (let node = hit; node; node = node.assignedSlot ?? node.parentElement ?? node.getRootNode().host ?? null) {
 			if (node === element) return true;
 		}
 		return false;
@@ -675,6 +924,7 @@ export async function clickQueryHandlerText(
 	label: string,
 	timeoutMs: number,
 	signal?: AbortSignal,
+	options: ClickAtOptions = {},
 ): Promise<void> {
 	const timeoutSignal = AbortSignal.timeout(timeoutMs);
 	const clickSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
@@ -688,7 +938,7 @@ export async function clickQueryHandlerText(
 				await untilAborted(clickSignal, () => Bun.sleep(50));
 				continue;
 			}
-			await clickElement(target, label, clickSignal);
+			await clickElement(target, label, clickSignal, options);
 			return;
 		} finally {
 			if (target && !handles.includes(target)) await target.dispose().catch(() => undefined);
@@ -919,14 +1169,172 @@ function assignInputFiles(el: unknown, files: unknown[]): string | null {
 	return null;
 }
 
-/** Drop `files` on an element through the drag events a user's drop fires. Runs in the isolated world. */
-function dropUploadFiles(el: unknown, files: unknown[]): void {
+/** Tell a page its chooser closed without a pick, as the browser does. Runs in the isolated world. */
+function cancelChooser(el: unknown): void {
+	const page = globalThis as unknown as PageGlobals;
+	(el as PageElement).dispatchEvent(new page.Event("cancel", { bubbles: true }));
+}
+
+/**
+ * Drop `files` on an element through the drag events a user's drop fires. Runs in the isolated world.
+ *
+ * A user's drop runs the page's microtasks after each listener, so a drop handler may read the files after an `await`.
+ * A script's `dispatchEvent` runs them only once the script yields, so each event is followed by a yield to a task
+ * (a message, which background tabs do not throttle as they do timers) that lets everything the event queued settle.
+ * A user's drag events go to whatever is under the pointer, so when a settled event replaced the element (a framework
+ * rerendering the zone on `dragenter`), the next one goes to its replacement at the same point.
+ */
+async function dropUploadFiles(el: unknown, files: unknown[], watch: string): Promise<void> {
 	const element = el as PageElement;
 	const page = globalThis as unknown as PageGlobals;
 	const transfer = new page.DataTransfer();
 	for (const file of files) transfer.items.add(file);
-	for (const type of ["dragenter", "dragover", "drop"]) {
-		element.dispatchEvent(new page.DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer }));
+	const rect = element.getBoundingClientRect();
+	const x = rect.left + rect.width / 2;
+	const y = rect.top + rect.height / 2;
+	// The element's document or shadow root, both of which resolve a point; taken now, before a rerender detaches it.
+	const root = element.getRootNode() as unknown as PageShadowRoot;
+	const target = (): PageElement => (element.isConnected ? element : (root.elementFromPoint(x, y) ?? element));
+	const settle = async (): Promise<void> => {
+		const channel = new page.MessageChannel();
+		const { promise, resolve } = Promise.withResolvers<void>();
+		channel.port1.onmessage = () => resolve();
+		channel.port2.postMessage(null);
+		try {
+			await promise;
+		} finally {
+			channel.port1.close();
+			channel.port2.close();
+		}
+	};
+	const fire = (on: PageElement, type: string) =>
+		on.dispatchEvent(new page.DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer }));
+	fire(target(), "dragenter");
+	await settle();
+	fire(target(), "dragover");
+	await settle();
+	// `watch`, private to this drop, opens the count of reads for {@link watchDropRead} right before `drop` and closes it
+	// once what `drop` queued has settled, so reads made in `drop` or in the microtasks it queued count, and reads
+	// deferred from dragenter or dragover do not. Its listener sits on the original element, so the watch events go
+	// there even after a rerender: they only wrap and unwrap the shared `DataTransfer`.
+	fire(element, watch);
+	fire(target(), "drop");
+	await settle();
+	fire(element, watch);
+}
+
+/** A watch for a page reading a drop's files; see {@link watchDropRead}. */
+interface DropReadWatch {
+	counting: boolean;
+	read: boolean;
+	end(): void;
+}
+
+/**
+ * Watch for the page reading the files of the drop on an element: getting the drop's `files` or `items` while `drop` is
+ * dispatched or in what it queued before the next task. {@link dropUploadFiles} fires the private `type` event right
+ * before `drop`, which wraps the getters and opens the count, and again once `drop` has settled, which closes it. No
+ * page listener can run before the first, as one registered for `drop` itself could; reads during dragenter and
+ * dragover, or deferred from them, stay uncounted. Runs in the main world, where the page's listeners get the wrapper
+ * whose reads it watches.
+ */
+function watchDropRead(el: unknown, type: string): DropReadWatch {
+	interface DropEvent {
+		dataTransfer: object | null;
+	}
+	interface WatchTarget {
+		addEventListener(type: string, listener: (event: DropEvent) => void): void;
+		removeEventListener(type: string, listener: (event: DropEvent) => void): void;
+	}
+	const element = el as unknown as WatchTarget;
+	const instrument = (event: DropEvent): void => {
+		const transfer = event.dataTransfer;
+		if (!transfer) return;
+		if (watch.counting) {
+			watch.counting = false;
+			return;
+		}
+		for (const key of ["files", "items"]) {
+			// The wrapper's own prototype, not the `DataTransfer` global a page may replace.
+			const get = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(transfer), key)?.get;
+			Object.defineProperty(transfer, key, {
+				configurable: true,
+				get() {
+					if (watch.counting) watch.read = true;
+					return get?.call(transfer);
+				},
+			});
+		}
+		watch.counting = true;
+	};
+	const watch = { counting: false, read: false, end: () => element.removeEventListener(type, instrument) };
+	element.addEventListener(type, instrument);
+	return watch;
+}
+
+/** Stop a drop watch; whether the page read the files. Runs in the main world. */
+function endDropReadWatch(watch: DropReadWatch): boolean {
+	watch.end();
+	return watch.read;
+}
+
+/** End a drop watch and release its handle. */
+async function releaseDropReadWatch(watch: JSHandle<DropReadWatch>): Promise<void> {
+	try {
+		await watch.evaluate(endDropReadWatch);
+	} finally {
+		await watch.dispose();
+	}
+}
+
+/**
+ * Run `drop` on `zone` with a fresh private watch event type and report whether the page read the dropped files.
+ * Canceling proves nothing: pages cancel dragover and drop document-wide only to stop the browser navigating to a
+ * dropped file. A read is the strongest signal there is, not proof of acceptance: a document guard that checks
+ * `files.length` counts too, and counting element-level reads only would fail delegated drop zones, which read at the
+ * document (React 16 and older, jQuery `.on("drop", selector)`). A drop that navigates the zone's frame destroys the
+ * worlds holding the drop and its watch before either answers; the page took the drop, so that counts as taken.
+ */
+async function dropRead(
+	zone: ElementHandle,
+	drop: (watch: string) => Promise<void>,
+	signal: AbortSignal | undefined,
+): Promise<boolean> {
+	const type = `omp-upload-drop-${crypto.randomUUID()}`;
+	const frame = zone.frame;
+	const realm = frame.mainRealm();
+	const target = await untilAbortedOrReleased(signal, realm.adoptHandle(zone), late => late.dispose());
+	let navigated = false;
+	const onNavigated = (navigatedFrame: Frame) => {
+		if (navigatedFrame === frame) navigated = true;
+	};
+	const page = frame.page();
+	page.on("framenavigated", onNavigated);
+	try {
+		const watch = await untilAbortedOrReleased(
+			signal,
+			realm.evaluateHandle(watchDropRead, target, type),
+			releaseDropReadWatch,
+		);
+		try {
+			try {
+				await drop(type);
+			} catch (error) {
+				const read = await watch.evaluate(endDropReadWatch).catch(() => false);
+				if (navigated && !signal?.aborted) return true;
+				if (read && !signal?.aborted) return true;
+				throw error;
+			}
+			return await untilAborted(signal, () => watch.evaluate(endDropReadWatch)).catch(error => {
+				if (navigated && !signal?.aborted) return true;
+				throw error;
+			});
+		} finally {
+			await watch.dispose().catch(() => undefined);
+		}
+	} finally {
+		page.off("framenavigated", onNavigated);
+		await target.dispose().catch(() => undefined);
 	}
 }
 
@@ -988,17 +1396,24 @@ async function pickFiles(realm: Realm, paths: string[], signal: AbortSignal | un
 	}
 }
 
-/** Hand a file input the files: staged copies' paths, or contents streamed into the isolated world. */
+/**
+ * Hand a file input the files: staged copies' paths, or contents streamed into the isolated world. `filling` runs once
+ * the files are being set, after staging or streaming has succeeded.
+ */
 async function deliverToInput(
 	input: ElementHandle,
 	sources: UploadSource[],
 	route: UploadRoute,
 	staging: UploadStaging,
 	signal: AbortSignal | undefined,
+	filling?: () => void,
 ): Promise<void> {
 	if (route === "paths") {
 		const staged = await staging.stage(sources, signal);
-		await untilAborted(signal, () => setFileInputPaths(input, staged));
+		await untilAborted(signal, () => {
+			filling?.();
+			return setFileInputPaths(input, staged);
+		});
 		return;
 	}
 	const realm = input.frame.isolatedRealm();
@@ -1006,7 +1421,10 @@ async function deliverToInput(
 	try {
 		const files = await streamUploadFiles(realm, sources, signal);
 		try {
-			const refusal = await untilAborted(signal, () => realm.evaluate(assignInputFiles, target, files));
+			const refusal = await untilAborted(signal, () => {
+				filling?.();
+				return realm.evaluate(assignInputFiles, target, files);
+			});
 			if (refusal) throw new ToolError(refusal);
 		} finally {
 			await files.dispose().catch(() => undefined);
@@ -1016,12 +1434,16 @@ async function deliverToInput(
 	}
 }
 
-/** Drop the files on an element, built from staged copies by a detached picker or from streamed contents. */
+/**
+ * Drop the files on an element, built from staged copies by a detached picker or from streamed contents; fails when
+ * nothing on the page read them.
+ */
 async function deliverToDropZone(
 	zone: ElementHandle,
 	sources: UploadSource[],
 	route: UploadRoute,
 	staging: UploadStaging,
+	label: string,
 	signal: AbortSignal | undefined,
 ): Promise<void> {
 	const realm = zone.frame.isolatedRealm();
@@ -1032,7 +1454,16 @@ async function deliverToDropZone(
 				? await pickFiles(realm, await staging.stage(sources, signal), signal)
 				: await streamUploadFiles(realm, sources, signal);
 		try {
-			await untilAborted(signal, () => realm.evaluate(dropUploadFiles, target, files));
+			const read = await dropRead(
+				zone,
+				watch => untilAborted(signal, () => realm.evaluate(dropUploadFiles, target, files, watch)),
+				signal,
+			);
+			if (!read) {
+				throw new ToolError(
+					`${label} opened no file chooser and nothing on the page took the dropped files; target the page's <input type=file>, the control that opens the chooser, or its drop zone`,
+				);
+			}
 		} finally {
 			await files.dispose().catch(() => undefined);
 		}
@@ -1049,7 +1480,7 @@ export interface PreparedUpload {
 	/** Bytes `deliver` hands over. */
 	readonly bytes: number;
 	deliver(signal: AbortSignal): Promise<void>;
-	/** Release what finding the target held: an unfilled chooser is cancelled. */
+	/** Release what finding the target held: a caught chooser's input, cancelled when it was never filled. */
 	dispose(): Promise<void>;
 }
 
@@ -1081,8 +1512,9 @@ const pagesAwaitingChooser = new WeakSet<Page>();
 
 /**
  * Click `handle` and return the file input of the chooser it opens, adopted into the isolated world; null when no
- * chooser opened. Puppeteer's FileChooser accepts only paths and hides its input, so the chooser is caught on a CDP
- * session of our own, which lets go of the interception as soon as the input is adopted.
+ * chooser opened. The chooser is caught on a CDP session of our own, which lets go of the interception as soon as the
+ * input is adopted: Puppeteer's `waitForFileChooser` leaves it on, which swallows every later chooser on the page, and
+ * its listener throws on a File System Access picker's event.
  */
 async function catchChooserInput(
 	page: Page,
@@ -1130,18 +1562,6 @@ async function catchChooserInput(
 	}
 }
 
-/** Click `handle` and return the chooser it opens through Puppeteer, which fills it with paths; null when none opened. */
-async function catchChooser(
-	page: Page,
-	handle: ElementHandle,
-	label: string,
-	signal: AbortSignal | undefined,
-): Promise<FileChooser | null> {
-	const chooserPromise = page.waitForFileChooser({ timeout: FILE_CHOOSER_WAIT_MS }).catch(() => null);
-	await clickElement(handle, label, signal);
-	return await untilAborted(signal, () => chooserPromise);
-}
-
 /**
  * Find what takes an upload through `handle`: the file input itself, the chooser its click opens, or else the element
  * as a drop zone. `route` is how the browser gets the files; see {@link UploadStaging.route}.
@@ -1172,56 +1592,140 @@ export async function prepareElementUpload(
 	}
 	pagesAwaitingChooser.add(page);
 	try {
-		if (route === "paths") {
-			const chooser = await catchChooser(page, handle, label, signal);
-			if (chooser) {
-				let handled = false;
-				return preparedUpload(
-					sources,
-					async sig => {
-						const staged = await staging.stage(sources, sig);
-						// Handled only once accept starts: a cancel during staging leaves the chooser to `dispose`.
-						await untilAborted(sig, () => {
-							handled = true;
-							return chooser.accept(staged);
-						});
-					},
-					async () => {
-						if (!handled) await chooser.cancel().catch(() => undefined);
-					},
-				);
+		const input = await catchChooserInput(page, handle, label, signal);
+		if (input) {
+			// A page learns a chooser closed from `change` or `cancel`; one that got neither would wait on a pick
+			// forever, so a refused or failed upload cancels the chooser as the browser would.
+			let filled = false;
+			const release = async (): Promise<void> => {
+				if (!filled) await input.evaluate(cancelChooser).catch(() => undefined);
+				await input.dispose().catch(() => undefined);
+			};
+			try {
+				const refusal = await untilAborted(signal, () => input.evaluate(fileInputRefusal, sources.length));
+				if (refusal) throw new ToolError(refusal);
+			} catch (error) {
+				await release();
+				throw error;
 			}
-		} else {
-			const input = await catchChooserInput(page, handle, label, signal);
-			if (input) {
-				try {
-					const refusal = await untilAborted(signal, () => input.evaluate(fileInputRefusal, sources.length));
-					if (refusal) throw new ToolError(refusal);
-				} catch (error) {
-					await input.dispose().catch(() => undefined);
-					throw error;
-				}
-				return preparedUpload(
-					sources,
-					sig => deliverToInput(input, sources, route, staging, sig),
-					() => input.dispose().catch(() => undefined),
-				);
-			}
+			return preparedUpload(
+				sources,
+				sig =>
+					deliverToInput(input, sources, route, staging, sig, () => {
+						filled = true;
+					}),
+				release,
+			);
 		}
 	} finally {
 		pagesAwaitingChooser.delete(page);
 	}
-	return preparedUpload(sources, sig => deliverToDropZone(handle, sources, route, staging, sig));
+	return preparedUpload(sources, sig => deliverToDropZone(handle, sources, route, staging, label, sig));
 }
 
-/** Press a keyboard key without releasing it. */
+/** Press a keyboard key without releasing it; a press cut off on its way is released, not left held. */
 export async function keyDown(page: Page, key: KeyInput, signal?: AbortSignal): Promise<void> {
-	await untilAborted(signal, () => page.keyboard.down(key));
+	const pressed = trackPress(page.keyboard.down(key));
+	try {
+		await untilAborted(signal, () => pressed.press);
+	} catch (error) {
+		if (signal?.aborted && !pressed.refused) void page.keyboard.up(key).catch(() => {});
+		throw error;
+	}
 }
 
 /** Release a keyboard key previously pressed with keyDown. */
 export async function keyUp(page: Page, key: KeyInput, signal?: AbortSignal): Promise<void> {
 	await untilAborted(signal, () => page.keyboard.up(key));
+}
+
+/**
+ * A press handed to puppeteer. `refused` turns true once puppeteer rejects it (the button is already down, the key
+ * is unknown, the session is gone); until then it may have reached the page, so it is owed a release.
+ */
+function trackPress(press: Promise<void>): { press: Promise<void>; refused: boolean } {
+	const tracked = { press, refused: false };
+	press.catch(() => {
+		tracked.refused = true;
+	});
+	return tracked;
+}
+
+/**
+ * Release keys in order. Each release is awaited and one that fails does not stop the rest; once `signal` aborts,
+ * every release still owed is sent at once and not awaited: Chrome keeps input in order, and the page the call
+ * gave up on may not answer before this worker is replaced. The first failure, or the abort, is thrown once every
+ * release went out.
+ */
+async function releaseKeys(page: Page, keys: readonly KeyInput[], signal?: AbortSignal): Promise<void> {
+	let failure: { error: unknown } | undefined;
+	for (const [index, key] of keys.entries()) {
+		if (signal?.aborted) {
+			for (const owed of keys.slice(index)) void page.keyboard.up(owed).catch(() => {});
+			break;
+		}
+		try {
+			await untilAborted(signal, () => page.keyboard.up(key));
+		} catch (error) {
+			failure ??= { error };
+		}
+	}
+	if (failure) throw failure.error;
+	throwIfAborted(signal);
+}
+
+/**
+ * Where a cancelled press is released: off the page, so the press drops no drag (unless the page captured the
+ * pointer), at a point no real pointer reports, so {@link CANCELLED_RELEASE_GUARD} can tell the release apart.
+ */
+const CANCELLED_RELEASE_POINT = -7919;
+
+/**
+ * Swallows the `click`/`auxclick` Chrome fires on the document root for a release at
+ * {@link CANCELLED_RELEASE_POINT}: Chrome completes a click on the common ancestor of the press and release
+ * targets whatever CDP says, and a page's "click outside" handler would take it as the user's. Installed at
+ * document start, its capture listeners run before the page's. Chrome dispatches that click in the same task
+ * as the release, so the mark lapses with the task: a keyboard click later is never swallowed. One install per
+ * document, however many workers attach.
+ */
+const CANCELLED_RELEASE_GUARD = `(() => {
+	const installed = Symbol.for("omp.cancelledReleaseGuard");
+	if (globalThis[installed]) return;
+	Object.defineProperty(globalThis, installed, { value: true });
+	let cancelled = false;
+	addEventListener("mouseup", event => {
+		if (event.clientX !== ${CANCELLED_RELEASE_POINT} || event.clientY !== ${CANCELLED_RELEASE_POINT}) return;
+		cancelled = true;
+		setTimeout(() => { cancelled = false; });
+	}, true);
+	const swallow = event => {
+		if (!cancelled) return;
+		cancelled = false;
+		event.stopImmediatePropagation();
+		event.preventDefault();
+	};
+	addEventListener("click", swallow, true);
+	addEventListener("auxclick", swallow, true);
+})();`;
+
+/** Install {@link CANCELLED_RELEASE_GUARD} in this page's documents, current and future. */
+export async function installCancelledReleaseGuard(page: Page): Promise<void> {
+	await page.evaluateOnNewDocument(CANCELLED_RELEASE_GUARD);
+	await page
+		.mainFrame()
+		.mainRealm()
+		.evaluate(CANCELLED_RELEASE_GUARD)
+		.catch(() => undefined);
+}
+
+/**
+ * Release a mouse button off the page so the press activates nothing it pressed: the page gets its `mouseup`,
+ * and the click Chrome then fires on the document root is swallowed (see {@link CANCELLED_RELEASE_GUARD}). Sent
+ * at once and not awaited, for the same reason as {@link releaseKeys}.
+ */
+export function releaseButtonOffPage(page: Page, options: MouseButtonOptions): void {
+	void page.mouse.move(CANCELLED_RELEASE_POINT, CANCELLED_RELEASE_POINT).catch(() => {});
+	void page.mouse.up(options).catch(() => {});
 }
 
 /**
@@ -1257,27 +1761,46 @@ function editingCommand(keys: readonly string[]): string | undefined {
 
 /**
  * Press a key or a `+`-joined combo (`Enter`, `Shift+Tab`, `Meta+a`): the leading
- * keys go down in order, the last key is pressed with `options`, then the leading
- * keys are released in reverse.
+ * keys go down in order, the last key is pressed with `options`, then all of them
+ * are released in reverse. An aborted press sends no further key down and still
+ * releases each key whose press went out, so no modifier stays held for the user's
+ * next key.
  */
-export async function pressKey(page: Page, combo: string, options?: KeyPressOptions): Promise<void> {
+export async function pressKey(
+	page: Page,
+	combo: string,
+	options?: KeyPressOptions,
+	signal?: AbortSignal,
+): Promise<void> {
 	// Unchecked on purpose: puppeteer validates each name and throws `Unknown key: "…"`.
 	const keys = splitKeyCombo(combo) as KeyInput[];
-	const key = keys[keys.length - 1]!;
-	const held = keys.slice(0, -1);
 	const command = editingCommand(keys);
-	const pressed: KeyInput[] = [];
+	const pressed: { key: KeyInput; down: { press: Promise<void>; refused: boolean } }[] = [];
+	let failure: { error: unknown } | undefined;
 	try {
-		for (const modifier of held) {
-			await page.keyboard.down(modifier);
-			pressed.push(modifier);
+		for (const [index, key] of keys.entries()) {
+			throwIfAborted(signal);
+			// `commands` is @deprecated in puppeteer but still forwarded to Input.dispatchKeyEvent,
+			// and puppeteer never adds the macOS editing commands itself.
+			const down = trackPress(
+				index === keys.length - 1
+					? page.keyboard.down(key, command ? { ...options, commands: [command] } : options)
+					: page.keyboard.down(key),
+			);
+			pressed.push({ key, down });
+			await untilAborted(signal, () => down.press);
 		}
-		// `commands` is @deprecated in puppeteer but still forwarded to Input.dispatchKeyEvent,
-		// and puppeteer never adds the macOS editing commands itself.
-		await page.keyboard.press(key, command ? { ...options, commands: [command] } : options);
-	} finally {
-		for (const modifier of pressed.reverse()) await page.keyboard.up(modifier);
+		if (options?.delay) await untilAborted(signal, () => Bun.sleep(options.delay!));
+	} catch (error) {
+		failure = { error };
 	}
+	const owed = pressed.filter(({ down }) => !down.refused).map(({ key }) => key);
+	try {
+		await releaseKeys(page, owed.reverse(), signal);
+	} catch (error) {
+		failure ??= { error };
+	}
+	if (failure) throw failure.error;
 }
 
 /** Move the page pointer to viewport coordinates. */
@@ -1293,9 +1816,15 @@ export async function mouseMove(
 	await untilAborted(signal, () => page.mouse.move(x, y, options));
 }
 
-/** Press a mouse button at the current pointer position. */
+/** Press a mouse button at the current pointer position; a press cut off on its way is released off the page. */
 export async function mouseDown(page: Page, options: MouseButtonOptions = {}, signal?: AbortSignal): Promise<void> {
-	await untilAborted(signal, () => page.mouse.down(options));
+	const pressed = trackPress(page.mouse.down(options));
+	try {
+		await untilAborted(signal, () => pressed.press);
+	} catch (error) {
+		if (signal?.aborted && !pressed.refused) releaseButtonOffPage(page, options);
+		throw error;
+	}
 }
 
 /** Release a mouse button at the current pointer position. */
@@ -1313,12 +1842,71 @@ export async function clickAt(
 ): Promise<void> {
 	requireFiniteNumber(x, "clickAt x");
 	requireFiniteNumber(y, "clickAt y");
-	await untilAborted(signal, () =>
-		page.mouse.click(x, y, {
-			button: options.button,
-			count: options.clickCount,
-		}),
+	await clickPoint(page, x, y, options, signal);
+}
+
+/**
+ * Click at viewport coordinates, one press and release per click. puppeteer's `mouse.click` keeps sending its
+ * steps after the call gave up, so a click on a page that answers late landed after omp reported it failed;
+ * here an aborted click sends no further press.
+ */
+async function clickPoint(
+	page: Page,
+	x: number,
+	y: number,
+	options: ClickAtOptions,
+	signal?: AbortSignal,
+): Promise<void> {
+	const count = options.clickCount ?? 1;
+	if (count < 1) throw new ToolError("Click must occur a positive number of times.");
+	throwIfAborted(signal);
+	// Not awaited before the press, as in puppeteer's `mouse.click`: Chrome holds a pointer move until the page's
+	// next frame, which a background tab may not draw for seconds, and the press flushes it.
+	const moved = page.mouse.move(x, y);
+	moved.catch(() => {});
+	// As puppeteer's `mouse.click`: one press per click, numbered, the last carrying `count`.
+	for (let clickCount = 1; clickCount < count; clickCount++) {
+		await withButtonDown(page, { button: options.button, clickCount }, signal);
+	}
+	await withButtonDown(page, { button: options.button, clickCount: count }, signal);
+	await untilAborted(signal, () => moved);
+}
+
+/** Drag with the left button from `start` to `end`; cancellation before the final release drops off-page. */
+export async function dragBetween(
+	page: Page,
+	start: { x: number; y: number },
+	end: { x: number; y: number },
+	signal?: AbortSignal,
+): Promise<void> {
+	await untilAborted(signal, () => page.mouse.move(start.x, start.y));
+	await withButtonDown(page, {}, signal, () =>
+		untilAborted(signal, () => page.mouse.move(end.x, end.y, { steps: 12 })),
 	);
+}
+
+/**
+ * Press a button, run `gesture` (if any) while it is held, then release it where the pointer is. Cancellation
+ * before that release sends it off-page instead (see {@link releaseButtonOffPage}). Once a target release has
+ * been dispatched, Chrome owns it: aborting its wait cannot recall the release or prevent a late click/drop.
+ */
+async function withButtonDown(
+	page: Page,
+	options: MouseButtonOptions & { clickCount?: number },
+	signal?: AbortSignal,
+	gesture?: () => Promise<unknown>,
+): Promise<void> {
+	throwIfAborted(signal);
+	const pressed = trackPress(page.mouse.down(options));
+	let done = false;
+	try {
+		await untilAborted(signal, () => pressed.press);
+		await gesture?.();
+		done = true;
+	} finally {
+		if (done) await untilAborted(signal, () => page.mouse.up(options));
+		else if (!pressed.refused) releaseButtonOffPage(page, options);
+	}
 }
 
 /** Queue one raw mouse-wheel event without waiting for scroll settlement. */

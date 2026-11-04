@@ -48,7 +48,7 @@ Notes:
 
 ### 2) Discovered JS/TS hook factories
 
-After native auto-discovery, `discoverAndLoadExtensions()` also appends JS/TS hook factories from the `hook` capability — any hook whose entry path is a `.ts`/`.js` file — so they load through the same module pipeline. The native provider discovers these under `<cwd>/.omp/hooks/pre|post/` and `<agentDir>/hooks/pre|post/` only; see [Hooks: native discovery location](./hooks.md#native-discovery-location) for the required `pre/`/`post/` layout.
+After native auto-discovery, `discoverAndLoadExtensions()` also appends JS/TS hook factories from the `hook` capability — any hook whose entry path is a `.ts`/`.js` file — so they load through the same module pipeline. The native provider discovers these under `<cwd>/.storoslop/hooks/pre|post/` and `<agentDir>/hooks/pre|post/` only; see [Hooks: native discovery location](./hooks.md#native-discovery-location) for the required `pre/`/`post/` layout.
 
 Hook-capability loading already applies its own hook-specific disabled ids, so these paths are not additionally filtered by `disabledExtensions` extension-module names.
 
@@ -77,7 +77,7 @@ Configured path sources in the main session startup path (`sdk.ts`):
 
 Native settings files:
 
-- User: the active agent directory's `config.yml`, with `config.yaml` as a fallback (default root `~/.omp/agent`; named profiles use `~/.storoslop/profiles/<name>/agent`). Agent-directory overrides follow the profile rules above.
+- User: the active agent directory's `config.yml`, with `config.yaml` as a fallback (default root `~/.storoslop/agent`; named profiles use `~/.storoslop/profiles/<name>/agent`). Agent-directory overrides follow the profile rules above.
 - Project/native settings capability: `<cwd>/.storoslop/config.yml` and `<cwd>/.storoslop/settings.json`
 
 Other enabled settings providers and `--config` overlays can also supply the
@@ -93,13 +93,13 @@ Examples:
 ```yaml
 # ~/.storoslop/agent/config.yml
 extensions:
-  - ~/my-exts/safety.ts
-  - ./local/ext-pack
+   - ~/my-exts/safety.ts
+   - ./local/ext-pack
 ```
 
 ```json
 {
-  "extensions": ["./.storoslop/extensions/my-extra"]
+	"extensions": ["./.storoslop/extensions/my-extra"]
 }
 ```
 
@@ -157,7 +157,7 @@ Example:
 
 ```yaml
 disabledExtensions:
-  - extension-module:foo
+   - extension-module:foo
 ```
 
 An explicitly configured file path bypasses this name filter. Explicit-only
@@ -186,7 +186,7 @@ or `project`:
 
 ```yaml
 disabledExtensions:
-  - context-file:user:CLAUDE.md
+   - context-file:user:CLAUDE.md
 ```
 
 The id carries no directory and no depth, so a `project` entry disables files of
@@ -227,7 +227,7 @@ Rules and constraints:
 - no recursive discovery beyond one subdirectory level
 - declared `extensions` manifest entries are resolved relative to that package directory
 - a non-empty declared array is authoritative: convention-based index/scan fallback stays suppressed even when every declared entry is missing
-- `omp` takes precedence over `pi` when both manifest objects exist
+- `storoslop` takes precedence over `pi` when both manifest objects exist
 - missing or inaccessible declared entries are skipped individually, so existing entries in a partially missing manifest still load
 - in `*/index.{ts,js}` pairs, TypeScript is preferred over JavaScript
 - symlinks are treated as eligible files/directories
@@ -283,6 +283,8 @@ Each candidate path is loaded via `loadLegacyPiModule()` (`src/extensibility/plu
 - package `imports` and `exports` patterns prefer the longest prefix before `*`, then the longest complete pattern; exact matches take precedence and excluded targets never fall back to broader patterns
 - factory is selected by `getExtensionFactory(module)`: the module itself if it is a function, otherwise `module.default`
 - factory must be a function (`ExtensionFactory`) and may return `void` or a promise; loading awaits it before continuing to the next path
+
+Custom tools (`docs/custom-tools.md`) load through the same function with `reload: false`: the entry and its relative imports are imported without the `?mtime` tag, so each is evaluated once per process and shared between tools and sessions, while host-package rewriting still applies.
 
 If export is not a function, that path fails with a structured error and loading continues.
 
@@ -373,9 +375,9 @@ described in [Extensions](./extensions.md#background-work-ctxsetinterval--ctxset
 
 ```json
 {
-  "omp": {
-    "extensions": ["./src/check-a.ts", "./src/check-b.js"]
-  }
+	"storoslop": {
+		"extensions": ["./src/check-a.ts", "./src/check-b.js"]
+	}
 }
 ```
 
@@ -383,8 +385,8 @@ Legacy manifest key still accepted:
 
 ```json
 {
-  "pi": {
-    "extensions": ["./index.ts"]
-  }
+	"pi": {
+		"extensions": ["./index.ts"]
+	}
 }
 ```

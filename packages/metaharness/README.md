@@ -18,7 +18,7 @@ bun run serve --port 4700
    next trial with no rebuild. A cached linux `node_modules` tree (built once
    per lockfile change inside `oven/bun`, stored in `<jobs-dir>/_bench/_deps/`)
    shadows the host's darwin one, and a linux `bun` binary is mounted at
-   `/opt/storoslop/bin` — so trial setup needs zero outbound network. Alternatives:
+   `/opt/omp/bin` — so trial setup needs zero outbound network. Alternatives:
    `--install local` (pack a tarball per run) or `--binary` (prebuilt
    `dist/omp-linux-*` self-contained binaries).
 2. **Auth never enters containers.** A generated `models.yml` routes provider
@@ -45,22 +45,23 @@ bun run serve --port 4700
   benchmark, score, progress, spend, and tokens.
 - `POST /api/runs` — launch through a benchmark adapter. Body:
 
-  ```json
-  {
-    "benchmark": "edit",
-    "model": "anthropic/claude-opus-4-8",
-    "tasks": 20,
-    "concurrency": 4,
-    "attempts": 2,
-    "jobName": "edit-baseline",
-    "role": "baseline",
-    "goal": "compare edit strategies"
-  }
-  ```
+   ```json
+   {
+   	"benchmark": "edit",
+   	"model": "anthropic/claude-opus-4-8",
+   	"tasks": 20,
+   	"concurrency": 4,
+   	"attempts": 2,
+   	"jobName": "edit-baseline",
+   	"role": "baseline",
+   	"goal": "compare edit strategies"
+   }
+   ```
 
-  `benchmark` is `harbor`, `edit`, or `snapcompact`. Harbor uses `dataset`,
-  `include`, `timeoutMultiplier`, and `prewalk`; edit uses `include` as task IDs;
-  SnapCompact uses `conditions` and treats `tasks` as the passage limit.
+   `benchmark` is `harbor`, `edit`, or `snapcompact`. Harbor uses `dataset`,
+   `include`, `timeoutMultiplier`, and `prewalk`; edit uses `include` as task IDs;
+   SnapCompact uses `conditions` and treats `tasks` as the passage limit.
+
 - `GET /api/runs/:name` — `{ run, traces }` (syncs native artifacts on read).
 - `POST /api/runs/:name/cancel` — cancel a manager-launched run.
 - `DELETE /api/runs/:name` — permanently delete a finished run (DB row **and**
@@ -82,7 +83,7 @@ stays the source of truth and historical CLI runs are auto-discovered.
 ## Native Terminal-Bench 2.1 runner
 
 `bench:tb` bypasses Harbor and Docker. It boots each task's published OCI
-image as an x86_64 KVM microVM on a Vibemon host, streams omp's `--mode rpc`
+image as an x86_64 KVM microVM on a Vibemon host, streams storoslop's `--mode rpc`
 protocol through `vmon exec --pipe`, runs the verifier in the same mutated VM,
 and writes resumable epochs plus artifacts under `runs/tb`.
 
@@ -113,7 +114,7 @@ to override it. Repeat `--model provider/id` to replace the pool.
 Defaults target the workstation's `xeon.internal` KVM host and the local
 `/work/vibevmm` checkout. The runner cross-builds and caches a patched `vmon`
 binary when the remote copy lacks raw pipe support, owns a privileged TAP
-broker for its lifetime, and reverse-tunnels the loopback omp auth gateway so
+broker for its lifetime, and reverse-tunnels the loopback storoslop auth gateway so
 provider credentials never enter task VMs. Trial agents use a lean terminal
 tool allowlist, `edit.mode: replace`, and the same low-cost
 `openrouter/qwen/qwen3.7-flash` vision role; general orchestration tools are
@@ -123,26 +124,26 @@ omitted from the benchmark prompt. Override infrastructure with
 
 ## Harbor runner options (excerpt)
 
-| Option | Default | Notes |
-|---|---|---|
-| `-m, --model <provider/model>` | `anthropic/claude-sonnet-4-6` | Repeatable |
-| `-l, --tasks <N>` | `20` | Max tasks |
-| `-n, --concurrency <N>` | `4` | Concurrent trials |
-| `-k, --attempts <N>` | `1` | Attempts per task (pass@k) |
-| `-d, --dataset <name>` | `terminal-bench@2.0` | Any Harbor dataset id |
-| `-i/-x, --include/--exclude <glob>` | — | Task filters (repeatable) |
-| `--timeout-multiplier <x>` | — | Scales task agent/verifier timeouts |
-| `--agent-arg <arg>` | — | Extra arg forwarded verbatim to the in-container storoslop CLI (repeatable) |
-| `--env <KEY[=VALUE]>` | — | Forward env into the storoslop container (repeatable); `KEY` alone forwards the host value |
-| `--binary <path>` | — | Prebuilt storoslop binary (repeat for arm64+x64) |
-| `--install <source\|local\|published>` | `source` | `source` = repo bind-mount, `local` = tarball pack, `published` = npm `@oh-my-pi/pi-coding-agent` |
-| `--environment <docker\|apple-container>` | `docker` | `apple-container` runs trials via Apple's `container` CLI (no Docker); source/deps mounts go through `harbor --mounts` and the gateway is auto-forwarded from `192.168.64.1:4000` to the loopback-bound gateway |
-| `--gateway-url <url>` | `http://host.docker.internal:4000` | `http://192.168.64.1:4000` under `--environment apple-container` |
-| `--no-gateway` | off | Pass host provider keys into containers instead |
-| `-o, --jobs-dir <path>` | `<repo>/runs/harbor` | Shared with the server |
-| `--resume <name\|path>` | — | Resume that job dir via `harbor job resume`; original flags recovered automatically |
-| `--filter-error-type <T>` | `CancelledError` | With `--resume`: also re-run completed trials that errored with exception type `T` (repeatable) |
-| `--dry-run` | off | Print the harbor command + models.yml and exit |
+| Option                                    | Default                            | Notes                                                                                                                                                                                                           |
+| ----------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-m, --model <provider/model>`            | `anthropic/claude-sonnet-4-6`      | Repeatable                                                                                                                                                                                                      |
+| `-l, --tasks <N>`                         | `20`                               | Max tasks                                                                                                                                                                                                       |
+| `-n, --concurrency <N>`                   | `4`                                | Concurrent trials                                                                                                                                                                                               |
+| `-k, --attempts <N>`                      | `1`                                | Attempts per task (pass@k)                                                                                                                                                                                      |
+| `-d, --dataset <name>`                    | `terminal-bench@2.0`               | Any Harbor dataset id                                                                                                                                                                                           |
+| `-i/-x, --include/--exclude <glob>`       | —                                  | Task filters (repeatable)                                                                                                                                                                                       |
+| `--timeout-multiplier <x>`                | —                                  | Scales task agent/verifier timeouts                                                                                                                                                                             |
+| `--agent-arg <arg>`                       | —                                  | Extra arg forwarded verbatim to the in-container storoslop CLI (repeatable)                                                                                                                                     |
+| `--env <KEY[=VALUE]>`                     | —                                  | Forward env into the storoslop container (repeatable); `KEY` alone forwards the host value                                                                                                                      |
+| `--binary <path>`                         | —                                  | Prebuilt storoslop binary (repeat for arm64+x64)                                                                                                                                                                |
+| `--install <source\|local\|published>`    | `source`                           | `source` = repo bind-mount, `local` = tarball pack, `published` = npm `@oh-my-pi/pi-coding-agent`                                                                                                               |
+| `--environment <docker\|apple-container>` | `docker`                           | `apple-container` runs trials via Apple's `container` CLI (no Docker); source/deps mounts go through `harbor --mounts` and the gateway is auto-forwarded from `192.168.64.1:4000` to the loopback-bound gateway |
+| `--gateway-url <url>`                     | `http://host.docker.internal:4000` | `http://192.168.64.1:4000` under `--environment apple-container`                                                                                                                                                |
+| `--no-gateway`                            | off                                | Pass host provider keys into containers instead                                                                                                                                                                 |
+| `-o, --jobs-dir <path>`                   | `<repo>/runs/harbor`               | Shared with the server                                                                                                                                                                                          |
+| `--resume <name\|path>`                   | —                                  | Resume that job dir via `harbor job resume`; original flags recovered automatically                                                                                                                             |
+| `--filter-error-type <T>`                 | `CancelledError`                   | With `--resume`: also re-run completed trials that errored with exception type `T` (repeatable)                                                                                                                 |
+| `--dry-run`                               | off                                | Print the harbor command + models.yml and exit                                                                                                                                                                  |
 
 ## Outputs
 
@@ -189,9 +190,9 @@ known-correct fix for a failed task), `--concurrency` (default 8).
 - **`--install local` reflects local TS changes** (inlined into `dist/cli.js`),
   but **not** uncommitted Rust natives — rebuild `packages/natives` per target
   first (the version sentinel must match).
-- **Agent-started services outlive omp.** The verifier runs after omp exits,
+- **Agent-started services outlive storoslop.** The verifier runs after storoslop exits,
   in the same container or VM, so both runners set
-  `OMP_DAEMON_IDLE_GRACE_MS` to 24 h for the omp process: services the agent
+  `OMP_DAEMON_IDLE_GRACE_MS` to 24 h for the storoslop process: services the agent
   started with the bash tool's `name` stay up until teardown instead of
-  stopping 3 s after omp exits. An explicit `--env OMP_DAEMON_IDLE_GRACE_MS=<ms>`
+  stopping 3 s after storoslop exits. An explicit `--env OMP_DAEMON_IDLE_GRACE_MS=<ms>`
   wins.

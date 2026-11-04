@@ -8,6 +8,10 @@
 </p>
 
 <p align="center">
+  Language: <strong>English</strong> | <a href="README.zh-CN.md">简体中文</a>
+</p>
+
+<p align="center">
   <a href="https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent"><img src="https://img.shields.io/npm/v/@oh-my-pi/pi-coding-agent?style=flat&colorA=222222&colorB=CB3837" alt="npm version"></a>
   <a href="https://github.com/Zanooda/storoslop/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
   <a href="https://github.com/Zanooda/storoslop/actions"><img src="https://img.shields.io/github/actions/workflow/status/Zanooda/storoslop/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
@@ -198,11 +202,11 @@ _[Watch the capture ↗](https://omp.sh/clips/web.mp4)_
 
 ### 09 · Unapologetically native. Even on Windows.
 
-Other agents shell out to rg, grep, find, and bash. On many machines those binaries don't exist, and on the ones where they do, every call costs a fork-exec round-trip. storoslop links the real implementations into the process. ripgrep, glob, find: in-process. brush is the bash — with sessions that survive across calls, and 58 command-line utilities (ls, sed, sort, xargs, even jq) ported into the builtins crate and run in-process, zero fork/exec. The same storoslop binary runs on macOS, Linux, and Windows — no WSL bridge.
+Other agents shell out to rg, grep, find, and bash. On many machines those binaries don't exist, and on the ones where they do, every call costs a fork-exec round-trip. storoslop links the real implementations into the process. ripgrep, glob, find: in-process. The bash is our own bash 5.3 engine — with sessions that survive across calls, and 58 command-line utilities (ls, sed, sort, xargs, even jq) ported into the builtins crate and run in-process, zero fork/exec. The same storoslop binary runs on macOS, Linux, and Windows — no WSL bridge.
 
 ### 10 · Code review with priorities and a verdict
 
-Get a clear verdict on whether the change ships, with every issue ranked P0 through P3 and scored for confidence. /review spawns dedicated reviewer subagents that sweep branches, single commits, or uncommitted work in parallel. You tackle what blocks release first; nothing important hides in a wall of prose.
+Get a clear verdict on whether the change ships, with every issue ranked P0 through P3 and scored for confidence. [/review](docs/slash-command-internals.md#15-bundled-command-note-review) spawns dedicated reviewer subagents that sweep branches, single commits, or uncommitted work in parallel. You tackle what blocks release first; nothing important hides in a wall of prose.
 
 Want to steer the review yourself? `/annotate code-review` opens the diff so you can pin notes to lines before the reviewers run. `/annotate` also takes the latest reply, a session message, a file, or quoted text and pastes your notes into the prompt. See [`/annotate`](docs/slash-command-internals.md#12-bundled-command-note-annotate).
 
@@ -320,9 +324,10 @@ Setting-gated, off by default: `github`, `security_scan`, `generate_image`, `tts
 
 ### Prompt controls
 
-Three standalone, lowercase words opt a turn into specialized agent behavior:
+Standalone, lowercase words opt a turn into specialized agent behavior:
 
 - `ultrathink` — request careful multi-step reasoning and the highest supported automatic thinking effort.
+- `chillax` — request brief reasoning; on models with per-message effort, drop thinking to the lowest effort, even mid-turn.
 - `orchestrate` — run substantial independent work through parallel subagents and verify each phase.
 - `workflowz` — build a deterministic multi-subagent workflow with the active `task` tool.
 
@@ -345,7 +350,7 @@ Auth tags below: `oauth` signs in with your provider account, `plan` routes thro
 
 Direct APIs and gateways. Mix providers per role.
 
-Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · SambaNova · Fireworks · Together · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · Helmcode · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless
+Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · SambaNova · Fireworks · Together · Modular · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Inception · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · Helmcode · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless · Scaleway
 
 ### Coding plans
 
@@ -365,15 +370,15 @@ Define custom providers in `~/.storoslop/agent/models.yml`:
 
 ```yaml
 providers:
-  spark:
-    baseUrl: http://192.168.10.223:8000/v1
-    api: openai-completions
-    apiKey: dummy
-    models:
-      - id: minimax-m3
-        name: MiniMax M3
-        contextWindow: 100000
-        maxTokens: 32000
+   spark:
+      baseUrl: http://192.168.10.223:8000/v1
+      api: openai-completions
+      apiKey: dummy
+      models:
+         - id: minimax-m3
+           name: MiniMax M3
+           contextWindow: 100000
+           maxTokens: 32000
 ```
 
 Run `storoslop models spark` to verify discovery. Then run `storoslop setup` and choose the model in the default-model step, or open `/model` in a session and assign it to the `default` role.
@@ -382,7 +387,7 @@ To preconfigure the default without the picker, add the selector to `~/.storoslo
 
 ```yaml
 modelRoles:
-  default: spark/minimax-m3
+   default: spark/minimax-m3
 ```
 
 ### Four knobs that make routing useful
@@ -455,21 +460,21 @@ Vuln lookups answer with vendor data, not blog summaries.
 
 ## Roughly **~80,000** lines of Rust, doing the work other harnesses shell out for.
 
-Six crates, one platform-tagged N-API addon. Search, shell, AST, highlight, PTY, desktop control, image decode, BPE counting — all in-process on the libuv pool. No fork/exec on the hot path. Another ~80k lines ride along vendored: the brush bash fork, plus 58 command-line utilities — coreutils, findutils, sed, jq, ripgrep-backed grep, fd, diff, moreutils — ported into the builtins crate and compiled straight into the shell.
+Six crates, one platform-tagged N-API addon. Search, shell, AST, highlight, PTY, desktop control, image decode, BPE counting — all in-process on the libuv pool. No fork/exec on the hot path. The shell is our own bash 5.3 engine, and 58 command-line utilities — coreutils, findutils, sed, jq, ripgrep-backed grep, fd, diff, moreutils — are ported into the builtins crate and compiled straight into the shell.
 
 - Crates: `pi-natives`, `pi-shell`, `pi-ast`, `pi-iso`, `pi-voice`, `pi-walker`
 - Platforms: `linux-x64`, `linux-arm64`, `darwin-x64`, `darwin-arm64`, `win32-x64`, `win32-arm64` — x64 ships dual AVX2 and baseline binaries
 
 Per crate, code lines only:
 
-| Crate         | What it does                                                                           |   ~LoC |
-| ------------- | -------------------------------------------------------------------------------------- | -----: |
-| pi-shell      | Embedded bash engine · persistent sessions · in-process coreutils dispatch · minimizer | 38,000 |
-| pi-natives    | The N-API surface — every module in the table below                                    | 25,000 |
-| pi-walker     | Parallel ignore-aware walker + scan cache shared by grep · glob · workspace · shell    |  5,200 |
-| pi-iso        | Workspace isolation · apfs · btrfs · zfs · reflink · overlayfs · projfs · rcopy        |  3,300 |
-| pi-ast        | tree-sitter + ast-grep matching, block resolution, structural summaries                |  2,900 |
-| pi-voice      | Audio capture/playback · Opus · live WebRTC                                            |  1,000 |
+| Crate      | What it does                                                                           |   ~LoC |
+| ---------- | -------------------------------------------------------------------------------------- | -----: |
+| pi-shell   | Embedded bash engine · persistent sessions · in-process coreutils dispatch · minimizer | 38,000 |
+| pi-natives | The N-API surface — every module in the table below                                    | 25,000 |
+| pi-walker  | Parallel walker · listing cache · glob · regex search for natives and shell rg/grep/fd | 11,400 |
+| pi-iso     | Workspace isolation · apfs · btrfs · zfs · reflink · overlayfs · projfs · rcopy        |  3,300 |
+| pi-ast     | tree-sitter + ast-grep matching, block resolution, structural summaries                |  2,900 |
+| pi-voice   | Audio capture/playback · Opus · live WebRTC                                            |  1,000 |
 
 Inside `pi-natives`, the per-module breakdown (glue and tests omitted):
 
@@ -518,21 +523,16 @@ The same prompt cards surface over ACP, so editors get the picker without writin
 Node and TypeScript hosts pull the engine in directly. The package exposes `ModelRegistry`, `SessionManager`, `createAgentSession`, and `discoverAuthStorage`; the session emits typed events you subscribe to.
 
 ```ts
-import {
-  ModelRegistry,
-  SessionManager,
-  createAgentSession,
-  discoverAuthStorage,
-} from "@oh-my-pi/pi-coding-agent";
+import { ModelRegistry, SessionManager, createAgentSession, discoverAuthStorage } from "@oh-my-pi/pi-coding-agent";
 
 const auth = await discoverAuthStorage();
 const models = new ModelRegistry(auth);
 await models.refresh();
 
 const { session } = await createAgentSession({
-  sessionManager: SessionManager.inMemory(),
-  authStorage: auth,
-  modelRegistry: models,
+	sessionManager: SessionManager.inMemory(),
+	authStorage: auth,
+	modelRegistry: models,
 });
 await session.prompt("list .ts files");
 ```
@@ -595,12 +595,12 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `a536558dc2`**, merged 2026-10-16 — 958 commits since the previous `f979f4639777` baseline. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `33ea58aa7d`**, merged 2026-11-04 — 4971 commits since `a536558dc2` (upstream `18.11.1` → `18.16.0`); the fork itself targets `1.4.0`. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.3.x` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
+- `1.3.x` → `1.4.0` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
 - `bun@1.3.14` + `@types/bun` pin (upstream moved to `packageManager: bun@>=1.4`)
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time
@@ -637,19 +637,28 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - `ctx.annotations` extension API for host-wired annotation surfaces
 - browser target discovery (`browser.targets()`), so a page can be adopted by target instead of guessed
 - composer predictions (inline next-message suggestions) and `retry.fallbackOn` fallback-chain admission
-- `omp usage reset` for spending a stored account's usage window on demand
-- session hand-off (`omp session pack`/`unpack`/`moved` + `session-transfer`) and `omp --restore` crash/kill recovery of an interrupted turn plus the subagents it was running
+- `storoslop usage reset` for spending a stored account's usage window on demand
+- session hand-off (`storoslop session pack`/`unpack`/`moved` + `session-transfer`) and `storoslop --restore` crash/kill recovery of an interrupted turn plus the subagents it was running
 - per-machine shared worker daemons so local models load once per machine (`subprocess/shared-worker` + `jsonl-server`; the mnemopi embedding server)
-- `omp gc --compress` filesystem-transparent compression of idle sessions (`gc.compress`, `gc.compressAfterDays`)
+- `storoslop gc --compress` filesystem-transparent compression of idle sessions (`gc.compress`, `gc.compressAfterDays`)
 - extension plan-review observation/answer (`ctx.openPlanReview`, `ctx.resolvePlanReview` execution tiers) and the composer-replacing tool-approval prompt that keeps the composer usable mid-run
 - Cloudflare Workers AI provider, `openai-decisions`/`workers-ai-systemone` judge APIs and the `anthropic-images` provider; `task.agentSoftRequestBudget`/`task.structured`, the `o200k` tokenizer, and `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS`
 - upstream removal adopted: Codex Code Mode and its `providers.openai-codex.codeMode*` settings (Codex models always use the full direct tool surface)
 - `/jobs` subagent job tree (background jobs nested under the task that runs them, branchiest first; only your own jobs offer Cancel) and `ctx.ui.getEditorComponent()` so extensions wrap the active editor factory
-- scoped auth-gateway clients (`omp auth-gateway serve --clients=<file>`: per-client bearer tokens limited to listed models and broker OAuth accounts, with no fallback) and `lsp.requestTimeout` for language-server diagnostics and requests
+- scoped auth-gateway clients (`storoslop auth-gateway serve --clients=<file>`: per-client bearer tokens limited to listed models and broker OAuth accounts, with no fallback) and `lsp.requestTimeout` for language-server diagnostics and requests
 - agents send `todo` updates alongside their next tool call, and structured `task` results survive via agent frontmatter
 - multimodal image judgments in Eval `judge()`/`judge_batch()`, and click-to-dictate plus local streaming speech recognition (`stt`, `local/nemotron-streaming-en-0.6b`)
 - SambaNova Cloud provider, `keep-bundled-names` catalog attribute, and the `gpt-image` model-family split; Claude 1h prompt-cache retention on Google Vertex
 - upstream provider-recovery fixes adopted wholesale (Cursor replayed-call and mid-stream cuts, Codex SSE stalls and usage invalidation, Anthropic fallback-credit redemption, transient "temporarily unavailable"/unknown finish reasons)
+- native shell rewrite: `crates/pi-shell` is now pi's own bash 5.3 engine (the vendored `brush-core`/`brush-parser` crates are gone), with `pi-builtins` holding the uutils-style command-line utilities and the process builtins against the shell's explicit host view, `pi-walker` serving parallel walk/glob/content search, `pi-vfs` the injectable async filesystem shared by the shell and its coreutils, `pi-iso` the cross-platform isolation PAL (APFS clones, kernel overlay with `fuse-overlayfs` fallback, ProjFS), and `pi-predict`/`pi-ast` under the composer word-completion engines and ast-grep (upstream `18.16.0`)
+- `/review` and `/annotate code-review` from a folder of checkouts (`/review owner/repo#123` from anywhere; `/review ./repo [#N | !N] [focus]` for a GitHub PR or GitLab MR in that checkout) and GitLab merge-request review in `glab` checkouts, with `mr://<host>/<group>/<project>/<iid>/diff` per-file diff URLs
+- `composer.predictionAlternatives` (one request returns up to four next messages, most likely first; Tab again picks another) and content-free OTLP metrics for composer predictions by serving model (outcome, shown, accepted with Tab/Right, number of choices, accepted rank)
+- `btw.inject` steering (a `/btw` answer can be sent into the main session with `Alt+I`, as a steer while the agent runs or as a new turn) and the `chillax` magic keyword (brief reasoning, dropping to the model's lowest effort where per-message effort applies)
+- Hindsight `scope: "global"` memories that every project recalls (`hindsight.globalScope`, off by default)
+- streaming `/export`: the HTML is written to disk instead of assembled as one string, so large sessions with subagent transcripts no longer fail with an out-of-memory error
+- browser tabs belong to the agent that opened them rather than its conversation id, so a subagent's `browser.close({ all: true })` no longer closes its parent's tabs and tabs survive `/new`, `/resume`, fork, and branch
+- `models.yml` `tokenizer:` override (`tokenizer: cl100k`) on a custom model or an override entry
+- Linux `agent.db` corruption fix: grep, `read`, the bash tool, extensions and eval reading the database while this process holds it open no longer wipe stored logins, and `write`/`tts` now refuse to overwrite a database this process has open
 
 ### Project inputs and trust
 
@@ -657,7 +666,7 @@ Opening a repository loads its project inputs by design: settings, extensions, h
 
 ```yaml
 mcp:
-  enableProjectConfig: false
+   enableProjectConfig: false
 ```
 
 Use `--no-extensions` to skip ambient extension discovery; or use `--trusted-extension /absolute/path/to/file.ts` for an exact extension allowlist. `--no-tools` disables built-in tools, but project tool modules remain a separate discovery surface. These flags narrow inputs without changing the repository-trust model.
@@ -730,17 +739,16 @@ For architecture and contribution guidelines, see [packages/coding-agent/DEVELOP
 
 ### Rust Crates
 
-| Crate                                              | Description                                                                                         |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **[pi-natives](crates/pi-natives)**                | Core Rust native addon (N-API `cdylib`) used by `@oh-my-pi/pi-natives`; aggregates the crates below |
-| **[pi-shell](crates/pi-shell)**                    | Embedded shell / PTY / process management split out of `pi-natives` (wraps `brush-*`)               |
-| **[pi-ast](crates/pi-ast)**                        | tree-sitter-based code summarizer and AST utilities (50+ language grammars)                         |
-| **[pi-iso](crates/pi-iso)**                        | Task isolation backend resolver: APFS clones, btrfs/zfs reflinks, overlayfs, projfs, rcopy          |
-| **[pi-voice](crates/pi-voice)**                    | Audio capture/playback, Opus codecs, and live WebRTC streaming primitives                           |
-| **[pi-walker](crates/pi-walker)**                  | Parallel ignore-aware filesystem walker with the scan cache shared by grep, glob, and workspace     |
-| **[pi-edit](crates/pi-edit)**                      | Edit engine behind the `edit` tool: line-anchored patch/hashline modes, streaming previews, atomic apply |
-| **[brush-core](crates/vendor/brush-core)**         | Vendored fork of [brush-shell](https://github.com/reubeno/brush) for embedded bash execution        |
-| **[pi-builtins](crates/pi-builtins)**              | Bash builtins (cd, echo, test, printf, read, export, …) plus 67 in-process command-line utilities |
+| Crate                                      | Description                                                                                              |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| **[pi-natives](crates/pi-natives)**        | Core Rust native addon (N-API `cdylib`) used by `@oh-my-pi/pi-natives`; aggregates the crates below      |
+| **[pi-shell](crates/pi-shell)**            | Embedded bash 5.3 engine (parser, VM, process spawning, sessions), PTY, and process management           |
+| **[pi-ast](crates/pi-ast)**                | tree-sitter-based code summarizer and AST utilities (50+ language grammars)                              |
+| **[pi-iso](crates/pi-iso)**                | Task isolation backend resolver: APFS clones, btrfs/zfs reflinks, overlayfs, projfs, rcopy               |
+| **[pi-voice](crates/pi-voice)**            | Audio capture/playback, Opus codecs, and live WebRTC streaming primitives                                |
+| **[pi-walker](crates/pi-walker)**          | Parallel ignore-aware walker, directory-listing cache, glob, and content search for natives + shell      |
+| **[pi-edit](crates/pi-edit)**              | Edit engine behind the `edit` tool: line-anchored patch/hashline modes, streaming previews, atomic apply |
+| **[pi-builtins](crates/pi-builtins)**      | 67 in-process command-line utilities plus process builtins (ps, top, pgrep, pkill, …)                    |
 
 ## Contributing
 
@@ -755,10 +763,11 @@ guidelines on contributing.
 
 storoslop is licensed under the [MIT License](LICENSE).
 
-Third-party and vendored code, including `crates/vendor/brush-core` and the
-third-party portions identified in `crates/pi-builtins/LICENSE`, remains under
-its respective upstream license. See `THIRD-PARTY-NOTICES.txt` and
-component-local notices for attribution and additional terms.
+Third-party and vendored code, including the third-party portions identified
+in `crates/pi-builtins/LICENSE`, remains under its respective upstream license.
+Each shipped component carries its own `THIRD-PARTY-NOTICES.txt`: the CLI
+(`packages/coding-agent`), the native addon (`packages/natives`), and robomp
+(`python/robomp`). `storoslop --license` prints the CLI's and the addon's.
 
 © 2025 Mario Zechner  
 © 2025-2026 Can Bölük  

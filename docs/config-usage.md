@@ -77,11 +77,13 @@ Project-level bases:
 
 A named profile (`storoslop --profile <name>`, `OMP_PROFILE`, or the legacy fallback `PI_PROFILE`) relocates the storoslop user base. `OMP_PROFILE` wins when it is defined, including when it is explicitly empty; `default`, empty, or whitespace selects the default profile. When a profile is active, every storoslop-native user-level path written here as `~/.storoslop/agent/...` normally resolves to `~/.storoslop/profiles/<name>/agent/...`. `--alias <command>` does not select a profile by itself: paired with `--profile`, it creates a shell shortcut for that profile.
 
+While a named profile is active, the status line's `pi` segment tags the brand with the profile name (`π-work`, or `⠋-work 12s` while a turn runs) so sessions from different profiles are distinguishable at a glance. The default profile shows the bare glyph. Set `statusLine.segmentOptions.pi.showProfile: false` to keep the bare glyph under every profile, for example when each profile already has its own theme.
+
 The relocation is uniform across the native provider (`builtin.ts`) and the generic `config.ts` helpers, so it covers slash commands, rules, prompts, instructions, hooks, tools, extensions, settings, skills, and MCP, plus the top-level `SYSTEM.md` / `RULES.md` / `AGENTS.md` files and runtime state (sessions, blobs, `agent.db`). A profile sees only its own storoslop config, never the default profile's agent config.
 
-Keybindings are the one exception: a named profile merges the default profile's `~/.storoslop/agent/keybindings.*` under its own `~/.storoslop/profiles/<name>/agent/keybindings.*`, with the profile file overriding per binding ([#4867](https://github.com/Zanooda/storoslop/issues/4867)). Keybindings describe the terminal/keyboard in front of the user, which doesn't change with the active profile, so user-level remaps keep working in every profile unless the profile explicitly overrides them. The inherited file is read-only for the profile process — legacy-format migration of the default profile's file only happens when the default profile itself runs.
+Keybindings are the one exception: a named profile merges the default profile's `~/.storoslop/agent/keybindings.*` under its own `~/.storoslop/profiles/<name>/agent/keybindings.*`, with the profile file overriding per binding ([#4867](https://github.com/can1357/oh-my-pi/issues/4867)). Keybindings describe the terminal/keyboard in front of the user, which doesn't change with the active profile, so user-level remaps keep working in every profile unless the profile explicitly overrides them. The inherited file is read-only for the profile process — legacy-format migration of the default profile's file only happens when the default profile itself runs.
 
-On macOS and Linux, an existing `$XDG_DATA_HOME/omp`, `$XDG_STATE_HOME/omp`, or `$XDG_CACHE_HOME/omp` can relocate the corresponding data, state, or cache paths. For a named profile, storoslop uses an XDG category only when that category already contains `omp/profiles/<name>`; otherwise that category remains under `~/.storoslop/profiles/<name>`. Run `storoslop config init-xdg` before relying on XDG paths.
+On macOS and Linux, an existing `$XDG_DATA_HOME/storoslop`, `$XDG_STATE_HOME/storoslop`, or `$XDG_CACHE_HOME/storoslop` can relocate the corresponding data, state, or cache paths. For a named profile, storoslop uses an XDG category only when that category already contains `storoslop/profiles/<name>`; otherwise that category remains under `~/.storoslop/profiles/<name>`. Run `storoslop config init-xdg` before relying on XDG paths.
 
 The other source bases are not profile-scoped and load identically under every profile: the external-tool bases (`~/.claude`, `~/.codex`, `~/.gemini`) belong to those tools, and the project-level bases (`<cwd>/.storoslop`, `<cwd>/.claude`, ...) are keyed to the working directory. Throughout this document, read `~/.storoslop/agent` as shorthand for the active profile's agent directory unless an environment override or XDG path is being discussed.
 
@@ -139,9 +141,9 @@ Behavior:
 - Both `.json` and `.jsonc` are parsed as JSONC.
 - Caches load result until `invalidate()`.
 - Returns tri-state result via `tryLoad()`:
-  - `ok`
-  - `not-found`
-  - `error` (`ConfigError` with schema/parse context)
+   - `ok`
+   - `not-found`
+   - `error` (`ConfigError` with schema/parse context)
 
 Legacy migration still supported:
 
@@ -185,7 +187,7 @@ Definitions with `protocolDefault: ["rpc", "acp"]` make RPC/ACP hosts start from
 
 Subagents receive `parent.overlay(overrides)`: reads fall through to the parent live, while the overrides and any later writes stay in the child and are never persisted.
 
-Generic setting-handle writes target the global layer; config overlays are read-only. Model roles have explicit project-write APIs: `setProjectModelRole()` / `clearProjectModelRole()` update the project layer and persist only the changed roles to `<cwd>/.omp/config.yml`. If an existing runtime override would shadow the role, setting a project role temporarily replaces it; clearing removes that runtime slot. The original override is captured for restoration when changing project scope.
+Generic setting-handle writes target the global layer; config overlays are read-only. Model roles have explicit project-write APIs: `setProjectModelRole()` / `clearProjectModelRole()` update the project layer and persist only the changed roles to `<cwd>/.storoslop/config.yml`. If an existing runtime override would shadow the role, setting a project role temporarily replaces it; clearing removes that runtime slot. The original override is captured for restoration when changing project scope.
 
 ### Settings load failures
 
@@ -217,7 +219,7 @@ Most non-core config loading flows through the capability registry (`src/capabil
 Providers are sorted by numeric priority (higher first). Full set:
 
 - Native storoslop (`builtin.ts`): `100`
-- OMP plugins (`omp-plugins`): `90`
+- storoslop plugins (`omp-plugins`): `90`
 - Claude: `80`
 - Agent Plugins standard (`agent-plugins`): `75`
 - Codex / agents / Claude plugins marketplace: `70`
@@ -234,7 +236,7 @@ Providers are sorted by numeric priority (higher first). Full set:
 ```text
 Provider precedence (higher wins)
 
-native (.storoslop)     priority 100
+native (.storoslop)           priority 100
 omp-plugins             priority  90
 claude                  priority  80
 agent-plugins           priority  75
@@ -287,7 +289,7 @@ Native provider (`id: native`) reads native config from:
 ### Scope-specific loading
 
 - Skills: `<ancestor>/.storoslop/skills/*/SKILL.md` and `~/.storoslop/agent/skills/*/SKILL.md`
-- Managed skills: `~/.omp/agent/managed-skills/*/SKILL.md`, through a separate priority-5 provider; authored skills from any other provider win name collisions. Discovery is unconditional; `autolearn.enabled` gates writing/nudging, not loading.
+- Managed skills: `~/.storoslop/agent/managed-skills/*/SKILL.md`, through a separate priority-5 provider; authored skills from any other provider win name collisions. Discovery is unconditional; `autolearn.enabled` gates writing/nudging, not loading.
 - Slash commands: `commands/*.md`
 - Rules: `rules/*.{md,mdc}` plus top-level `RULES.md`
 - Prompts: `prompts/*.md`
