@@ -299,9 +299,7 @@ describe("ModelRegistry", () => {
 			expect(registry.getAvailable("all")).toEqual(
 				expect.arrayContaining([expect.objectContaining({ provider: "web", id: "duckduckgo" })]),
 			);
-			expect(registry.getAvailable("all").some(model => ["local", "typesafe"].includes(model.provider))).toBe(
-				false,
-			);
+			expect(registry.getAvailable("all").some(model => ["local", "typesafe"].includes(model.provider))).toBe(false);
 		});
 
 		test("keeps image and speech fallback runners across authoritative chat cache and refresh", async () => {
