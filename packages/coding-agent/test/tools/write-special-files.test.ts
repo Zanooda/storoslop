@@ -52,7 +52,7 @@ async function writeInChild(
 	});
 	const code = await child.exited;
 	const output = `${await new Response(child.stdout).text()}${await new Response(child.stderr).text()}`;
-	return { code, signal: child.signalCode, output };
+	return { code, signal: child.signalCode === null ? null : String(child.signalCode), output };
 }
 
 /** Release a reader without blocking if no read is still waiting. */

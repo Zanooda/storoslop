@@ -58,13 +58,11 @@ type AltGrTable = Map<string, string>;
 /**
  * Keyboard layout handle (`HKL`) as `bun:ffi` surfaces pointer-sized values.
  *
- * bun 1.3.14 typings type `FFIType.ptr` returns as `Pointer | null` and its args as
- * `NodeJS.TypedArray | Pointer | CString | null`; every in-tree producer
- * (`GetKeyboardLayout`, `LoadKeyboardLayoutW`) yields a `Pointer`, so no `bigint`
- * can reach the FFI arg positions. Upgrade path: once the fork adopts bun >=1.4
- * typings, restore the `Pointer | bigint` union (bigint return, widened ptr args).
+ * bun >= 1.4 typings type `FFIType.ptr` returns as `Pointer | bigint | null`
+ * (bigint on 64-bit hosts) and widen the ptr argument positions to accept both,
+ * so the handle keeps the full union rather than collapsing to `Pointer`.
  */
-export type KeyboardLayoutHandle = Pointer;
+export type KeyboardLayoutHandle = Pointer | bigint;
 
 let user32: User32 | null | undefined;
 let cachedLayout: { hkl: KeyboardLayoutHandle | null; table: AltGrTable } | undefined;
