@@ -31,6 +31,12 @@ import { bindingsHaveReleaseIdentity, bindingsReleaseVersion, containsVersionSta
  * post-build `--reset` stub) is the authoritative compiled-mode signal.
  */
 
+/**
+ * Data-directory name, matching `APP_NAME` in `packages/utils/src/dirs.ts`.
+ * Hardcoded: this loader cannot depend on pi-utils.
+ */
+const APP_DIR_NAME = "storoslop";
+
 const SUPPORTED_PLATFORMS = [
 	"linux-x64",
 	"linux-arm64",
@@ -65,10 +71,10 @@ function getNativesDir() {
 		if (path.isAbsolute(dir)) return path.normalize(dir);
 	}
 	const xdgDataHome = process.env.XDG_DATA_HOME;
-	if (xdgDataHome && fs.existsSync(path.join(xdgDataHome, "omp"))) {
-		return path.join(xdgDataHome, "omp", "natives");
+	if (xdgDataHome && fs.existsSync(path.join(xdgDataHome, APP_DIR_NAME))) {
+		return path.join(xdgDataHome, APP_DIR_NAME, "natives");
 	}
-	return path.join(os.homedir(), ".omp", "natives");
+	return path.join(os.homedir(), `.${APP_DIR_NAME}`, "natives");
 }
 
 function resolveLeafPackageDir(platformTag) {
@@ -119,7 +125,7 @@ export function getAddonFilenames({ tag, arch, variant }) {
 
 /**
  * Decide whether the loader should mirror the package's `native/<filename>.node`
- * into the per-version cache directory (`~/.omp/natives/<version>/`) before loading.
+ * into the per-version cache directory (`~/.storoslop/natives/<version>/`) before loading.
  *
  * Windows-only safety net for `bun install -g` updates: when a previous `omp`
  * process is running, bun cannot overwrite the locked `.node` inside
@@ -788,7 +794,7 @@ export function initLoaderContext(overrides = {}) {
 	const versionedDir = path.join(nativesDir, packageVersion);
 	const userDataDir =
 		platform === "win32"
-			? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"), "omp")
+			? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"), APP_DIR_NAME)
 			: path.join(os.homedir(), ".local", "bin");
 
 	const isCompiledBinary =
