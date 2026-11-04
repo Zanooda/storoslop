@@ -33,6 +33,12 @@ import { resetSettingsForTest } from "@oh-my-pi/pi-coding-agent/config/settings"
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 
+// Fork: the single-provider runtime registry disables implicit local-engine
+// discovery (ollama, llama.cpp, lm-studio, apple) — chat selection is limited to
+// storoslop/models.yml. Those upstream cases are SKIPPED, not deleted, so the
+// contract they defend stays visible when discovery is re-enabled.
+const testImplicit = process.env.OMP_ENABLE_IMPLICIT_DISCOVERY ? test : test.skip;
+
 describe("ModelRegistry runtime discovery", () => {
 	let tempDir: string;
 	let modelsJsonPath: string;
@@ -872,7 +878,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(configuredModel?.contextWindow).toBe(65_536);
 	});
 
-	test("auto-discovers ollama models without provider config", async () => {
+	testImplicit("auto-discovers ollama models without provider config", async () => {
 		const fetchMock = mockOllamaDiscovery(["phi4-mini"]);
 		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
 		await registry.refresh();
@@ -961,7 +967,7 @@ describe("ModelRegistry runtime discovery", () => {
 		}
 	});
 
-	test("only marks unconfigured implicit local endpoints as optional", async () => {
+	testImplicit("only marks unconfigured implicit local endpoints as optional", async () => {
 		{
 			using _ollamaBaseUrl = withEnv("OLLAMA_BASE_URL", undefined);
 			using _ollamaHost = withEnv("OLLAMA_HOST", undefined);
@@ -988,7 +994,7 @@ describe("ModelRegistry runtime discovery", () => {
 		}
 	});
 
-	test("uses OLLAMA_HOST for implicit ollama discovery", async () => {
+	testImplicit("uses OLLAMA_HOST for implicit ollama discovery", async () => {
 		using _baseUrl = withEnv("OLLAMA_BASE_URL", undefined);
 		using _host = withEnv("OLLAMA_HOST", "ollama.lan:12345");
 		const fetchMock = mockOllamaDiscovery(["phi4-mini"], "http://ollama.lan:12345");
@@ -1000,7 +1006,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(registry.getProviderDiscoveryState("ollama")?.optional).toBe(false);
 	});
 
-	test("keeps OLLAMA_BASE_URL precedence over OLLAMA_HOST", async () => {
+	testImplicit("keeps OLLAMA_BASE_URL precedence over OLLAMA_HOST", async () => {
 		using _baseUrl = withEnv("OLLAMA_BASE_URL", "http://omp-ollama.example:2222");
 		using _host = withEnv("OLLAMA_HOST", "ollama-host.example:3333");
 		const fetchMock = mockOllamaDiscovery(["phi4-mini"], "http://omp-ollama.example:2222");
@@ -1012,7 +1018,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(registry.getProviderDiscoveryState("ollama")?.optional).toBe(false);
 	});
 
-	test("resolves a bare id shared with implicit ollama to the models.yml provider", async () => {
+	testImplicit("resolves a bare id shared with implicit ollama to the models.yml provider", async () => {
 		using _baseUrl = withEnv("OLLAMA_BASE_URL", "http://ollama.lan:11434");
 		writeRawModelsJson({
 			omlx: {
@@ -1033,7 +1039,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(resolved.model?.baseUrl).toBe("http://omlx.lan:11434/v1");
 	});
 
-	test("warns with the env var only when an env-redirected implicit endpoint fails discovery", async () => {
+	testImplicit("warns with the env var only when an env-redirected implicit endpoint fails discovery", async () => {
 		// Echo the request URL like real fetch errors do, so credential leaks through the error are caught too.
 		const unreachable: FetchImpl = async input => {
 			throw new Error(`EHOSTUNREACH: connect failed ${String(input)}`);
@@ -1059,7 +1065,7 @@ describe("ModelRegistry runtime discovery", () => {
 		}
 	});
 
-	test("refreshes implicit Ollama discovery when the configured endpoint changes", async () => {
+	testImplicit("refreshes implicit Ollama discovery when the configured endpoint changes", async () => {
 		const requested: string[] = [];
 		{
 			using _baseUrl = withEnv("OLLAMA_BASE_URL", "http://old-ollama.example:11434/v1/");
@@ -1094,7 +1100,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(requested).toContain("http://new-ollama.example:11434/api/tags");
 	});
 
-	test("uses OLLAMA_CONTEXT_LENGTH for implicit ollama context accounting", async () => {
+	testImplicit("uses OLLAMA_CONTEXT_LENGTH for implicit ollama context accounting", async () => {
 		using _contextLength = withEnv("OLLAMA_CONTEXT_LENGTH", "16384");
 		const fetchMock = mockOllamaDiscovery(["phi4-mini"]);
 		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
@@ -1105,7 +1111,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(model?.maxTokens).toBe(16384);
 	});
 
-	test("lets OLLAMA_CONTEXT_LENGTH override ollama show metadata", async () => {
+	testImplicit("lets OLLAMA_CONTEXT_LENGTH override ollama show metadata", async () => {
 		using _contextLength = withEnv("OLLAMA_CONTEXT_LENGTH", "32768");
 		const fetchMock = mockOllamaDiscovery(["phi4-mini"], "http://127.0.0.1:11434", {
 			model_info: {
@@ -1121,7 +1127,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(model?.maxTokens).toBe(32768);
 	});
 
-	test("prefers Ollama runtime num_ctx over training context metadata", async () => {
+	testImplicit("prefers Ollama runtime num_ctx over training context metadata", async () => {
 		const fetchMock = mockOllamaDiscovery(["qwen3:27b"], "http://127.0.0.1:11434", {
 			parameters: "temperature 0.6\nnum_ctx 123904\n",
 			model_info: {
@@ -1137,67 +1143,72 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(model?.maxTokens).toBe(32_768);
 	});
 
-	test("discovers ollama-cloud through built-in descriptor flow without regressing local implicit ollama", async () => {
-		authStorage.keys.setRuntime("ollama-cloud", "cloud-test-key");
+	testImplicit(
+		"discovers ollama-cloud through built-in descriptor flow without regressing local implicit ollama",
+		async () => {
+			authStorage.keys.setRuntime("ollama-cloud", "cloud-test-key");
 
-		const fetchMock: FetchImpl = async (input, init) => {
-			const url = String(input);
-			if (url === "http://127.0.0.1:11434/api/tags") {
-				return new Response(JSON.stringify({ models: [{ name: "phi4-mini" }] }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-			if (url === "http://127.0.0.1:11434/api/show") {
-				return new Response(JSON.stringify({ capabilities: ["completion"] }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-			if (url === "https://ollama.com/api/tags") {
-				const headers = new Headers(init?.headers);
-				expect(headers.get("Authorization")).toBe("Bearer cloud-test-key");
-				return new Response(JSON.stringify({ models: [{ name: "gpt-oss:120b" }] }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-			if (url === "https://ollama.com/api/show") {
-				const headers = new Headers(init?.headers);
-				expect(headers.get("Authorization")).toBe("Bearer cloud-test-key");
-				const body = JSON.parse(String(init?.body ?? "{}")) as { model?: string };
-				expect(body.model).toBe("gpt-oss:120b");
-				return new Response(
-					JSON.stringify({
-						capabilities: ["completion", "thinking"],
-						model_info: { "gpt-oss.context_length": 262144 },
-					}),
-					{ status: 200, headers: { "Content-Type": "application/json" } },
-				);
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
+			const fetchMock: FetchImpl = async (input, init) => {
+				const url = String(input);
+				if (url === "http://127.0.0.1:11434/api/tags") {
+					return new Response(JSON.stringify({ models: [{ name: "phi4-mini" }] }), {
+						status: 200,
+						headers: { "Content-Type": "application/json" },
+					});
+				}
+				if (url === "http://127.0.0.1:11434/api/show") {
+					return new Response(JSON.stringify({ capabilities: ["completion"] }), {
+						status: 200,
+						headers: { "Content-Type": "application/json" },
+					});
+				}
+				if (url === "https://ollama.com/api/tags") {
+					const headers = new Headers(init?.headers);
+					expect(headers.get("Authorization")).toBe("Bearer cloud-test-key");
+					return new Response(JSON.stringify({ models: [{ name: "gpt-oss:120b" }] }), {
+						status: 200,
+						headers: { "Content-Type": "application/json" },
+					});
+				}
+				if (url === "https://ollama.com/api/show") {
+					const headers = new Headers(init?.headers);
+					expect(headers.get("Authorization")).toBe("Bearer cloud-test-key");
+					const body = JSON.parse(String(init?.body ?? "{}")) as { model?: string };
+					expect(body.model).toBe("gpt-oss:120b");
+					return new Response(
+						JSON.stringify({
+							capabilities: ["completion", "thinking"],
+							model_info: { "gpt-oss.context_length": 262144 },
+						}),
+						{ status: 200, headers: { "Content-Type": "application/json" } },
+					);
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
 
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		await registry.refresh();
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			await registry.refresh();
 
-		const local = registry.find("ollama", "phi4-mini");
-		const cloud = registry.find("ollama-cloud", "gpt-oss:120b");
+			const local = registry.find("ollama", "phi4-mini");
+			const cloud = registry.find("ollama-cloud", "gpt-oss:120b");
 
-		expect(local?.provider).toBe("ollama");
-		expect(local?.api).toBe("openai-responses");
-		expect(cloud?.provider).toBe("ollama-cloud");
-		expect(cloud?.api).toBe("ollama-chat");
-		expect(cloud?.baseUrl).toBe("https://ollama.com");
-		expect(cloud?.reasoning).toBe(true);
-		expect(cloud?.contextWindow).toBe(262144);
-		expect(await registry.getApiKey(cloud!)).toBe("cloud-test-key");
-		expect(registry.getAvailable().some(model => model.provider === "ollama" && model.id === "phi4-mini")).toBe(true);
-		expect(
-			registry.getAvailable().some(model => model.provider === "ollama-cloud" && model.id === "gpt-oss:120b"),
-		).toBe(true);
-	});
-	test("discovers ollama models at runtime and treats auth:none providers as available", async () => {
+			expect(local?.provider).toBe("ollama");
+			expect(local?.api).toBe("openai-responses");
+			expect(cloud?.provider).toBe("ollama-cloud");
+			expect(cloud?.api).toBe("ollama-chat");
+			expect(cloud?.baseUrl).toBe("https://ollama.com");
+			expect(cloud?.reasoning).toBe(true);
+			expect(cloud?.contextWindow).toBe(262144);
+			expect(await registry.getApiKey(cloud!)).toBe("cloud-test-key");
+			expect(registry.getAvailable().some(model => model.provider === "ollama" && model.id === "phi4-mini")).toBe(
+				true,
+			);
+			expect(
+				registry.getAvailable().some(model => model.provider === "ollama-cloud" && model.id === "gpt-oss:120b"),
+			).toBe(true);
+		},
+	);
+	testImplicit("discovers ollama models at runtime and treats auth:none providers as available", async () => {
 		writeRawModelsJson({
 			ollama: {
 				baseUrl: "http://127.0.0.1:11434/v1",
@@ -1374,7 +1385,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(llama?.reasoning).toBe(false);
 	});
 
-	test("discovers ollama context window from show model_info", async () => {
+	testImplicit("discovers ollama context window from show model_info", async () => {
 		const fetchMock: FetchImpl = async (input, init) => {
 			const url = String(input);
 			if (url === "http://127.0.0.1:11434/api/tags") {
@@ -1509,7 +1520,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(state?.status).toBe("unauthenticated");
 		expect(state?.models).toContain("local-coder");
 	});
-	test("llama.cpp discovery honors configured API key", async () => {
+	testImplicit("llama.cpp discovery honors configured API key", async () => {
 		authStorage.keys.setRuntime("llama.cpp", "test-llama-key");
 		const fetchMock: FetchImpl = async (input, init) => {
 			const url = String(input);
@@ -1550,7 +1561,7 @@ describe("ModelRegistry runtime discovery", () => {
 		const apiKey = await registry.getApiKey(llamaModels[0]);
 		expect(apiKey).toBe("test-llama-key");
 	});
-	test("llama.cpp discovery without API key is treated as keyless", async () => {
+	testImplicit("llama.cpp discovery without API key is treated as keyless", async () => {
 		const fetchMock: FetchImpl = async (input, init) => {
 			const url = String(input);
 			if (url === "http://127.0.0.1:8080/models") {
@@ -1594,7 +1605,7 @@ describe("ModelRegistry runtime discovery", () => {
 		const apiKey = await registry.getApiKey(llamaModels[0]);
 		expect(apiKey).toBe(kNoAuth);
 	});
-	test("llama.cpp discovery maps unlimited output limits to the context window", async () => {
+	testImplicit("llama.cpp discovery maps unlimited output limits to the context window", async () => {
 		const fetchMock: FetchImpl = async input => {
 			const url = String(input);
 			if (url === "http://127.0.0.1:8080/models") {
@@ -1631,7 +1642,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(llama?.input).toEqual(["text", "image"]);
 	});
 
-	test("implicit llama.cpp discovery falls back to port 9931 when 8080 is unreachable", async () => {
+	testImplicit("implicit llama.cpp discovery falls back to port 9931 when 8080 is unreachable", async () => {
 		const fetchMock: FetchImpl = async input => {
 			const url = String(input);
 			if (url.startsWith("http://127.0.0.1:8080/")) {
@@ -1658,23 +1669,26 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(model?.contextWindow).toBe(16384);
 	});
 
-	test("implicit llama.cpp discovery reports a 9931 auth rejection as unauthenticated, not an 8080 outage", async () => {
-		const fetchMock: FetchImpl = async input => {
-			const url = String(input);
-			if (url.startsWith("http://127.0.0.1:8080/")) {
-				throw new TypeError("Unable to connect");
-			}
-			if (url.startsWith("http://127.0.0.1:9931/")) {
-				return new Response("unauthorized", { status: 401 });
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		await registry.refresh();
-		expect(registry.getProviderDiscoveryState("llama.cpp")?.status).toBe("unauthenticated");
-	});
+	testImplicit(
+		"implicit llama.cpp discovery reports a 9931 auth rejection as unauthenticated, not an 8080 outage",
+		async () => {
+			const fetchMock: FetchImpl = async input => {
+				const url = String(input);
+				if (url.startsWith("http://127.0.0.1:8080/")) {
+					throw new TypeError("Unable to connect");
+				}
+				if (url.startsWith("http://127.0.0.1:9931/")) {
+					return new Response("unauthorized", { status: 401 });
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			await registry.refresh();
+			expect(registry.getProviderDiscoveryState("llama.cpp")?.status).toBe("unauthenticated");
+		},
+	);
 
-	test("implicit llama.cpp discovery does not bypass a failing 8080 server for 9931", async () => {
+	testImplicit("implicit llama.cpp discovery does not bypass a failing 8080 server for 9931", async () => {
 		const requested: string[] = [];
 		const fetchMock: FetchImpl = async input => {
 			const url = String(input);
@@ -1700,65 +1714,68 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(requested.some(url => url.startsWith("http://127.0.0.1:9931/"))).toBe(false);
 	});
 
-	test("llama.cpp discovery routes Qwen models to chat-completions with the top-level disable dialect", async () => {
-		const fetchMock: FetchImpl = async input => {
-			const url = String(input);
-			if (url === "http://127.0.0.1:8080/models") {
-				return new Response(
-					JSON.stringify({
-						data: [
-							{ id: "qwen3-8b" },
-							{ id: "ternary-bonsai-27b-q2_0" },
-							{ id: "bonsai-2-27b" },
-							{ id: "llama-3.1-8b" },
-						],
-					}),
-					{ status: 200, headers: { "Content-Type": "application/json" } },
-				);
-			}
-			if (url === "http://127.0.0.1:8080/props") {
-				return new Response(
-					JSON.stringify({
-						default_generation_settings: { n_ctx: 32768, params: { max_tokens: -1, n_predict: -1 } },
-					}),
-					{ status: 200, headers: { "Content-Type": "application/json" } },
-				);
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		await registry.refresh();
+	testImplicit(
+		"llama.cpp discovery routes Qwen models to chat-completions with the top-level disable dialect",
+		async () => {
+			const fetchMock: FetchImpl = async input => {
+				const url = String(input);
+				if (url === "http://127.0.0.1:8080/models") {
+					return new Response(
+						JSON.stringify({
+							data: [
+								{ id: "qwen3-8b" },
+								{ id: "ternary-bonsai-27b-q2_0" },
+								{ id: "bonsai-2-27b" },
+								{ id: "llama-3.1-8b" },
+							],
+						}),
+						{ status: 200, headers: { "Content-Type": "application/json" } },
+					);
+				}
+				if (url === "http://127.0.0.1:8080/props") {
+					return new Response(
+						JSON.stringify({
+							default_generation_settings: { n_ctx: 32768, params: { max_tokens: -1, n_predict: -1 } },
+						}),
+						{ status: 200, headers: { "Content-Type": "application/json" } },
+					);
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			await registry.refresh();
 
-		for (const id of ["qwen3-8b", "ternary-bonsai-27b-q2_0", "bonsai-2-27b"]) {
-			const qwen = registry.find("llama.cpp", id);
-			expect(qwen?.reasoning).toBe(true);
-			expect(qwen?.api).toBe("openai-completions");
-			expect(qwen?.baseUrl).toBe("http://127.0.0.1:8080/v1");
-			expect(qwen?.compat).toMatchObject({
-				thinkingFormat: "qwen",
-				reasoningDisableMode: "qwen-enable-thinking-false",
-				qwenPreserveThinking: true,
+			for (const id of ["qwen3-8b", "ternary-bonsai-27b-q2_0", "bonsai-2-27b"]) {
+				const qwen = registry.find("llama.cpp", id);
+				expect(qwen?.reasoning).toBe(true);
+				expect(qwen?.api).toBe("openai-completions");
+				expect(qwen?.baseUrl).toBe("http://127.0.0.1:8080/v1");
+				expect(qwen?.compat).toMatchObject({
+					thinkingFormat: "qwen",
+					reasoningDisableMode: "qwen-enable-thinking-false",
+					qwenPreserveThinking: true,
+				});
+			}
+
+			// Bonsai 2 is Qwen3.8-based: its template takes `reasoning_effort` with a
+			// wire-exact low/medium/xhigh ladder and raises on anything else.
+			const bonsai2 = registry.find("llama.cpp", "bonsai-2-27b");
+			expect(bonsai2?.thinking).toEqual({
+				mode: "effort",
+				efforts: [Effort.Low, Effort.Medium, Effort.XHigh],
+				requiresEffort: true,
 			});
-		}
+			expect(bonsai2?.compat).toMatchObject({ qwenTemplateReasoningEffort: true });
+			const bonsai1 = registry.find("llama.cpp", "ternary-bonsai-27b-q2_0");
+			expect(bonsai1?.compat).toMatchObject({ qwenTemplateReasoningEffort: false });
 
-		// Bonsai 2 is Qwen3.8-based: its template takes `reasoning_effort` with a
-		// wire-exact low/medium/xhigh ladder and raises on anything else.
-		const bonsai2 = registry.find("llama.cpp", "bonsai-2-27b");
-		expect(bonsai2?.thinking).toEqual({
-			mode: "effort",
-			efforts: [Effort.Low, Effort.Medium, Effort.XHigh],
-			requiresEffort: true,
-		});
-		expect(bonsai2?.compat).toMatchObject({ qwenTemplateReasoningEffort: true });
-		const bonsai1 = registry.find("llama.cpp", "ternary-bonsai-27b-q2_0");
-		expect(bonsai1?.compat).toMatchObject({ qwenTemplateReasoningEffort: false });
-
-		const plain = registry.find("llama.cpp", "llama-3.1-8b");
-		expect(plain?.reasoning).toBe(false);
-		expect(plain?.api).toBe("openai-responses");
-		expect(plain?.baseUrl).toBe("http://127.0.0.1:8080/v1");
-		expect(plain?.compat).not.toMatchObject({ reasoningDisableMode: "qwen-enable-thinking-false" });
-	});
+			const plain = registry.find("llama.cpp", "llama-3.1-8b");
+			expect(plain?.reasoning).toBe(false);
+			expect(plain?.api).toBe("openai-responses");
+			expect(plain?.baseUrl).toBe("http://127.0.0.1:8080/v1");
+			expect(plain?.compat).not.toMatchObject({ reasoningDisableMode: "qwen-enable-thinking-false" });
+		},
+	);
 
 	test("configured llama.cpp Qwen model keeps its /v1 runtime URL despite a native-root baseUrl override", async () => {
 		writeRawModelsJson({
@@ -1866,7 +1883,7 @@ describe("ModelRegistry runtime discovery", () => {
 		}
 	});
 
-	test("runtime metadata refresh probes native /models for a /v1-routed Qwen model", async () => {
+	testImplicit("runtime metadata refresh probes native /models for a /v1-routed Qwen model", async () => {
 		const requested: string[] = [];
 		const fetchMock: FetchImpl = async input => {
 			const url = String(input);
@@ -1956,7 +1973,7 @@ describe("ModelRegistry runtime discovery", () => {
 		// rich probe succeeds. Reject it instead of accepting an ignored setting.
 		expect(ProviderDiscoverySchema.allows({ type: "litellm", advertisedReasoning: false })).toBe(false);
 	});
-	test("llama.cpp discovery marks per-model architecture image modalities as vision-capable", async () => {
+	testImplicit("llama.cpp discovery marks per-model architecture image modalities as vision-capable", async () => {
 		const fetchMock: FetchImpl = async input => {
 			const url = String(input);
 			if (url === "http://127.0.0.1:8080/models") {
@@ -1991,38 +2008,41 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(llama?.input).toEqual(["text", "image"]);
 	});
 
-	test("llama.cpp discovery ignores positive props defaults as per-request limits, not hard caps", async () => {
-		const fetchMock: FetchImpl = async input => {
-			const url = String(input);
-			if (url === "http://127.0.0.1:8080/models") {
-				return new Response(JSON.stringify({ data: [{ id: "bounded-output" }] }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-			if (url === "http://127.0.0.1:8080/props") {
-				return new Response(
-					JSON.stringify({
-						default_generation_settings: {
-							n_ctx: 262144,
-							params: { max_tokens: 65536, n_predict: 65536 },
-						},
-					}),
-					{
+	testImplicit(
+		"llama.cpp discovery ignores positive props defaults as per-request limits, not hard caps",
+		async () => {
+			const fetchMock: FetchImpl = async input => {
+				const url = String(input);
+				if (url === "http://127.0.0.1:8080/models") {
+					return new Response(JSON.stringify({ data: [{ id: "bounded-output" }] }), {
 						status: 200,
 						headers: { "Content-Type": "application/json" },
-					},
-				);
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		await registry.refresh();
-		const llama = registry.find("llama.cpp", "bounded-output");
-		expect(llama?.contextWindow).toBe(262144);
-		expect(llama?.maxTokens).toBe(32_768);
-	});
-	test("llama.cpp discovery prefers runtime n_ctx over training context metadata", async () => {
+					});
+				}
+				if (url === "http://127.0.0.1:8080/props") {
+					return new Response(
+						JSON.stringify({
+							default_generation_settings: {
+								n_ctx: 262144,
+								params: { max_tokens: 65536, n_predict: 65536 },
+							},
+						}),
+						{
+							status: 200,
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			await registry.refresh();
+			const llama = registry.find("llama.cpp", "bounded-output");
+			expect(llama?.contextWindow).toBe(262144);
+			expect(llama?.maxTokens).toBe(32_768);
+		},
+	);
+	testImplicit("llama.cpp discovery prefers runtime n_ctx over training context metadata", async () => {
 		const fetchMock: FetchImpl = async input => {
 			const url = String(input);
 			if (url === "http://127.0.0.1:8080/models") {
@@ -2055,7 +2075,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(registry.find("llama.cpp", "unloaded")?.contextWindow).toBe(128000);
 	});
 
-	test("llama.cpp discovery falls back to n_ctx_train before the global default", async () => {
+	testImplicit("llama.cpp discovery falls back to n_ctx_train before the global default", async () => {
 		const fetchMock: FetchImpl = async input => {
 			const url = String(input);
 			if (url === "http://127.0.0.1:8080/models") {
@@ -2079,88 +2099,91 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(registry.find("llama.cpp", "ctx-train")?.contextWindow).toBe(65536);
 		expect(registry.find("llama.cpp", "unloaded")?.contextWindow).toBe(128000);
 	});
-	test("llama.cpp router discovery reads --ctx-size from each preset's status.args and status.preset", async () => {
-		// llama-server in router mode advertises each preset via /v1/models but
-		// meta.n_ctx / n_ctx_train are only populated after the child instance
-		// loads. Router-level /props returns a dummy n_ctx: 0. Without the
-		// status.args / status.preset fallbacks every preset would collapse to
-		// the 128k global default (issue #4190).
-		const fetchMock: FetchImpl = async input => {
-			const url = String(input);
-			if (url === "http://127.0.0.1:8080/models") {
-				return new Response(
-					JSON.stringify({
-						object: "list",
-						data: [
-							{
-								id: "long-preset",
-								object: "model",
-								status: {
-									value: "unloaded",
-									args: ["--model", "/models/l.gguf", "--ctx-size", "65536"],
-									preset: "[long-preset]\nmodel = /models/l.gguf\nctx-size = 65536\n\n",
+	testImplicit(
+		"llama.cpp router discovery reads --ctx-size from each preset's status.args and status.preset",
+		async () => {
+			// llama-server in router mode advertises each preset via /v1/models but
+			// meta.n_ctx / n_ctx_train are only populated after the child instance
+			// loads. Router-level /props returns a dummy n_ctx: 0. Without the
+			// status.args / status.preset fallbacks every preset would collapse to
+			// the 128k global default (issue #4190).
+			const fetchMock: FetchImpl = async input => {
+				const url = String(input);
+				if (url === "http://127.0.0.1:8080/models") {
+					return new Response(
+						JSON.stringify({
+							object: "list",
+							data: [
+								{
+									id: "long-preset",
+									object: "model",
+									status: {
+										value: "unloaded",
+										args: ["--model", "/models/l.gguf", "--ctx-size", "65536"],
+										preset: "[long-preset]\nmodel = /models/l.gguf\nctx-size = 65536\n\n",
+									},
+									source: "preset",
 								},
-								source: "preset",
-							},
-							{
-								id: "short-preset",
-								object: "model",
-								status: {
-									value: "unloaded",
-									args: ["--model", "/models/s.gguf", "-c", "8192"],
+								{
+									id: "short-preset",
+									object: "model",
+									status: {
+										value: "unloaded",
+										args: ["--model", "/models/s.gguf", "-c", "8192"],
+									},
+									source: "preset",
 								},
-								source: "preset",
-							},
-							{
-								id: "ini-only-preset",
-								object: "model",
-								status: {
-									value: "unloaded",
-									preset: "[ini-only-preset]\nmodel = /models/i.gguf\nctx-size = 32768\n\n",
+								{
+									id: "ini-only-preset",
+									object: "model",
+									status: {
+										value: "unloaded",
+										preset: "[ini-only-preset]\nmodel = /models/i.gguf\nctx-size = 32768\n\n",
+									},
+									source: "preset",
 								},
-								source: "preset",
-							},
-							{
-								id: "explicit-model-default",
-								object: "model",
-								// --ctx-size 0 means "loaded from model"; must NOT surface as 0.
-								status: {
-									value: "unloaded",
-									args: ["--model", "/models/d.gguf", "--ctx-size", "0"],
+								{
+									id: "explicit-model-default",
+									object: "model",
+									// --ctx-size 0 means "loaded from model"; must NOT surface as 0.
+									status: {
+										value: "unloaded",
+										args: ["--model", "/models/d.gguf", "--ctx-size", "0"],
+									},
+									source: "preset",
 								},
-								source: "preset",
-							},
-						],
-					}),
-					{ status: 200, headers: { "Content-Type": "application/json" } },
-				);
-			}
-			if (url === "http://127.0.0.1:8080/props") {
-				// Verbatim shape of get_router_props() — n_ctx: 0 dummy.
-				return new Response(
-					JSON.stringify({
-						role: "router",
-						max_instances: 4,
-						models_autoload: true,
-						model_alias: "llama-server",
-						model_path: "none",
-						default_generation_settings: { params: {}, n_ctx: 0 },
-					}),
-					{ status: 200, headers: { "Content-Type": "application/json" } },
-				);
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		await registry.refresh();
-		expect(registry.find("llama.cpp", "long-preset")?.contextWindow).toBe(65536);
-		expect(registry.find("llama.cpp", "short-preset")?.contextWindow).toBe(8192);
-		expect(registry.find("llama.cpp", "ini-only-preset")?.contextWindow).toBe(32768);
-		// `--ctx-size 0` falls through past the configured hint to the global default.
-		expect(registry.find("llama.cpp", "explicit-model-default")?.contextWindow).toBe(128000);
-	});
+							],
+						}),
+						{ status: 200, headers: { "Content-Type": "application/json" } },
+					);
+				}
+				if (url === "http://127.0.0.1:8080/props") {
+					// Verbatim shape of get_router_props() — n_ctx: 0 dummy.
+					return new Response(
+						JSON.stringify({
+							role: "router",
+							max_instances: 4,
+							models_autoload: true,
+							model_alias: "llama-server",
+							model_path: "none",
+							default_generation_settings: { params: {}, n_ctx: 0 },
+						}),
+						{ status: 200, headers: { "Content-Type": "application/json" } },
+					);
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			await registry.refresh();
+			expect(registry.find("llama.cpp", "long-preset")?.contextWindow).toBe(65536);
+			expect(registry.find("llama.cpp", "short-preset")?.contextWindow).toBe(8192);
+			expect(registry.find("llama.cpp", "ini-only-preset")?.contextWindow).toBe(32768);
+			// `--ctx-size 0` falls through past the configured hint to the global default.
+			expect(registry.find("llama.cpp", "explicit-model-default")?.contextWindow).toBe(128000);
+		},
+	);
 
-	test("llama.cpp router preset refresh honors --ctx-size when the child hasn't been loaded yet", async () => {
+	testImplicit("llama.cpp router preset refresh honors --ctx-size when the child hasn't been loaded yet", async () => {
 		// Reporter's workflow: `/model` picks a preset. On its very first switch
 		// the child hasn't been spawned yet (meta.n_ctx absent), but the
 		// configured window is still what the user wants surfaced.
@@ -2259,119 +2282,125 @@ describe("ModelRegistry runtime discovery", () => {
 		}
 	});
 
-	test("llama.cpp selected model refresh patches newly loaded meta n_ctx and unlimited output limit", async () => {
-		writeModelCache(
-			"llama.cpp",
-			Date.now(),
-			[
-				buildModel({
-					id: "sleeping-model",
-					name: "sleeping-model",
-					provider: "llama.cpp",
-					api: "openai-responses",
-					baseUrl: "http://127.0.0.1:8080",
-					reasoning: false,
-					input: ["text"],
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-					contextWindow: 128000,
-					maxTokens: 32768,
-				}),
-			],
-			true,
-			"",
-			cacheDbPath,
-		);
-		const fetchMock: FetchImpl = async input => {
-			const url = String(input);
-			if (url === "http://127.0.0.1:8080/models") {
-				return new Response(JSON.stringify({ data: [{ id: "sleeping-model", meta: { n_ctx: 239104 } }] }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-			if (url === "http://127.0.0.1:8080/props") {
-				return new Response(
-					JSON.stringify({
-						default_generation_settings: {
-							n_ctx: 239104,
-							params: { max_tokens: -1, n_predict: -1 },
-						},
+	testImplicit(
+		"llama.cpp selected model refresh patches newly loaded meta n_ctx and unlimited output limit",
+		async () => {
+			writeModelCache(
+				"llama.cpp",
+				Date.now(),
+				[
+					buildModel({
+						id: "sleeping-model",
+						name: "sleeping-model",
+						provider: "llama.cpp",
+						api: "openai-responses",
+						baseUrl: "http://127.0.0.1:8080",
+						reasoning: false,
+						input: ["text"],
+						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+						contextWindow: 128000,
+						maxTokens: 32768,
 					}),
-					{
+				],
+				true,
+				"",
+				cacheDbPath,
+			);
+			const fetchMock: FetchImpl = async input => {
+				const url = String(input);
+				if (url === "http://127.0.0.1:8080/models") {
+					return new Response(JSON.stringify({ data: [{ id: "sleeping-model", meta: { n_ctx: 239104 } }] }), {
 						status: 200,
 						headers: { "Content-Type": "application/json" },
-					},
-				);
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		const stale = registry.find("llama.cpp", "sleeping-model");
-		if (!stale) throw new Error("cached llama.cpp model missing");
-		expect(stale.contextWindow).toBe(128000);
-		const refreshed = await registry.refreshSelectedModelMetadata(stale);
-		expect(refreshed.contextWindow).toBe(239104);
-		expect(refreshed.maxTokens).toBe(239104);
-		expect(registry.find("llama.cpp", "sleeping-model")?.contextWindow).toBe(239104);
-	});
-
-	test("llama.cpp selected model refresh marks cached text-only models image-capable from /props vision modality", async () => {
-		writeModelCache(
-			"llama.cpp",
-			Date.now(),
-			[
-				buildModel({
-					id: "vision-model",
-					name: "vision-model",
-					provider: "llama.cpp",
-					api: "openai-responses",
-					baseUrl: "http://127.0.0.1:8080",
-					reasoning: false,
-					input: ["text"],
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-					contextWindow: 128000,
-					maxTokens: 32768,
-				}),
-			],
-			true,
-			"",
-			cacheDbPath,
-		);
-		const fetchMock: FetchImpl = async input => {
-			const url = String(input);
-			if (url === "http://127.0.0.1:8080/models") {
-				return new Response(JSON.stringify({ data: [{ id: "vision-model", meta: { n_ctx: 239104 } }] }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-			if (url === "http://127.0.0.1:8080/props") {
-				return new Response(
-					JSON.stringify({
-						default_generation_settings: {
-							n_ctx: 239104,
-							params: { max_tokens: -1, n_predict: -1 },
+					});
+				}
+				if (url === "http://127.0.0.1:8080/props") {
+					return new Response(
+						JSON.stringify({
+							default_generation_settings: {
+								n_ctx: 239104,
+								params: { max_tokens: -1, n_predict: -1 },
+							},
+						}),
+						{
+							status: 200,
+							headers: { "Content-Type": "application/json" },
 						},
-						modalities: { vision: true, audio: false, video: false },
+					);
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			const stale = registry.find("llama.cpp", "sleeping-model");
+			if (!stale) throw new Error("cached llama.cpp model missing");
+			expect(stale.contextWindow).toBe(128000);
+			const refreshed = await registry.refreshSelectedModelMetadata(stale);
+			expect(refreshed.contextWindow).toBe(239104);
+			expect(refreshed.maxTokens).toBe(239104);
+			expect(registry.find("llama.cpp", "sleeping-model")?.contextWindow).toBe(239104);
+		},
+	);
+
+	testImplicit(
+		"llama.cpp selected model refresh marks cached text-only models image-capable from /props vision modality",
+		async () => {
+			writeModelCache(
+				"llama.cpp",
+				Date.now(),
+				[
+					buildModel({
+						id: "vision-model",
+						name: "vision-model",
+						provider: "llama.cpp",
+						api: "openai-responses",
+						baseUrl: "http://127.0.0.1:8080",
+						reasoning: false,
+						input: ["text"],
+						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+						contextWindow: 128000,
+						maxTokens: 32768,
 					}),
-					{
+				],
+				true,
+				"",
+				cacheDbPath,
+			);
+			const fetchMock: FetchImpl = async input => {
+				const url = String(input);
+				if (url === "http://127.0.0.1:8080/models") {
+					return new Response(JSON.stringify({ data: [{ id: "vision-model", meta: { n_ctx: 239104 } }] }), {
 						status: 200,
 						headers: { "Content-Type": "application/json" },
-					},
-				);
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		const stale = registry.find("llama.cpp", "vision-model");
-		if (!stale) throw new Error("cached llama.cpp model missing");
-		expect(stale.input).toEqual(["text"]);
-		const refreshed = await registry.refreshSelectedModelMetadata(stale);
-		expect(refreshed.input).toEqual(["text", "image"]);
-		expect(registry.find("llama.cpp", "vision-model")?.input).toEqual(["text", "image"]);
-	});
+					});
+				}
+				if (url === "http://127.0.0.1:8080/props") {
+					return new Response(
+						JSON.stringify({
+							default_generation_settings: {
+								n_ctx: 239104,
+								params: { max_tokens: -1, n_predict: -1 },
+							},
+							modalities: { vision: true, audio: false, video: false },
+						}),
+						{
+							status: 200,
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			const stale = registry.find("llama.cpp", "vision-model");
+			if (!stale) throw new Error("cached llama.cpp model missing");
+			expect(stale.input).toEqual(["text"]);
+			const refreshed = await registry.refreshSelectedModelMetadata(stale);
+			expect(refreshed.input).toEqual(["text", "image"]);
+			expect(registry.find("llama.cpp", "vision-model")?.input).toEqual(["text", "image"]);
+		},
+	);
 
-	test("llama.cpp selected model refresh reads image capability from per-model architecture", async () => {
+	testImplicit("llama.cpp selected model refresh reads image capability from per-model architecture", async () => {
 		writeModelCache(
 			"llama.cpp",
 			Date.now(),
@@ -2435,59 +2464,62 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(registry.find("llama.cpp", "router-vision-model")?.input).toEqual(["text", "image"]);
 	});
 
-	test("llama.cpp selected model refresh leaves the cached model untouched when /models no longer lists it", async () => {
-		writeModelCache(
-			"llama.cpp",
-			Date.now(),
-			[
-				buildModel({
-					id: "swapped-out-model",
-					name: "swapped-out-model",
-					provider: "llama.cpp",
-					api: "openai-responses",
-					baseUrl: "http://127.0.0.1:8080",
-					reasoning: false,
-					input: ["text"],
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-					contextWindow: 128000,
-					maxTokens: 32768,
-				}),
-			],
-			true,
-			"",
-			cacheDbPath,
-		);
-		const fetchMock: FetchImpl = async input => {
-			const url = String(input);
-			if (url === "http://127.0.0.1:8080/models") {
-				return new Response(JSON.stringify({ data: [{ id: "another-model", meta: { n_ctx: 524288 } }] }), {
-					status: 200,
-					headers: { "Content-Type": "application/json" },
-				});
-			}
-			if (url === "http://127.0.0.1:8080/props") {
-				return new Response(
-					JSON.stringify({
-						default_generation_settings: {
-							n_ctx: 524288,
-							params: { max_tokens: -1, n_predict: -1 },
-						},
+	testImplicit(
+		"llama.cpp selected model refresh leaves the cached model untouched when /models no longer lists it",
+		async () => {
+			writeModelCache(
+				"llama.cpp",
+				Date.now(),
+				[
+					buildModel({
+						id: "swapped-out-model",
+						name: "swapped-out-model",
+						provider: "llama.cpp",
+						api: "openai-responses",
+						baseUrl: "http://127.0.0.1:8080",
+						reasoning: false,
+						input: ["text"],
+						cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+						contextWindow: 128000,
+						maxTokens: 32768,
 					}),
-					{
+				],
+				true,
+				"",
+				cacheDbPath,
+			);
+			const fetchMock: FetchImpl = async input => {
+				const url = String(input);
+				if (url === "http://127.0.0.1:8080/models") {
+					return new Response(JSON.stringify({ data: [{ id: "another-model", meta: { n_ctx: 524288 } }] }), {
 						status: 200,
 						headers: { "Content-Type": "application/json" },
-					},
-				);
-			}
-			throw new Error(`Unexpected URL: ${url}`);
-		};
-		const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
-		const stale = registry.find("llama.cpp", "swapped-out-model");
-		if (!stale) throw new Error("cached llama.cpp model missing");
-		const refreshed = await registry.refreshSelectedModelMetadata(stale);
-		expect(refreshed.contextWindow).toBe(128000);
-		expect(refreshed.maxTokens).toBe(32768);
-	});
+					});
+				}
+				if (url === "http://127.0.0.1:8080/props") {
+					return new Response(
+						JSON.stringify({
+							default_generation_settings: {
+								n_ctx: 524288,
+								params: { max_tokens: -1, n_predict: -1 },
+							},
+						}),
+						{
+							status: 200,
+							headers: { "Content-Type": "application/json" },
+						},
+					);
+				}
+				throw new Error(`Unexpected URL: ${url}`);
+			};
+			const registry = new ModelRegistry(authStorage, modelsJsonPath, { fetch: fetchMock });
+			const stale = registry.find("llama.cpp", "swapped-out-model");
+			if (!stale) throw new Error("cached llama.cpp model missing");
+			const refreshed = await registry.refreshSelectedModelMetadata(stale);
+			expect(refreshed.contextWindow).toBe(128000);
+			expect(refreshed.maxTokens).toBe(32768);
+		},
+	);
 
 	test("llama.cpp selected model refresh clamps unlimited output to overridden context", async () => {
 		writeRawModelsJson({
@@ -2631,7 +2663,7 @@ describe("ModelRegistry runtime discovery", () => {
 		expect(registryModel?.maxTokens).toBe(4096);
 	});
 
-	test("llama.cpp refresh bypasses fresh cache so server restarts update n_ctx", async () => {
+	testImplicit("llama.cpp refresh bypasses fresh cache so server restarts update n_ctx", async () => {
 		writeModelCache(
 			"llama.cpp",
 			Date.now(),

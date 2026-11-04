@@ -1,4 +1,5 @@
 {
+
   "type": "module",
   "name": "@oh-my-pi/pi-tui",
   "version": "1.3.8",
@@ -102,4 +103,5 @@
     },
     "./*.js": "./src/*.ts"
   }
+
 }

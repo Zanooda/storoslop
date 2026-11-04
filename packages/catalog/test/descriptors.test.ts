@@ -15,7 +15,7 @@ describe("catalog provider descriptors", () => {
 		expect(DEFAULT_MODEL_PER_PROVIDER.minimax).toBe("MiniMax-M3");
 		expect(DEFAULT_MODEL_PER_PROVIDER["minimax-code"]).toBe("MiniMax-M3");
 		expect(DEFAULT_MODEL_PER_PROVIDER["minimax-code-cn"]).toBe("MiniMax-M3");
-		expect(DEFAULT_MODEL_PER_PROVIDER.xiaomi).toBe("mimo-v2.5");
+		expect(DEFAULT_MODEL_PER_PROVIDER.xiaomi).toBe("mimo-v2.6-flash");
 		// Login-only tools have no default model.
 		expect(DEFAULT_MODEL_PER_PROVIDER).not.toHaveProperty("kagi");
 	});
@@ -48,8 +48,8 @@ describe("catalog provider descriptors", () => {
 	test("took-upstream yolo-auto descriptor is registered with authoritative discovery", () => {
 		const yolo = PROVIDER_DESCRIPTORS.find(descriptor => descriptor.providerId === "yolo-auto");
 		expect(yolo).toBeDefined();
-		expect(yolo?.defaultModel).toBe("qwen3.8-flash");
+		expect(yolo?.defaultModel).toBe("qwen3.8-27b");
 		expect(yolo?.dynamicModelsAuthoritative).toBe(true);
-		expect(DEFAULT_MODEL_PER_PROVIDER["yolo-auto"]).toBe("qwen3.8-flash");
+		expect(DEFAULT_MODEL_PER_PROVIDER["yolo-auto"]).toBe("qwen3.8-27b");
 	});
 });

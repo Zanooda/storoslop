@@ -1944,9 +1944,18 @@ export class ModelRegistry {
 	}
 
 	#addImplicitDiscoverableProviders(_configuredProviders: Set<string>): void {
-		// Fork: no local/discoverable providers (ollama, llama.cpp, lm-studio).
-		// storoslop is configured normally (models.yml), not discovered.
-		return;
+		// Fork: no discoverable local engines (ollama, llama.cpp, apple, lm-studio)
+		// and no discovery UI — storoslop is configured normally (models.yml), not
+		// discovered. The bundled runner providers stay keyless, though: `local` backs
+		// the tiny-title / tts / stt roles and `web` the search role, and chat
+		// selection is gated separately in getAvailable(). Without this registration
+		// those roles silently fall back to the chat model.
+		const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
+		this.#implicitLocalProviders.clear();
+		this.#implicitProviderEndpointEnv.clear();
+		for (const provider of ["local", "web"]) {
+			if (!disabledProviders.has(provider)) this.#keylessProviders.add(provider);
+		}
 	}
 
 	#loadCustomModels(): CustomModelsResult {
@@ -3417,34 +3426,38 @@ export class ModelRegistry {
 	 * the default `kind === "chat"` filter drops every search-kind row.
 	 */
 	getAvailable(kind: ModelKind | "all" = "chat"): Model<Api>[] {
+		// Fork: CHAT selection stays single-provider. Upstream's
+		// getAvailableForProviders() keeps the snapshot/cached-catalog behaviour, so
+		// the gate is applied by narrowing the provider set rather than re-implementing
+		// the enumeration here.
+		const forkChatProviders = new Set(
+			this.#knownStaticProviders().filter(provider => this.#isForkChatProvider(provider)),
+		);
+		if (kind === "chat") return this.getAvailableForProviders(forkChatProviders, "chat");
+		// Runner kinds are not part of the single-provider decision: tiny title,
+		// dictation/tts, stt, judge and search models come from bundled providers
+		// (`local`, `typesafe`, `web`, templated image routes). Restricting those too
+		// silently disables the features that need them.
+		const models = this.getAvailableForProviders(new Set(this.#knownStaticProviders()), "all");
+		const gated = models.filter(
+			model => modelKind(model) !== "chat" || forkChatProviders.has(model.provider.toLowerCase()),
+		);
+		return kind === "all" ? gated : gated.filter(model => modelKind(model) === kind);
+	}
+
+	/** Whether a provider may supply CHAT models in the fork's single-provider registry. */
+	#isForkChatProvider(provider: string): boolean {
+		const p = provider.trim().toLowerCase();
+		if (getDisabledProviderIdsFromSettings(this.#settings).has(p)) return false;
+		// The synthetic `web` provider backs the `web` role, never chat.
+		if (p === "web") return true;
 		const isProviderAvailable = this.#createProviderAvailabilityCheck();
-		const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
-		// A `models.yml`-authored provider is admitted only with usable credentials
-		// (mirrors the `storoslop` branch below): a keyless/misconfigured entry must
-		// not advertise models.
-		const userProviders = new Set(this.#customModelOverlays.map(overlay => overlay.provider));
-		// A provider known only through extension `registerProvider` (no `models.yml`
-		// entry) is a runner-kind surface: it is never admitted for `kind === "chat"`,
-		// and its chat rows are dropped from `kind === "all"` so no chat role — which
-		// reads `getAvailable("all")` via `roleCandidatePool` — can resolve to one.
-		const runtimeOnlyProviders = new Set(this.#runtimeModelOverlays.map(overlay => overlay.provider));
-		for (const provider of userProviders) runtimeOnlyProviders.delete(provider);
+		if (this.#customModelOverlays.some(overlay => overlay.provider === p)) {
+			return isProviderAvailable(p) || this.#customProviderApiKeys.has(p);
+		}
 		// `storoslop` is ready when it has a configured API key (from `storoslop
 		// setup` -> models.yml), which is not an OAuth credential.
-		const isForkProviderReady = (p: string): boolean =>
-			disabledProviders.has(p)
-				? false
-				: p === "web" ||
-					(userProviders.has(p) && (isProviderAvailable(p) || this.#customProviderApiKeys.has(p))) ||
-					(kind !== "chat" && runtimeOnlyProviders.has(p)) ||
-					(p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop")));
-		const models = this.#hasFullSnapshot
-			? this.#models.filter(model => isForkProviderReady(model.provider))
-			: this.#composeStaticModels(new Set(this.#knownStaticProviders().filter(isForkProviderReady)));
-		if (kind === "all") {
-			return models.filter(model => !(runtimeOnlyProviders.has(model.provider) && modelKind(model) === "chat"));
-		}
-		return models.filter(model => modelKind(model) === kind);
+		return p === "storoslop" && (isProviderAvailable(p) || this.#customProviderApiKeys.has("storoslop"));
 	}
 
 	/**

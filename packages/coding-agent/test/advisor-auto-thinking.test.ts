@@ -254,7 +254,10 @@ describe("advisor auto thinking level", () => {
 		{ name: "retunes during cooldown and restores fixed effort", unverified: false, revertPolicy: "cooldown-expiry" },
 		{ name: "leaves unverified thinking unset", unverified: true, revertPolicy: "never" },
 	] as const) {
-		it(`a fixed-effort advisor on an :auto fallback ${name}`, async () => {
+		// Fork: extension `registerProvider` providers are runner-kind surfaces only —
+		// the single-provider registry never surfaces their CHAT models, so an advisor
+		// role cannot resolve one. Upstream contract kept as a skip.
+		it.skip(`a fixed-effort advisor on an :auto fallback ${name}`, async () => {
 			const provider = "meta";
 			modelRegistry.registerProvider(provider, {
 				api: "openai-completions",

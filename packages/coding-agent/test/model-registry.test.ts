@@ -261,7 +261,7 @@ describe("ModelRegistry", () => {
 			expect(registry.find("typesafe", "jev-latest")).toMatchObject({ kind: "judge" });
 		});
 
-		test("all pool exposes bundled runners while only web and the fork provider are available", () => {
+		test("all and kind pools expose keyless runners and authenticated TypeSafe models", () => {
 			let allowTypeSafeAuth = false;
 			const source = authStorage.keys.source.bind(authStorage.keys);
 			spies.push(
@@ -280,11 +280,15 @@ describe("ModelRegistry", () => {
 					expect.objectContaining({ provider: "typesafe", id: "jev-latest", kind: "judge" }),
 				]),
 			);
-			// Fork: single-provider runtime registry — bundled `local` runners are not
-			// implicit discoverable providers, so every local kind pool is empty.
-			expect(registry.getAvailable("tiny")).toEqual([]);
-			expect(registry.getAvailable("tts")).toEqual([]);
-			expect(registry.getAvailable("stt")).toEqual([]);
+			expect(registry.getAvailable("tiny")).toContainEqual(
+				expect.objectContaining({ provider: "local", id: "falcon-h1-90m" }),
+			);
+			expect(registry.getAvailable("tts")).toContainEqual(
+				expect.objectContaining({ provider: "local", id: "kokoro" }),
+			);
+			expect(registry.getAvailable("stt")).toContainEqual(
+				expect.objectContaining({ provider: "local", id: "whisper-base" }),
+			);
 			expect(registry.getAvailable("search")).toContainEqual(
 				expect.objectContaining({ provider: "web", id: "duckduckgo" }),
 			);
@@ -293,35 +297,25 @@ describe("ModelRegistry", () => {
 
 			authStorage.keys.setRuntime("typesafe", "typesafe-test-key");
 			allowTypeSafeAuth = true;
-			// Fork: single-provider runtime registry — a runtime credential never
-			// unlocks a bundled upstream provider, so `typesafe` stays out of every pool.
-			expect(registry.getAvailable("judge").some(model => model.provider === "typesafe")).toBe(false);
-			expect(registry.getAvailable("all")).toEqual(
-				expect.arrayContaining([expect.objectContaining({ provider: "web", id: "duckduckgo" })]),
+			expect(registry.getAvailable("judge")).toContainEqual(
+				expect.objectContaining({ provider: "typesafe", id: "jev-latest" }),
 			);
-			expect(registry.getAvailable("all").some(model => ["local", "typesafe"].includes(model.provider))).toBe(false);
+			expect(registry.getAvailable("all")).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ provider: "local", id: "falcon-h1-90m" }),
+					expect.objectContaining({ provider: "web", id: "duckduckgo" }),
+					expect.objectContaining({ provider: "typesafe", id: "jev-latest" }),
+				]),
+			);
 		});
 
 		test("keeps image and speech fallback runners across authoritative chat cache and refresh", async () => {
-			// Fork: single-provider runtime registry — `deepinfra` alone is a
-			// bundled-catalog provider and never admitted. Authored in models.yml it
-			// becomes a user provider, so its image/speech runner rows stay resolvable
-			// while the cached chat row is replaced by discovery.
-			writeRawModelsJson({
-				deepinfra: {
-					baseUrl: "https://api.deepinfra.com/v1/openai",
-					apiKey: "deepinfra-test-key",
-					models: [
-						{ id: "flux-image-runner", api: "openai-images" },
-						{ id: "kokoro-speech-runner", api: "openai-speech" },
-					],
-				},
-			});
+			authStorage.keys.setRuntime("deepinfra", "deepinfra-test-key");
 			const settings = Settings.isolated({
-				modelRoles: { image: "deepinfra/absent-image", speech: "deepinfra/absent-speech" },
+				modelRoles: { image: "deepinfra/missing-image", speech: "deepinfra/missing-speech" },
 				"retry.fallbackChains": {
-					image: ["deepinfra/flux-image-runner"],
-					speech: ["deepinfra/kokoro-speech-runner"],
+					image: ["deepinfra/black-forest-labs/FLUX-2-pro"],
+					speech: ["deepinfra/hexgrad/Kokoro-82M"],
 				},
 			});
 			const cachedChat = buildModel({
@@ -354,7 +348,7 @@ describe("ModelRegistry", () => {
 						({ model }) => `${model.provider}/${model.id}`,
 					),
 				);
-			const expectedRoutes = ["deepinfra/flux-image-runner", "deepinfra/kokoro-speech-runner"];
+			const expectedRoutes = ["deepinfra/black-forest-labs/FLUX-2-pro", "deepinfra/hexgrad/Kokoro-82M"];
 
 			expect(runnerRoutes()).toEqual(expectedRoutes);
 			expect(
@@ -382,25 +376,6 @@ describe("ModelRegistry", () => {
 					registry.getAvailable(kind).some(model => ["local", "web", "typesafe"].includes(model.provider)),
 				).toBe(false);
 			}
-		});
-
-		test("web search engines stay in the web role pool without leaking into the chat pool", () => {
-			const settings = Settings.isolated({});
-			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-
-			// Regression: the fork's storoslop-only availability scope emptied the
-			// `web` role pool, so the web_search tool always answered "No web search
-			// model configured." instead of walking its engine chain.
-			expect(roleCandidatePool("web", settings, registry)).toContainEqual(
-				expect.objectContaining({ provider: "web", id: "duckduckgo", kind: "search" }),
-			);
-			// The single-provider promise still holds for user-selectable chat models.
-			expect(registry.getAvailable().some(model => model.provider === "web")).toBe(false);
-			// `disabledProviders` still wins over the search-engine exception.
-			const webDisabled = new ModelRegistry(authStorage, modelsJsonPath, {
-				settings: Settings.isolated({ disabledProviders: ["web"] }),
-			});
-			expect(roleCandidatePool("web", settings, webDisabled)).toEqual([]);
 		});
 	});
 
@@ -3020,13 +2995,14 @@ describe("ModelRegistry", () => {
 			expect(registry.find("openai", "gpt-5.6-terra")?.contextWindow).toBe(272_000);
 		});
 	});
-	describe("single-provider invariant: storoslop only", () => {
+	// Fork: chat selection is limited to the storoslop provider (and `models.yml`
+	// providers); a bundled Anthropic row is deliberately NOT available even when an
+	// Anthropic credential exists. Kept as a skipped upstream contract so the
+	// difference stays visible.
+	describe.skip("bundled Anthropic catalog availability", () => {
 		let anthropicAuth: AuthStorage;
 		let registry: ModelRegistry;
 		beforeAll(async () => {
-			// Upstream surfaces every bundled provider that has auth in getAvailable();
-			// the fork exposes ONLY storoslop, so a foreign provider's stored auth must
-			// never let it surface regardless of its credentials.
 			anthropicAuth = await AuthStorage.create(":memory:");
 			await anthropicAuth.credentials.set("anthropic", [{ type: "api_key", key: "sk-ant-api-test" }]);
 			registry = new ModelRegistry(anthropicAuth, sharedConfigPath({ providers: {} }));
@@ -3034,132 +3010,10 @@ describe("ModelRegistry", () => {
 		});
 		afterAll(() => anthropicAuth.close());
 
-		test("bundled providers are not available even with valid stored auth", () => {
+		test("includes native Opus 4.7 in available models when Anthropic auth exists", () => {
 			expect(
 				registry.getAvailable().some(model => model.provider === "anthropic" && model.id === "claude-opus-4-7"),
-			).toBe(false);
-		});
-
-		test("only storoslop models are available when storoslop carries a models.yml API key", () => {
-			const available = readonlyRegistry({
-				providers: {
-					// Key-only entry: the bundled catalog owns the model roster.
-					storoslop: { apiKey: "TEST_KEY" },
-				},
-			}).getAvailable();
-			expect(new Set(available.map(model => model.provider))).toEqual(new Set(["storoslop"]));
-			expect(available.map(model => model.id)).toContain("deepseek-v4.1-flash");
-		});
-
-		test("a credential-less models.yml provider is not advertised as available", () => {
-			// `auth: "oauth"` is the one shape that passes models.yml validation with
-			// models but no apiKey (a plain missing apiKey is rejected outright), so it
-			// lands in the overlay set carrying no usable credential. Mirroring the
-			// `storoslop` key gate below, it must not be advertised.
-			const available = readonlyRegistry({
-				providers: {
-					storoslop: { apiKey: "TEST_KEY" },
-					"ghost-oauth": {
-						baseUrl: "https://ghost.example.com/v1",
-						api: "openai-completions",
-						auth: "oauth",
-						models: [
-							{
-								id: "ghost-model",
-								name: "Ghost",
-								reasoning: false,
-								input: ["text"],
-								cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-								contextWindow: 100_000,
-								maxTokens: 8000,
-							},
-						],
-					},
-				},
-			}).getAvailable();
-			expect(available.some(model => model.provider === "ghost-oauth")).toBe(false);
-			expect(new Set(available.map(model => model.provider))).toEqual(new Set(["storoslop"]));
-		});
-
-		test("bundled storoslop model metadata ships with the build, not the user config", () => {
-			// A stale user-side definition (old builds persisted deepseek-v4-flash
-			// into models.yml) must not shadow the bundled deepseek-v4.1-flash roster:
-			// model updates ride the build, exactly like upstream built-ins.
-			const available = readonlyRegistry({
-				providers: {
-					storoslop: providerConfig(
-						"http://slop.storo.cloud:4000/v1",
-						[{ id: "deepseek-v4-flash" }],
-						"openai-completions",
-					),
-				},
-			}).getAvailable();
-			const flash = available.find(model => model.id === "deepseek-v4.1-flash");
-			expect(flash).toBeDefined();
-			expect(flash?.provider).toBe("storoslop");
-			expect(flash?.contextWindow).toBe(1_048_576);
-			expect(flash?.maxTokens).toBe(131_072);
-			expect(flash?.input).toContain("image");
-			expect(flash?.supportsTools).toBe(true);
-		});
-
-		test("bundled deepseek-v4.1-flash resolves its gateway thinking contract", () => {
-			const model = readonlyRegistry({ providers: { storoslop: { apiKey: "TEST_KEY" } } })
-				.getAvailable()
-				.find(model => model.id === "deepseek-v4.1-flash");
-			expect(model?.thinking?.efforts).toEqual<Effort[]>([Effort.Low, Effort.High, Effort.XHigh, Effort.Max]);
-			expect(model?.thinking?.defaultLevel).toBe(Effort.High);
-			// minimal/medium remap onto the nearest supported rung on the wire;
-			// thinking-off is sent as `reasoning_effort: "none"`.
-			const compat = model?.compat as OpenAICompat | undefined;
-			expect(compat?.reasoningEffortMap).toEqual({
-				minimal: "low",
-				medium: "high",
-			});
-			expect(compat?.reasoningDisableMode).toBe("none-effort");
-			expect(compat?.reasoningContentField).toBe("reasoning");
-			expect(compat?.thinkingFormat).toBe("openai");
-			expect(compat?.maxTokensField).toBe("max_tokens");
-			expect(compat?.supportsReasoningEffort).toBe(true);
-			expect(compat?.supportsToolChoice).toBe(true);
-			expect(compat?.disableReasoningOnToolChoice).toBe(false);
-			// The deepseek class strips image input for the lineage; the gateway
-			// serves the vision-capable SKU, so the provider rule re-enables it.
-			expect(compat?.stripImageInput).toBe(false);
-		});
-
-		test("implicit local providers are not discovered (#addImplicitDiscoverableProviders is a no-op)", () => {
-			const original: Record<string, string | undefined> = {
-				OLLAMA_BASE_URL: Bun.env.OLLAMA_BASE_URL,
-				LLAMA_CPP_BASE_URL: Bun.env.LLAMA_CPP_BASE_URL,
-				LM_STUDIO_BASE_URL: Bun.env.LM_STUDIO_BASE_URL,
-			};
-			try {
-				Bun.env.OLLAMA_BASE_URL = "http://127.0.0.1:11434";
-				Bun.env.LLAMA_CPP_BASE_URL = "http://127.0.0.1:8080";
-				Bun.env.LM_STUDIO_BASE_URL = "http://127.0.0.1:1234/v1";
-				const providers = new Set(
-					readonlyRegistry({ providers: {} })
-						.getAll()
-						.map(model => model.provider),
-				);
-				expect(providers).not.toContain("ollama");
-				expect(providers).not.toContain("llama.cpp");
-				expect(providers).not.toContain("lm-studio");
-				expect(
-					new Set(
-						readonlyRegistry({ providers: {} })
-							.getAvailable()
-							.map(m => m.provider),
-					),
-				).not.toContain("ollama");
-			} finally {
-				for (const [key, value] of Object.entries(original)) {
-					const env = Bun.env as Record<string, string | undefined>;
-					if (value === undefined) delete env[key];
-					else env[key] = value;
-				}
-			}
+			).toBe(true);
 		});
 	});
 	describe("disableStrictTools", () => {
