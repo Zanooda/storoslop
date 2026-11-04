@@ -56,6 +56,7 @@ export async function saveStoroslopProvider(apiKey: string, agentDir: string = g
 export const storoslopSetupScene: SetupScene = {
 	id: "storoslop",
 	title: "Set up storoslop",
+	step: "Sign in",
 	minVersion: 1,
 	mount: host => new StoroslopSceneController(host),
 };

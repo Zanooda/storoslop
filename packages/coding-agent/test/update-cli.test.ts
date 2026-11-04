@@ -38,6 +38,7 @@ import {
 	sweepStaleUpdateArtifacts,
 	updateViaBinaryAt,
 	updateViaShimTakeover,
+	verifyInstalledVersion,
 } from "@oh-my-pi/pi-coding-agent/cli/update-cli";
 import Update from "@oh-my-pi/pi-coding-agent/commands/update";
 import { $which, removeWithRetries } from "@oh-my-pi/pi-utils";

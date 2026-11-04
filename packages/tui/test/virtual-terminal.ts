@@ -469,11 +469,11 @@ export class VirtualTerminal implements Terminal {
 
 	/** Columns in a viewport row whose cells are drawn in reverse video, such as link hint tags. */
 	getViewportRowReverseColumns(row: number): number[] {
-		const words = this.#presentedRowCells(row);
-		if (!words) return [];
+		const cells = this.#presentedRowCells(row);
+		if (!cells) return [];
 		const columns: number[] = [];
-		for (let col = 0; col * CELL_U32 < words.length; col++) {
-			if ((words[col * CELL_U32 + CELL_FLAGS] ?? 0) & CellFlags.REVERSE) columns.push(col);
+		for (let col = 0; col < cells.length; col++) {
+			if ((cells[col]?.flags ?? 0) & CellFlags.INVERSE) columns.push(col);
 		}
 		return columns;
 	}
