@@ -1,3 +1,8 @@
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
 import { Agent, type AgentMessage, type CompactionSummaryMessage } from "@oh-my-pi/pi-agent-core";
 import * as compactionModule from "@oh-my-pi/pi-agent-core/compaction";
@@ -8,7 +13,7 @@ import { convertAnthropicMessages } from "@oh-my-pi/pi-ai/providers/anthropic";
 import { createMockModel, type MockModel, registerMockApi } from "@oh-my-pi/pi-ai/providers/mock";
 import { buildParams } from "@oh-my-pi/pi-ai/providers/openai-responses";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { estimateToolSchemaTokens } from "@oh-my-pi/pi-tui/status-line/context-usage";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
@@ -23,6 +28,9 @@ import {
 	cfgCompactionKeepRecentTokens,
 	cfgCompactionThresholdTokens,
 } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+
+beforeAll(allowUnrestrictedChatProvidersForTest);
+afterAll(resetChatProviderRestrictionForTest);
 
 const CONTEXT_WINDOW = 372_000;
 const CACHE_READ_TOKENS = 371_200;

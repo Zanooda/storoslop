@@ -8,7 +8,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import { type } from "@oh-my-pi/omptype";
 import { Agent, type AgentTool } from "@oh-my-pi/pi-agent-core";
 import { createMockModel, type MockResponse } from "@oh-my-pi/pi-ai/providers/mock";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
@@ -23,6 +27,8 @@ const ADVISE_CALL = {
 } as const;
 
 describe("advisor advise-only turn terminates the review", () => {
+	beforeAll(allowUnrestrictedChatProvidersForTest);
+	afterAll(resetChatProviderRestrictionForTest);
 	let tempDir: TempDir;
 	let authStorage: AuthStorage;
 	let session: AgentSession | undefined;

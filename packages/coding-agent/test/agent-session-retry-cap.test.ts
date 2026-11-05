@@ -23,7 +23,11 @@ import { SqliteAuthCredentialStore } from "@oh-my-pi/pi-coding-agent/session/aut
 import { opencodeGoUsageProvider } from "@oh-my-pi/pi-ai/usage/opencode-go";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import type { Model } from "@oh-my-pi/pi-catalog/types";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { ExtensionRunner } from "@oh-my-pi/pi-coding-agent/extensibility/extensions";
 import { AgentSession, type AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-session";
@@ -76,6 +80,8 @@ function resolveInitialApiKey(apiKey: ApiKey | undefined): string {
  * (see GitHub issue #607).
  */
 describe("AgentSession retry delay cap", () => {
+	beforeAll(allowUnrestrictedChatProvidersForTest);
+	afterAll(resetChatProviderRestrictionForTest);
 	let tempDir: TempDir;
 	let authStorage: AuthStorage;
 	let modelRegistry: ModelRegistry;

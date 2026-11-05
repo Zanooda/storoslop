@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi, afterAll, beforeAll } from "bun:test";
 import * as path from "node:path";
 import { Agent, type AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { USELESS_NOTICE } from "@oh-my-pi/pi-agent-core/compaction/pruning";
@@ -6,7 +6,11 @@ import type { Context } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { AdvisorOutputQuarantinedError, AdvisorRuntime } from "@oh-my-pi/pi-coding-agent/advisor/runtime";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
@@ -25,6 +29,8 @@ import { logger, TempDir } from "@oh-my-pi/pi-utils";
  * same message content as the live agent state.
  */
 describe("AgentSession per-turn prune persistence", () => {
+	beforeAll(allowUnrestrictedChatProvidersForTest);
+	afterAll(resetChatProviderRestrictionForTest);
 	let tempDir: TempDir;
 	let session: AgentSession;
 	let sessionManager: SessionManager;

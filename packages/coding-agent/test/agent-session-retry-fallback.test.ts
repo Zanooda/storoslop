@@ -25,7 +25,11 @@ import { writeModelCache } from "@oh-my-pi/pi-catalog/model-cache";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { resolveModelCacheProviderId } from "@oh-my-pi/pi-catalog/provider-models";
 import type { ModelSpec } from "@oh-my-pi/pi-catalog/types";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { parseModelString } from "@oh-my-pi/pi-tui/overlays/model-selector";
 import { parseModelPattern } from "@oh-my-pi/pi-coding-agent/config/model-resolver";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -289,6 +293,8 @@ function transportErrorAfterToolCallStream(
 }
 
 describe("AgentSession retry fallback", () => {
+	beforeAll(allowUnrestrictedChatProvidersForTest);
+	afterAll(resetChatProviderRestrictionForTest);
 	let tempDir: TempDir;
 	let authStorage: AuthStorage;
 	let sharedRegistry: ModelRegistry;

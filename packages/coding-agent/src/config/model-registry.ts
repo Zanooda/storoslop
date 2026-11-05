@@ -296,6 +296,27 @@ export type ResolvedRequestAuth =
 /**
  * Model registry - loads and manages models, resolves API keys via AuthStorage.
  */
+/**
+ * Test seam for suites whose SUBJECT is provider-agnostic (advisor routing, retry
+ * fallback, compaction) but whose fixtures pin roles to bundled chat models.
+ *
+ * The fork's single-provider rule restricts *selection*, not those code paths, so
+ * such a suite may opt into upstream availability for its own file. Opt-in only:
+ * the policy itself is covered by `model-registry.test.ts`, which never calls this,
+ * and every opted-in file must reset it in `afterAll`.
+ */
+let unrestrictedChatProvidersForTest = false;
+
+/** Opt this test file into upstream chat-provider availability. */
+export function allowUnrestrictedChatProvidersForTest(): void {
+	unrestrictedChatProvidersForTest = true;
+}
+
+/** Restore the fork policy (call from `afterAll`). */
+export function resetChatProviderRestrictionForTest(): void {
+	unrestrictedChatProvidersForTest = false;
+}
+
 export class ModelRegistry {
 	#models: Model<Api>[] = [];
 	#unprojectedModels: Model<Api>[] = [];
@@ -3449,6 +3470,11 @@ export class ModelRegistry {
 	#isForkChatProvider(provider: string): boolean {
 		const p = provider.trim().toLowerCase();
 		if (getDisabledProviderIdsFromSettings(this.#settings).has(p)) return false;
+		// Test seam: suites about provider-agnostic behaviour may opt into upstream
+		// availability (see allowUnrestrictedChatProvidersForTest).
+		if (unrestrictedChatProvidersForTest) {
+			return p === "web" || this.#createProviderAvailabilityCheck()(p) || this.#customProviderApiKeys.has(p);
+		}
 		// The synthetic `web` provider backs the `web` role, never chat.
 		if (p === "web") return true;
 		const isProviderAvailable = this.#createProviderAvailabilityCheck();

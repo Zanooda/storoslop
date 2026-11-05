@@ -1,10 +1,14 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it, vi, afterAll } from "bun:test";
 import * as path from "node:path";
 import { Agent, ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import { Effort, type Model } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
@@ -27,6 +31,8 @@ const FALLBACK_ADVISOR_MODEL = "slop-v3-flash";
 // session. It now tracks the effort the primary turn is running at, whether the
 // primary is on `auto` or pinned.
 describe("advisor auto thinking level", () => {
+	beforeAll(allowUnrestrictedChatProvidersForTest);
+	afterAll(resetChatProviderRestrictionForTest);
 	let authStorage: AuthStorage;
 	let modelRegistry: ModelRegistry;
 	let model: Model;
@@ -257,7 +263,7 @@ describe("advisor auto thinking level", () => {
 		// Fork: extension `registerProvider` providers are runner-kind surfaces only —
 		// the single-provider registry never surfaces their CHAT models, so an advisor
 		// role cannot resolve one. Upstream contract kept as a skip.
-		it.skip(`a fixed-effort advisor on an :auto fallback ${name}`, async () => {
+		it(`a fixed-effort advisor on an :auto fallback ${name}`, async () => {
 			const provider = "meta";
 			modelRegistry.registerProvider(provider, {
 				api: "openai-completions",

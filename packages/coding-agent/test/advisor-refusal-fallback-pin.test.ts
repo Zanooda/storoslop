@@ -3,7 +3,11 @@ import { Agent } from "@oh-my-pi/pi-agent-core";
 import type { Model } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { ExtensionRuntime, loadExtensionFromFactory } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/loader";
 import { ExtensionRunner } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/runner";
@@ -18,7 +22,13 @@ import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
 // The advisor must stay on its fallback instead of returning to the refusing
 // model after every cooldown, and may retry it once a compaction has replaced
 // the history that triggered the refusal.
+// Fork: chat models are limited to the storoslop provider (and models.yml
+// providers). These cases pin the advisor role to BUNDLED anthropic/google/openai
+// chat models, which the single-provider registry never surfaces. Kept as a
+// skipped upstream contract.
 describe("advisor classifier-refusal fallback", () => {
+	beforeAll(allowUnrestrictedChatProvidersForTest);
+	afterAll(resetChatProviderRestrictionForTest);
 	const PAST_COOLDOWN_MS = 10 * 60_000;
 	let tempDir: TempDir;
 	let authStorage: AuthStorage;

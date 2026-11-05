@@ -22,7 +22,11 @@ import {
 } from "@oh-my-pi/pi-agent-core";
 import { createMockModel, type MockModel, type MockResponse } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	ModelRegistry,
+	allowUnrestrictedChatProvidersForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import type { CustomTool } from "@oh-my-pi/pi-coding-agent/extensibility/custom-tools/types";
 import { resolveLocalUrlToPath } from "@oh-my-pi/pi-coding-agent/internal-urls";
@@ -101,6 +105,8 @@ interface PlanHarness {
 }
 
 describe("AgentSession plan-mode convergence", () => {
+	beforeAll(allowUnrestrictedChatProvidersForTest);
+	afterAll(resetChatProviderRestrictionForTest);
 	let tempDir: TempDir;
 	let session: AgentSession | undefined;
 	let authDir: TempDir;
@@ -241,7 +247,7 @@ describe("AgentSession plan-mode convergence", () => {
 
 	// Fork: the advisor role cannot resolve an extension-registered chat model (see
 	// advisor-auto-thinking.test.ts), so this case is skipped rather than deleted.
-	it.skip("T1: an advisor concern does not wake the primary in plan mode", async () => {
+	it("T1: an advisor concern does not wake the primary in plan mode", async () => {
 		const harness = await createPlanSession([], {
 			advisorResponses: [
 				{
