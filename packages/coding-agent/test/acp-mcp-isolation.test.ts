@@ -112,7 +112,7 @@ describe.skip("createAcpSessionFactory MCP isolation (issue #1234)", () => {
 			const firedPath = tempDir.join("trusted-event-fired");
 			const ambientFiredPath = tempDir.join("ambient-extension-loaded");
 			await Bun.write(
-				tempDir.join(".omp/extensions/ambient.ts"),
+				tempDir.join(".storoslop/extensions/ambient.ts"),
 				`import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(ambientFiredPath)}, "loaded"); export default function () {}`,
 			);
 			await Bun.write(

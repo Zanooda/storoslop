@@ -538,7 +538,7 @@ describe("listClaudePluginRoots", () => {
 		const marketRoot = path.join(tempDir, ".claude", "plugins", "cache", "test-market");
 		const pluginARoot = path.join(marketRoot, "plugin-a", "1.0.0");
 		const pluginBRoot = path.join(marketRoot, "plugin-b", "1.0.0");
-		const ompRegistryPath = path.join(tempDir, ".omp", "plugins", "installed_plugins.json");
+		const ompRegistryPath = path.join(tempDir, ".storoslop", "plugins", "installed_plugins.json");
 
 		await Promise.all([
 			fs.mkdir(path.join(pluginARoot, "skills", "shared-skill"), { recursive: true }),

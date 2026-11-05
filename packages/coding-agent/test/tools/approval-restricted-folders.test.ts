@@ -150,8 +150,10 @@ describe("restricted folder resolution", () => {
 		const home = path.join(os.homedir(), ".omp-restricted-probe", "file.txt");
 		const probe: AgentTool = { ...read, approvalCacheTargets: () => [approvalTargetKey(cwd, home)!] };
 		expect(
-			resolveApproval(probe, {}, "yolo", {}, undefined, { restrictedFolders: ["~/.omp-restricted-probe"], cwd })
-				.policy,
+			resolveApproval(probe, {}, "yolo", {}, undefined, {
+				restrictedFolders: ["~/.storoslop-restricted-probe"],
+				cwd,
+			}).policy,
 		).toBe("prompt");
 
 		if (process.platform === "win32") {

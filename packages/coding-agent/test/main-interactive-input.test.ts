@@ -79,8 +79,8 @@ describe("system prompt template CLI resolution", () => {
 	it("discovers SYSTEM_TEMPLATE.md and preserves the raw template", async () => {
 		const projectDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-system-template-"));
 		cleanupDirs.push(projectDir);
-		await fs.mkdir(path.join(projectDir, ".omp"), { recursive: true });
-		await fs.writeFile(path.join(projectDir, ".omp", "SYSTEM_TEMPLATE.md"), "Hello {{model}}");
+		await fs.mkdir(path.join(projectDir, ".storoslop"), { recursive: true });
+		await fs.writeFile(path.join(projectDir, ".storoslop", "SYSTEM_TEMPLATE.md"), "Hello {{model}}");
 
 		const options = await buildPromptOptions(projectDir, []);
 
@@ -91,8 +91,8 @@ describe("system prompt template CLI resolution", () => {
 	it("lets an explicit literal prompt suppress discovered templates", async () => {
 		const projectDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-system-prompt-"));
 		cleanupDirs.push(projectDir);
-		await fs.mkdir(path.join(projectDir, ".omp"), { recursive: true });
-		await fs.writeFile(path.join(projectDir, ".omp", "SYSTEM_TEMPLATE.md"), "discovered");
+		await fs.mkdir(path.join(projectDir, ".storoslop"), { recursive: true });
+		await fs.writeFile(path.join(projectDir, ".storoslop", "SYSTEM_TEMPLATE.md"), "discovered");
 
 		const options = await buildPromptOptions(projectDir, ["--system-prompt", "inline literal"]);
 

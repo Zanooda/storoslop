@@ -21,7 +21,7 @@ function restoreEnv(name: string, value: string | undefined): void {
 
 // Points the report dir at `root`. XDG_STATE_HOME is only honored on Linux/macOS;
 // elsewhere the config root follows the home dir, so redirect that instead —
-// otherwise the bundle lands in the user's real ~/.omp/reports. A test process's
+// otherwise the bundle lands in the user's real ~/.storoslop/reports. A test process's
 // logs dir lives under the temp dir, so point that at `root` too.
 async function isolateLogsRoot(root: string): Promise<void> {
 	if (process.platform === "linux" || process.platform === "darwin") {

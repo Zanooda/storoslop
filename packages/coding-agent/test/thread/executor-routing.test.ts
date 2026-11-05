@@ -231,7 +231,7 @@ beforeEach(async () => {
 	savedEnv = Object.fromEntries(ENV_KEYS.map(key => [key, process.env[key]]));
 	root = await fs.mkdtemp(path.join(os.tmpdir(), "omp-executor-routing-"));
 	const home = path.join(root, "home");
-	const agentDir = path.join(home, ".omp", "agent");
+	const agentDir = path.join(home, ".storoslop", "agent");
 	cwd = path.join(root, "work");
 	await fs.mkdir(agentDir, { recursive: true });
 	await fs.mkdir(cwd, { recursive: true });

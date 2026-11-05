@@ -23,7 +23,7 @@ interface Observation {
 async function runScenario(scenario: Scenario): Promise<Observation> {
 	using temp = TempDir.createSync("@omp-auto-resume-model-");
 	const home = temp.join("home");
-	const agentDir = path.join(home, ".omp", "agent");
+	const agentDir = path.join(home, ".storoslop", "agent");
 	const sourceDir = path.resolve(import.meta.dir, "../src");
 	const extension = temp.join("provider.ts");
 	await Bun.write(
@@ -232,7 +232,7 @@ describe("implicit auto-resume model restoration", () => {
 		async () => {
 			using temp = TempDir.createSync("@omp-auto-resume-warning-");
 			const home = temp.join("home");
-			const agentDir = path.join(home, ".omp", "agent");
+			const agentDir = path.join(home, ".storoslop", "agent");
 			const sourceDir = path.resolve(import.meta.dir, "../src");
 			const env = {
 				PATH: process.env.PATH,

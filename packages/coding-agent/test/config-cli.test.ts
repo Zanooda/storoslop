@@ -311,7 +311,7 @@ describe("config list --scope", () => {
 				"",
 			].join("\n"),
 		);
-		await Bun.write(path.join(projectDir.path(), ".omp", "config.yml"), "defaultThinkingLevel: high\n");
+		await Bun.write(path.join(projectDir.path(), ".storoslop", "config.yml"), "defaultThinkingLevel: high\n");
 
 		const layer = await listLayer("global");
 
@@ -333,7 +333,7 @@ describe("config list --scope", () => {
 		if (!testAgentDir || !projectDir) throw new Error("Test directories were not initialized");
 		await Bun.write(path.join(testAgentDir.path(), "config.yml"), "compaction:\n  enabled: false\n");
 		await Bun.write(
-			path.join(projectDir.path(), ".omp", "config.yml"),
+			path.join(projectDir.path(), ".storoslop", "config.yml"),
 			"defaultThinkingLevel: high\nenabledModels: [openai/gpt-5]\n",
 		);
 

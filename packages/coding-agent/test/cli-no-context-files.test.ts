@@ -41,14 +41,14 @@ describe("--no-context-files", () => {
 		tempDir = await TempDir.create("@cli-no-context-files-");
 		// User-level discovery reads the process-global agent dir and home: point both at the
 		// fixture so neither run picks up the developer's own config.
-		setAgentDir(tempDir.join("home/.omp/agent"));
+		setAgentDir(tempDir.join("home/.storoslop/agent"));
 		homedirSpy = spyOn(os, "homedir").mockReturnValue(tempDir.join("home"));
 		await Promise.all([
 			Bun.write(tempDir.join("project/AGENTS.md"), `${PRIMARY_MARKER}\n`),
 			Bun.write(tempDir.join(`project/${NESTED_DIR}/AGENTS.md`), "nested\n"),
 			Bun.write(tempDir.join("extra/AGENTS.md"), `${EXTRA_ROOT_MARKER}\n@imported.md\n`),
 			Bun.write(tempDir.join("extra/imported.md"), `${IMPORTED_MARKER}\n`),
-			Bun.write(tempDir.join("home/.omp/agent/AGENTS.md"), `${USER_AGENTS_MARKER}\n`),
+			Bun.write(tempDir.join("home/.storoslop/agent/AGENTS.md"), `${USER_AGENTS_MARKER}\n`),
 			Bun.write(tempDir.join("extra-claude/CLAUDE.md"), `${EXTRA_CLAUDE_MARKER}\n`),
 		]);
 		authStorage = await AuthStorage.create(tempDir.join("auth.db"));

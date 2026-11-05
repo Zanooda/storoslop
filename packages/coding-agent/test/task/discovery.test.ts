@@ -64,7 +64,7 @@ function agentMd(name: string, model: string): string {
 }
 
 // Register an omp-installed marketplace plugin via the OMP plugin registry
-// (`~/.omp/plugins/installed_plugins.json`), the path listClaudePluginRoots
+// (`~/.storoslop/plugins/installed_plugins.json`), the path listClaudePluginRoots
 // reads as origin "omp" — distinct from the node_modules path above. `manifest`
 // controls the declared plugin dialect: `.omp-plugin/plugin.json` (OMP-native),
 // `.claude-plugin/plugin.json` (Claude Code), `both` (OMP wins by precedence),
@@ -101,7 +101,7 @@ async function writeOmpMarketplacePlugin(
 		);
 	}
 
-	const registryDir = path.join(home, ".omp", "plugins");
+	const registryDir = path.join(home, ".storoslop", "plugins");
 	await fs.mkdir(registryDir, { recursive: true });
 	await fs.writeFile(
 		path.join(registryDir, "installed_plugins.json"),
