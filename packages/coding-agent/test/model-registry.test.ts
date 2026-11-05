@@ -17,7 +17,11 @@ import { calculateUsageCost, getBundledModels } from "@oh-my-pi/pi-catalog/model
 import { modelKind } from "@oh-my-pi/pi-catalog/types";
 import { finalizeCustomModel } from "@oh-my-pi/pi-coding-agent/config/custom-models";
 import { applyModelPatch, mergeDiscoveredModel } from "@oh-my-pi/pi-coding-agent/config/model-patch";
-import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
+import {
+	enforceChatProviderRestrictionForTest,
+	ModelRegistry,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resolveRoleChain } from "@oh-my-pi/pi-coding-agent/config/model-resolver";
 import { roleCandidatePool } from "@oh-my-pi/pi-coding-agent/config/model-roles";
 import { resetSettingsForTest, Settings, settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -25,6 +29,9 @@ import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { removeSyncWithRetries, Snowflake } from "@oh-my-pi/pi-utils";
 
 import { cfgCompactionModelThresholds, cfgExtendedContext } from "@oh-my-pi/pi-coding-agent/session/context-settings";
+
+beforeAll(enforceChatProviderRestrictionForTest);
+afterAll(resetChatProviderRestrictionForTest);
 
 describe("ModelRegistry", () => {
 	let tempDir: string;

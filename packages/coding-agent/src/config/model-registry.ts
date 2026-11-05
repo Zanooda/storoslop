@@ -297,24 +297,35 @@ export type ResolvedRequestAuth =
  * Model registry - loads and manages models, resolves API keys via AuthStorage.
  */
 /**
- * Test seam for suites whose SUBJECT is provider-agnostic (advisor routing, retry
- * fallback, compaction) but whose fixtures pin roles to bundled chat models.
+ * Chat-provider policy override, for tests only.
  *
- * The fork's single-provider rule restricts *selection*, not those code paths, so
- * such a suite may opt into upstream availability for its own file. Opt-in only:
- * the policy itself is covered by `model-registry.test.ts`, which never calls this,
- * and every opted-in file must reset it in `afterAll`.
+ * The fork's single-provider rule is a PRODUCT policy: production must always be
+ * restricted. Suites inherited from upstream pin roles to bundled chat models
+ * (anthropic/google/openai) while testing provider-agnostic behaviour (advisor
+ * routing, retry fallback, compaction), so the test preload starts permissive via
+ * `PI_TEST_UNRESTRICTED_CHAT=1` and the policy's own tests force the restriction
+ * with {@link enforceChatProviderRestrictionForTest}.
  */
-let unrestrictedChatProvidersForTest = false;
+let chatProviderPolicyOverride: boolean | undefined;
 
-/** Opt this test file into upstream chat-provider availability. */
-export function allowUnrestrictedChatProvidersForTest(): void {
-	unrestrictedChatProvidersForTest = true;
+/** True when the fork's single-provider chat rule applies. */
+function chatProviderPolicyIsRestricted(): boolean {
+	return chatProviderPolicyOverride ?? Bun.env.PI_TEST_UNRESTRICTED_CHAT !== "1";
 }
 
-/** Restore the fork policy (call from `afterAll`). */
+/** Force the fork policy for a policy-focused test file. */
+export function enforceChatProviderRestrictionForTest(): void {
+	chatProviderPolicyOverride = true;
+}
+
+/** Opt a provider-agnostic suite into upstream chat-provider availability. */
+export function allowUnrestrictedChatProvidersForTest(): void {
+	chatProviderPolicyOverride = false;
+}
+
+/** Restore the process default (the preload's permissive test setting, or the product rule). */
 export function resetChatProviderRestrictionForTest(): void {
-	unrestrictedChatProvidersForTest = false;
+	chatProviderPolicyOverride = undefined;
 }
 
 export class ModelRegistry {
@@ -3470,9 +3481,8 @@ export class ModelRegistry {
 	#isForkChatProvider(provider: string): boolean {
 		const p = provider.trim().toLowerCase();
 		if (getDisabledProviderIdsFromSettings(this.#settings).has(p)) return false;
-		// Test seam: suites about provider-agnostic behaviour may opt into upstream
-		// availability (see allowUnrestrictedChatProvidersForTest).
-		if (unrestrictedChatProvidersForTest) {
+		// Tests exercise upstream behaviour unless a policy test forced the restriction.
+		if (!chatProviderPolicyIsRestricted()) {
 			return p === "web" || this.#createProviderAvailabilityCheck()(p) || this.#customProviderApiKeys.has(p);
 		}
 		// The synthetic `web` provider backs the `web` role, never chat.

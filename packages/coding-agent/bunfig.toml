@@ -1,0 +1,4 @@
+[test]
+# Fork test preload (see test/preload.ts): the single-provider chat rule is a
+# product policy, so the test process starts permissive and policy tests force it.
+preload = ["./test/preload.ts"]
