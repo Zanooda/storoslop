@@ -37,7 +37,9 @@ describe("env-redirected implicit provider discovery warning", () => {
 		fs.rmSync(tempDir, { recursive: true, force: true });
 	});
 
-	test("surfaces the failure in session.configWarnings after background discovery", async () => {
+	// Fork: implicit local-engine discovery is disabled by the single-provider
+	// registry, so this upstream case cannot run (skipped, not deleted).
+	test.skip("surfaces the failure in session.configWarnings after background discovery", async () => {
 		Bun.env.OLLAMA_BASE_URL = "http://ollama.typo:11434";
 		authStorage = await AuthStorage.create(path.join(tempDir, "auth.db"));
 		authStorage.keys.setRuntime("openai", "test-openai-key");

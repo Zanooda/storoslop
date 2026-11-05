@@ -697,7 +697,11 @@ describe("createAgentSession deferred model pattern resolution", () => {
 		}
 	});
 
-	test("advances past a disabled first selector to an enabled discovery-backed model", async () => {
+	// Fork: implicit local-engine discovery (ollama, llama.cpp, lm-studio, apple)
+	// is disabled by the single-provider runtime registry, so this upstream case
+	// cannot run. Skipped, not deleted, to keep the contract visible.
+
+	test.skip("advances past a disabled first selector to an enabled discovery-backed model", async () => {
 		// A disabled provider's model already sits in the static catalog, so
 		// resolveCliModel resolves the first selector against the full registry. If
 		// that match short-circuited the deferred discovery refresh, the enabled
@@ -1616,7 +1620,11 @@ describe("createAgentSession deferred model pattern resolution", () => {
 		},
 	);
 
-	test("refreshes cached llama.cpp vision metadata for the startup default model", async () => {
+	// Fork: implicit local-engine discovery (ollama, llama.cpp, lm-studio, apple)
+	// is disabled by the single-provider runtime registry, so this upstream case
+	// cannot run. Skipped, not deleted, to keep the contract visible.
+
+	test.skip("refreshes cached llama.cpp vision metadata for the startup default model", async () => {
 		const authStorage = createInMemoryAuthStorage();
 		authStoragesToClose.push(authStorage);
 		const modelsPath = path.join(tempDir, "llama-vision-models.yml");

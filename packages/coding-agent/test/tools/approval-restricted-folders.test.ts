@@ -147,7 +147,7 @@ describe("restricted folder resolution", () => {
 
 	it("names a folder through ~, a symlink, or (on Windows) different case", () => {
 		const read = pathTool("read", "read", cwd);
-		const home = path.join(os.homedir(), ".omp-restricted-probe", "file.txt");
+		const home = path.join(os.homedir(), ".storoslop-restricted-probe", "file.txt");
 		const probe: AgentTool = { ...read, approvalCacheTargets: () => [approvalTargetKey(cwd, home)!] };
 		expect(
 			resolveApproval(probe, {}, "yolo", {}, undefined, {

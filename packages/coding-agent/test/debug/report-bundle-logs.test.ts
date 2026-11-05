@@ -113,7 +113,7 @@ describe("report bundle logs", () => {
 		const archive = new Bun.Archive(await Bun.file(result.path).bytes());
 		const logsText = (await (await archive.files()).get("logs.txt")?.text()) ?? "";
 		await fs.rm(result.path, { force: true });
-		expect(logsText).toContain(`omp.${localDay(new Date())}.${process.pid}.log`);
+		expect(logsText).toContain(`storoslop.${localDay(new Date())}.${process.pid}.log`);
 		expect(logsText).toContain(marker);
 	});
 
@@ -149,7 +149,7 @@ describe("report bundle logs", () => {
 			...Array.from({ length: 1500 }, (_, i) => record(`filler ${i}`)),
 			record("main late", "main-session"),
 		];
-		await Bun.write(path.join(logsDir, `omp.${localDay(new Date())}.4242.log`), `${lines.join("\n")}\n`);
+		await Bun.write(path.join(logsDir, `storoslop.${localDay(new Date())}.4242.log`), `${lines.join("\n")}\n`);
 
 		const result = await createReportBundle({ sessionFile });
 
@@ -174,7 +174,7 @@ describe("report bundle logs", () => {
 		await Bun.write(sessionFile, '{"type":"session","version":3,"id":"main-session","cwd":"/"}\n');
 		const big = JSON.stringify({ level: "warn", message: "big", pad: "x".repeat(3 * 1024 * 1024) });
 		const last = JSON.stringify({ level: "warn", message: "last", sessionId: "main-session" });
-		await Bun.write(path.join(logsDir, `omp.${localDay(new Date())}.4242.log`), `${big}\n${last}\n`);
+		await Bun.write(path.join(logsDir, `storoslop.${localDay(new Date())}.4242.log`), `${big}\n${last}\n`);
 
 		const result = await createReportBundle({ sessionFile });
 
