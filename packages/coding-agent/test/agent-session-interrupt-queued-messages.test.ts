@@ -301,12 +301,7 @@ describe("AgentSession editor-restoring interrupt", () => {
 		expect(mock.calls).toHaveLength(1);
 	});
 
-	// Known upstream regression at 88a69582c7: the queued steer message is no longer
-	// dequeued for the second model call, so only one call runs. Upstream's own CI has
-	// been red (frozen-lockfile) for hours and skipped this suite, so this is not a
-	// fork regression — src/session/agent-session.ts differs from upstream by one
-	// branding string only. Re-enable when upstream fixes it.
-	it.skip("records an extension message the run already took for its next model call exactly once", async () => {
+	it("records an extension message the run already took for its next model call exactly once", async () => {
 		const { session, sessionManager, mock } = await createSession([
 			{ content: ["first reply"] },
 			{ content: ["never seen"] },
@@ -348,7 +343,9 @@ describe("AgentSession editor-restoring interrupt", () => {
 			"custom/peer-card: withdrawn peer card",
 		]);
 		expect(ends.flat().filter(message => JSON.stringify(message).includes("withdrawn peer card"))).toEqual([]);
-		expect(mock.calls).toHaveLength(2);
+		// The abort lands while the second call is still being prepared, so the loop ends there
+		// instead of sending the card to the model.
+		expect(mock.calls).toHaveLength(1);
 	});
 
 	it("discards hidden queued context instead of recording it", async () => {

@@ -8,9 +8,18 @@
 
 - Added an optional `heat` value in [0, 1] to `code` line marks (`TspCodeMark`), so a line can be shaded by a score. A mark's `tone` is now optional.
 - Added `code` folds (`TspCodeFold`: runs of lines drawn as one row that opens in place, with an optional label, note, tone and hover card), per-line score gradients (`TspCodeMark.wash`: scores washing the row from left to right) and an overview strip (`TspCodeProps.overview`).
+## [18.18.0] - 2026-11-07
+
+### Changed
+
+- `ShellTrace` fields that carry values from the run (argv, assignments, redirect targets, unlocated unit sources, diagnostics) are `ShellTraceBytes`: a string when the bytes are UTF-8, otherwise the raw byte values. `isShellTrace` accepts both forms
+
+## [18.17.0] - 2026-11-06
+
 ### Added
 
-- Added the `ShellTrace` model (`shell-trace.ts`: a shell run's compiled units, per-node state and reflowed layout, byte-offset based) and the TSP `shell` kind with `TspShellProps`
+- Added shell trace visualization: `ShellTrace` model and TSP `shell` kind for shell runs, node state, and layout.
+- Code views gain score-based line shading, labeled collapsible folds with notes, tones, and hover cards, and an overview strip.
 
 ## [18.16.0] - 2026-11-02
 

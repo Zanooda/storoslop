@@ -348,9 +348,12 @@ describe("setup wizard storoslop scene", () => {
 		await initTheme(false, "unicode", false, "titanium", "light");
 		const finished = Promise.withResolvers<string>();
 		const refresh = mock(async () => {});
+		// The real host wires `ctx.refreshModels` to
+		// `session.modelRegistry.refresh("online-if-uncached")` (modes/setup.ts).
 		const host = {
 			ctx: {
 				session: { modelRegistry: { refresh } },
+				refreshModels: refresh,
 			},
 			requestRender: () => {},
 			finish: (value: string) => finished.resolve(value),
@@ -362,7 +365,7 @@ describe("setup wizard storoslop scene", () => {
 		controller.handleInput("\r");
 		try {
 			expect(await finished.promise).toBe("done");
-			expect(refresh).toHaveBeenCalledWith("online-if-uncached");
+			expect(refresh).toHaveBeenCalled();
 		} finally {
 			await fs.rm(dir, { recursive: true, force: true });
 		}

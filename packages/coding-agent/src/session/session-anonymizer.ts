@@ -728,6 +728,7 @@ const KEEP_SEGMENTS: Record<string, true> = {
 	".github": true,
 	".vscode": true,
 	".omp": true,
+	".storoslop": true,
 	".claude": true,
 	".cargo": true,
 	agent: true,

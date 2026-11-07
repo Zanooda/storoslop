@@ -12,6 +12,11 @@
 
 - Fixed `viewWithoutFrames` and `viewWithoutThinking` keeping an archive's reasoning for a reader without it when the summary declares no `¶think:` scope
 - Fixed `compact()` dropping the imaged history of an archive saved before omp 16.1.0 without a word: the new summary now counts those characters as dropped history ([#17883](https://github.com/can1357/oh-my-pi/pull/17883) by [@will-bogusz](https://github.com/will-bogusz))
+## [18.17.0] - 2026-11-06
+
+### Fixed
+
+- `compact()` now keeps image content from pre-16.1.0 archived histories in the dropped-history summary.
 
 ## [18.16.0] - 2026-11-02
 

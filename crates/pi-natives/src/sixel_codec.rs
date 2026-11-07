@@ -254,6 +254,11 @@ fn nearest_color(
 	}
 }
 
+#[allow(
+	clippy::suboptimal_flops,
+	reason = "per-pixel hot loop: mul_add is a libm call on the x86-64 baseline target (no FMA), \
+	          and fusing would change the dithered output"
+)]
 fn dither(rgba: &[u8], width: usize, palette: &[[u8; 3]]) -> Vec<u16> {
 	let mut colors: [usize; 256] = std::array::from_fn(|index| index);
 	let mut nodes = Vec::with_capacity(palette.len());
