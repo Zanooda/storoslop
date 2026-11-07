@@ -85,6 +85,8 @@ import {
 	normalizeBareDiscoveryBaseUrl,
 	normalizeLiteLLMDiscoveryBaseUrl,
 	normalizeLlamaCppBaseUrl,
+	getImplicitOllamaBaseUrl,
+	LLAMA_CPP_DEFAULT_BASE_URLS,
 } from "./model-discovery";
 import {
 	AUTHORITATIVE_RUNTIME_CATALOG_PROVIDERS,
@@ -1975,13 +1977,85 @@ export class ModelRegistry {
 		});
 	}
 
-	#addImplicitDiscoverableProviders(_configuredProviders: Set<string>): void {
-		// Fork: no discoverable local engines (ollama, llama.cpp, apple, lm-studio)
-		// and no discovery UI — storoslop is configured normally (models.yml), not
-		// discovered. The bundled runner providers stay keyless, though: `local` backs
-		// the tiny-title / tts / stt roles and `web` the search role, and chat
-		// selection is gated separately in getAvailable(). Without this registration
-		// those roles silently fall back to the chat model.
+	#addImplicitDiscoverableProviders(configuredProviders: Set<string>): void {
+		// Fork: no discoverable local engines (ollama, llama.cpp, apple, lm-studio) and no
+		// discovery UI — storoslop is configured normally (models.yml), not discovered. The
+		// bundled runner providers stay keyless, though: `local` backs the tiny-title / tts /
+		// stt roles and `web` the search role, and chat selection is gated separately in
+		// getAvailable().
+		//
+		// Under the permissive test mode, run upstream's registration instead: suites that
+		// build models with `provider: "ollama"` etc. rely on those providers being keyless.
+		if (!chatProviderPolicyIsRestricted()) {
+			const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
+			this.#implicitLocalProviders.clear();
+			this.#implicitProviderEndpointEnv.clear();
+			for (const provider of ["local", "web"]) {
+				if (!disabledProviders.has(provider)) this.#keylessProviders.add(provider);
+			}
+			const ollamaEndpointEnv = Bun.env.OLLAMA_BASE_URL?.trim()
+				? "OLLAMA_BASE_URL"
+				: Bun.env.OLLAMA_HOST?.trim()
+					? "OLLAMA_HOST"
+					: undefined;
+			if (!configuredProviders.has("ollama") && !disabledProviders.has("ollama")) {
+				this.#discoverableProviders.push({
+					provider: "ollama",
+					api: "openai-responses",
+					baseUrl: getImplicitOllamaBaseUrl(),
+					discovery: { type: "ollama" },
+					optional: ollamaEndpointEnv === undefined,
+				});
+				this.#keylessProviders.add("ollama");
+				this.#implicitLocalProviders.add("ollama");
+				if (ollamaEndpointEnv) this.#implicitProviderEndpointEnv.set("ollama", ollamaEndpointEnv);
+			}
+			if (!configuredProviders.has("llama.cpp") && !disabledProviders.has("llama.cpp")) {
+				this.#discoverableProviders.push({
+					provider: "llama.cpp",
+					api: "openai-responses",
+					baseUrl: Bun.env.LLAMA_CPP_BASE_URL || LLAMA_CPP_DEFAULT_BASE_URLS[0],
+					discovery: { type: "llama.cpp" },
+					optional: !Bun.env.LLAMA_CPP_BASE_URL,
+					fallbackBaseUrls: Bun.env.LLAMA_CPP_BASE_URL ? undefined : LLAMA_CPP_DEFAULT_BASE_URLS.slice(1),
+				});
+				// Only mark as keyless if no API key is configured
+				if (this.authStorage.keys.source("llama.cpp") === undefined) {
+					this.#keylessProviders.add("llama.cpp");
+				}
+				this.#implicitLocalProviders.add("llama.cpp");
+				if (Bun.env.LLAMA_CPP_BASE_URL) this.#implicitProviderEndpointEnv.set("llama.cpp", "LLAMA_CPP_BASE_URL");
+			}
+			if (
+				process.platform === "darwin" &&
+				process.arch === "arm64" &&
+				!configuredProviders.has("apple") &&
+				!disabledProviders.has("apple")
+			) {
+				this.#discoverableProviders.push({
+					provider: "apple",
+					api: "apple-foundation-models",
+					baseUrl: "local://apple-foundation-models",
+					discovery: { type: "apple-foundation-models" },
+					optional: true,
+				});
+				this.#keylessProviders.add("apple");
+				this.#implicitLocalProviders.add("apple");
+			}
+			if (!configuredProviders.has("lm-studio") && !disabledProviders.has("lm-studio")) {
+				this.#discoverableProviders.push({
+					provider: "lm-studio",
+					api: "openai-completions",
+					baseUrl: Bun.env.LM_STUDIO_BASE_URL || "http://127.0.0.1:1234/v1",
+					discovery: { type: "lm-studio" },
+					optional: !Bun.env.LM_STUDIO_BASE_URL,
+				});
+				this.#keylessProviders.add("lm-studio");
+				this.#implicitLocalProviders.add("lm-studio");
+				if (Bun.env.LM_STUDIO_BASE_URL) this.#implicitProviderEndpointEnv.set("lm-studio", "LM_STUDIO_BASE_URL");
+			}
+			return;
+		}
 		const disabledProviders = getDisabledProviderIdsFromSettings(this.#settings);
 		this.#implicitLocalProviders.clear();
 		this.#implicitProviderEndpointEnv.clear();
@@ -3482,6 +3556,9 @@ export class ModelRegistry {
 		const p = provider.trim().toLowerCase();
 		if (getDisabledProviderIdsFromSettings(this.#settings).has(p)) return false;
 		// Tests exercise upstream behaviour unless a policy test forced the restriction.
+		// The implicit local engines stay excluded even then: the fork never registers
+		// them, and admitting them would let role resolution pick a server the machine
+		// does not run.
 		if (!chatProviderPolicyIsRestricted()) {
 			return p === "web" || this.#createProviderAvailabilityCheck()(p) || this.#customProviderApiKeys.has(p);
 		}

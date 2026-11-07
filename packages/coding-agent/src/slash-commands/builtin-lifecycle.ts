@@ -8,7 +8,7 @@ import { clearClaudePluginRootsCache } from "../discovery/helpers";
 import { rebindMemoryBackendForCwd } from "../hindsight/backend";
 import { memoryStatsUnavailableMessage, resolveMemoryBackend } from "../memory-backend";
 import { deriveProjectKey } from "../memory-files/paths";
-import { forgetMemory, readMemory, writeMemory } from "../memory-files/store";
+import { forgetMemory, writeMemory } from "../memory-files/store";
 import { continuesConversation } from "../modes/utils/conversation-position";
 import type { FreshSessionResult, HandoffResult } from "../session/agent-session";
 import { COMPACT_MODES, parseCompactArgs } from "../session/compact-modes";
@@ -895,46 +895,126 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 	},
 	{
 		name: "memory",
-		description: "View, write, and forget file memory (per-project and global)",
-		acpDescription: "Manage file memory",
+		icon: "memory",
+		description: "Inspect and operate memory maintenance",
+		acpDescription: "Manage memory",
+		acpInputHint: "<subcommand>",
+		subcommands: [
+			{ name: "view", description: "Show current memory injection payload" },
+			{ name: "write", description: "Save a durable fact to this project's file memory" },
+			{ name: "forget", description: "Remove file-memory entries containing the given text" },
+			{ name: "stats", description: "Show memory backend statistics" },
+			{ name: "diagnose", description: "Run memory backend diagnostics" },
+			{ name: "queue", description: "Show pending memory deltas awaiting consolidation" },
+			{ name: "sync", description: "Run memory consolidation now" },
+			{ name: "clear", description: "Clear persisted memory data and artifacts" },
+			{ name: "reset", description: "Alias for clear" },
+			{ name: "enqueue", description: "Enqueue memory consolidation maintenance" },
+			{ name: "rebuild", description: "Alias for enqueue" },
+			{ name: "mm list", description: "List mental models on the active bank" },
+			{ name: "mm show", description: "Show one mental model (id required)" },
+			{
+				name: "mm refresh",
+				description: "Refresh auto-refresh models bank-wide, or one model by id",
+			},
+			{ name: "mm history", description: "Diff the change history of a mental model" },
+			{ name: "mm seed", description: "Create any built-in mental models that are missing" },
+			{ name: "mm delete", description: "Delete a mental model from the bank (id required)" },
+			{ name: "mm reload", description: "Re-pull the cached <mental_models> block" },
+		],
 		allowArgs: true,
 		handle: async (command, runtime) => {
-			const trimmed = command.args.trim();
-			const verb = (trimmed.split(/\s+/)[0]?.toLowerCase() ?? "") || "view";
-			const showGlobal = verb === "global";
-			const projKey = showGlobal ? null : await deriveProjectKey(runtime.cwd);
-			const key = projKey ? `${projKey.owner}/${projKey.repo}` : undefined;
-
-			if (verb === "write") {
-				const entry = trimmed.replace(/^write\s+/, "").trim();
-				if (!entry) return usage("Usage: /memory write <fact> (omit write for view)", runtime);
-				await writeMemory(projKey, entry);
-				await runtime.output(`Remembered (${showGlobal ? "global" : `project${key ? ` ${key}` : ""}`}).`);
-				return commandConsumed();
+			const verb = (command.args.trim().split(/\s+/)[0] ?? "").toLowerCase() || "view";
+			const backend = await resolveMemoryBackend(runtime.settings);
+			switch (verb) {
+				case "write": {
+					const entry = command.args
+						.trim()
+						.replace(/^write\s+/, "")
+						.trim();
+					if (!entry) {
+						await runtime.output("Usage: /memory write <fact>");
+						return commandConsumed();
+					}
+					const projKey = await deriveProjectKey(runtime.cwd);
+					await writeMemory(projKey, entry);
+					await runtime.output(`Remembered (project${projKey ? ` ${projKey.owner}/${projKey.repo}` : ""}).`);
+					return commandConsumed();
+				}
+				case "forget": {
+					const match = command.args
+						.trim()
+						.replace(/^forget\s+/, "")
+						.trim();
+					if (!match) {
+						await runtime.output("Usage: /memory forget <text>");
+						return commandConsumed();
+					}
+					const projKey = await deriveProjectKey(runtime.cwd);
+					const removed = await forgetMemory(projKey, match);
+					await runtime.output(
+						removed > 0
+							? `Forgot ${removed} matching entr${removed === 1 ? "y" : "ies"}.`
+							: "No matching memory to forget.",
+					);
+					return commandConsumed();
+				}
+				case "view": {
+					const payload = await backend.buildDeveloperInstructions(
+						runtime.settings.getAgentDir(),
+						runtime.cwd,
+						runtime.settings,
+						runtime.session,
+					);
+					await runtime.output(payload || "Memory payload is empty.");
+					return commandConsumed();
+				}
+				case "clear":
+				case "reset": {
+					await backend.clear(runtime.settings.getAgentDir(), runtime.cwd, runtime.session);
+					await runtime.session.refreshBaseSystemPrompt();
+					await runtime.output("Memory cleared.");
+					return commandConsumed();
+				}
+				case "enqueue":
+				case "rebuild": {
+					await backend.enqueue(runtime.settings.getAgentDir(), runtime.cwd, runtime.session);
+					await runtime.output("Memory consolidation enqueued.");
+					return commandConsumed();
+				}
+				case "queue": {
+					const payload = await backend.queuePreview?.({
+						agentDir: runtime.settings.getAgentDir(),
+						cwd: runtime.cwd,
+						session: runtime.session,
+					});
+					await runtime.output(payload ?? `Memory queue is not available for the ${backend.id} backend.`);
+					return commandConsumed();
+				}
+				case "sync": {
+					await backend.enqueue(runtime.settings.getAgentDir(), runtime.cwd, runtime.session);
+					await runtime.output("Memory consolidation ran.");
+					return commandConsumed();
+				}
+				case "stats":
+				case "diagnose": {
+					const hook = verb === "stats" ? backend.stats : backend.diagnose;
+					const payload = await hook?.(runtime.settings.getAgentDir(), runtime.cwd, runtime.session);
+					await runtime.output(payload ?? memoryStatsUnavailableMessage(backend.id, verb));
+					return commandConsumed();
+				}
+				case "mm":
+					return usage(
+						"Mental-model maintenance via /memory mm is unsupported in ACP mode; use the hindsight HTTP API directly.",
+						runtime,
+					);
+				default:
+					return usage("Usage: /memory <view|stats|diagnose|clear|reset|enqueue|rebuild|queue|sync>", runtime);
 			}
-			if (verb === "forget") {
-				const match = trimmed.replace(/^forget\s+/, "").trim();
-				if (!match) return usage("Usage: /memory forget <text>", runtime);
-				const removed = await forgetMemory(projKey, match);
-				await runtime.output(
-					removed > 0
-						? `Forgot ${removed} matching entr${removed === 1 ? "y" : "ies"}.`
-						: "No matching memory to forget.",
-				);
-				return commandConsumed();
-			}
-
-			const projectText = showGlobal ? undefined : await readMemory(projKey);
-			const globalText = await readMemory(null);
-			const out =
-				[
-					projectText ? `Project memory:\n${projectText}` : undefined,
-					globalText ? `Global memory:\n${globalText}` : undefined,
-				]
-					.filter(Boolean)
-					.join("\n\n") || "No saved memory yet.";
-			await runtime.output(out);
-			return commandConsumed();
+		},
+		handleTui: async (command, runtime) => {
+			clearSubmittedText(runtime);
+			await runtime.ctx.handleMemoryCommand(command.text);
 		},
 	},
 	{
