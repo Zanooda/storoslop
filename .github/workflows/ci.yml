@@ -1027,7 +1027,9 @@ jobs:
       if: ${{ needs.release_metadata.outputs.is-release == 'true' && !cancelled() &&
          needs.release_github.result == 'success' }}
       needs: [release_metadata, release_github]
-      runs-on: macos-14
+      # macos-14 (Apple silicon) is unavailable to this private repo; the published
+      # macOS arm64 binary is cross-built on the Intel runner instead.
+      runs-on: macos-15-intel
       permissions:
          contents: read
       env:
