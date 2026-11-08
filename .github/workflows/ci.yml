@@ -486,30 +486,30 @@ jobs:
               for target in $NATIVES_CROSS_TARGETS; do
                 bazelisk --bazelrc="${{ steps.cache.outputs.rc }}" build "//:$target" 2>&1 | tee -a "$RUNNER_TEMP/bazel-build.log"
               done
-         # The two jobs' target lists must together cover //:natives-all
-         # exactly; a target added to the filegroup but to neither list would
-         # otherwise silently never build or ship. cquery, not query: the rc's
-         # --config=ci is defined for build only, which cquery inherits and
-         # query rejects; this also reuses the warm server.
+         # The build lists must cover every addon in //:natives-all except the
+         # host-only ones. Parsed from BUILD.bazel deliberately: a cquery would
+         # analyse the filegroup and drag in the macOS SDK toolchain, which the
+         # hosted Linux runner cannot fetch (Apple returns 403).
          - name: Check addon target lists cover natives-all
            run: |
               set -euo pipefail
-              read -r -a listed <<< "$NATIVES_X64_TARGETS $NATIVES_CROSS_TARGETS"
-              read -r -a host_only <<< "$NATIVES_HOST_ONLY_TARGETS"
-              expected="$(printf '%s\n' "${listed[@]}" | sort)"
-              actual="$(bazelisk --bazelrc="${{ steps.cache.outputs.rc }}" cquery 'labels(srcs, //:natives-all)' 2>"$RUNNER_TEMP/query.err" | sed -E 's/ \(.*\)$//; s/.*://' | sort)" || {
-                cat "$RUNNER_TEMP/query.err"
-                exit 1
-              }
-              # Drop the host-only addons: the macOS runners build the Apple ones.
-              for target in "${host_only[@]}"; do
-                actual="$(printf '%s\n' "$actual" | grep -vx "$target" || true)"
-              done
-              if [ "$expected" != "$actual" ]; then
-                echo "::error title=Native addon target lists::NATIVES_X64_TARGETS + NATIVES_CROSS_TARGETS must equal //:natives-all srcs"
-                diff <(echo "$expected") <(echo "$actual") || true
-                exit 1
-              fi
+              python3 - "$NATIVES_X64_TARGETS" "$NATIVES_CROSS_TARGETS" "$NATIVES_HOST_ONLY_TARGETS" <<'PY'
+              import re, sys
+              listed = set(" ".join(sys.argv[1:3]).split())
+              host_only = set(sys.argv[3].split())
+              src = open("BUILD.bazel", encoding="utf-8").read()
+              m = re.search(r'name = "natives-all",\s*srcs = \[(.*?)\]', src, re.S)
+              if not m:
+                  sys.exit("::error::could not parse //:natives-all from BUILD.bazel")
+              declared = {t.lstrip(":") for t in re.findall(r':([A-Za-z0-9_.-]+)', m.group(1))}
+              expected = declared - host_only
+              if listed != expected:
+                  print("::error title=Native addon target lists::NATIVES_X64_TARGETS + NATIVES_CROSS_TARGETS must cover every non-host-only //:natives-all src")
+                  print("missing:", sorted(expected - listed))
+                  print("unexpected:", sorted(listed - expected))
+                  sys.exit(1)
+              print("addon target lists cover", len(expected), "built +", len(host_only), "host-only targets")
+              PY
          - name: Report bazel cache stats
            shell: bash
            run: |
