@@ -6,18 +6,18 @@
   ...
 }:
 let
-  cfg = config.programs.omp;
+  cfg = config.programs.storoslop;
   yaml = pkgs.formats.yaml { };
-  configFile = yaml.generate "omp-config.yml" cfg.settings;
+  configFile = yaml.generate "storoslop-config.yml" cfg.settings;
 in
 {
-  options.programs.omp = {
+  options.programs.storoslop = {
     enable = lib.mkEnableOption "OMP coding agent";
 
     package = lib.mkOption {
       type = lib.types.package;
       default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
-      defaultText = lib.literalExpression "inputs.omp.packages.${pkgs.stdenv.hostPlatform.system}.default";
+      defaultText = lib.literalExpression "inputs.storoslop.packages.${pkgs.stdenv.hostPlatform.system}.default";
       description = "OMP package to install.";
     };
 
@@ -25,7 +25,7 @@ in
       type = lib.types.nullOr yaml.type;
       default = null;
       description = ''
-        Settings written declaratively to {file}`~/.omp/agent/config.yml`.
+        Settings written declaratively to {file}`~/.storoslop/agent/config.yml`.
         On each `home-manager switch` the declared settings are copied into
         place as a writable regular file (not a read-only store symlink), so
         OMP can acquire its config lock and rewrite the file when persisting
@@ -50,7 +50,7 @@ in
     # break every launch. Copy a writable regular file instead. The DAG entry
     # is written literally (rather than via `lib.hm.dag.entryAfter`) so the
     # home-manager-free module evaluation in `flake.nix` keeps working.
-    home.activation.ompConfig = lib.mkIf (cfg.settings != null) {
+    home.activation.storoslopConfig = lib.mkIf (cfg.settings != null) {
       before = [ ];
       after = [ "writeBoundary" ];
       data = ''

@@ -39,12 +39,12 @@ let
     }
     .${stdenv.hostPlatform.system} or (throw "Unsupported OMP platform: ${stdenv.hostPlatform.system}");
   commonArgs = {
-    pname = "omp-native";
+    pname = "storoslop-native";
     version = workspaceVersion;
     # Keep Rust inputs independent of Bun sources and packaging scripts.
     src = lib.cleanSourceWith {
       src = source;
-      name = "omp-rust-source";
+      name = "storoslop-rust-source";
       filter =
         path: _type:
         let
@@ -152,7 +152,7 @@ let
       inherit (crate) dir;
       path = builtins.path {
         path = "${vendorDir}/${crate.dir}";
-        name = "omp-vendored-${crate.dir}";
+        name = "storoslop-vendored-${crate.dir}";
       };
     }) (builtins.filter (crate: !builtins.elem crate.name dummyCrates) crates);
   versionEntry = version: name: "name = \"${name}\"\nversion = \"${version}\"";
@@ -173,7 +173,7 @@ let
     # build, or cargo rebuilds every dependency.
     src = lib.cleanSourceWith {
       inherit (commonArgs) src;
-      name = "omp-rust-source";
+      name = "storoslop-rust-source";
       filter =
         path: _type:
         !builtins.elem (lib.removePrefix "${toString source}/" (toString path)) [

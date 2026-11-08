@@ -102,21 +102,21 @@
       packages = forAllSystems (
         system:
         let
-          omp = packageFor system;
+          storoslop = packageFor system;
         in
         {
-          inherit omp;
-          default = omp;
+          inherit storoslop;
+          default = storoslop;
         }
       );
 
       apps = forAllSystems (system: {
         default = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/omp";
-          meta.description = "Run OMP";
+          program = "${self.packages.${system}.default}/bin/storoslop";
+          meta.description = "Run storoslop";
         };
-        omp = self.apps.${system}.default;
+        storoslop = self.apps.${system}.default;
       });
 
       devShells = forAllSystems (
@@ -150,8 +150,8 @@
               }
               self.homeManagerModules.default
               {
-                programs.omp.enable = true;
-                programs.omp.settings.startup.quiet = true;
+                programs.storoslop.enable = true;
+                programs.storoslop.settings.startup.quiet = true;
               }
             ];
           };
@@ -165,18 +165,18 @@
                 };
               }
               self.nixosModules.default
-              { programs.omp.enable = true; }
+              { programs.storoslop.enable = true; }
             ];
           };
           modulesEvaluate =
             assert builtins.elem self.packages.${system}.default homeManagerEvaluation.config.home.packages;
-            assert homeManagerEvaluation.config.home.activation ? ompConfig;
+            assert homeManagerEvaluation.config.home.activation ? storoslopConfig;
             assert builtins.elem self.packages.${system}.default
               nixosEvaluation.config.environment.systemPackages;
-            pkgs.runCommand "omp-module-evaluation" { } "touch $out";
+            pkgs.runCommand "storoslop-module-evaluation" { } "touch $out";
         in
         {
-          bun-lock = pkgs.runCommand "omp-bun-lock" { nativeBuildInputs = [ bun2nix ]; } ''
+          bun-lock = pkgs.runCommand "storoslop-bun-lock" { nativeBuildInputs = [ bun2nix ]; } ''
             cp -R ${self.outPath} source
             chmod -R u+w source
             cd source
@@ -187,19 +187,19 @@
             touch "$out"
           '';
           modules = modulesEvaluate;
-          omp = self.packages.${system}.default;
+          storoslop = self.packages.${system}.default;
         }
       );
 
       formatter = forAllSystems (system: (pkgsFor system).nixfmt);
 
       overlays.default = _final: previous: {
-        omp = self.packages.${previous.stdenv.hostPlatform.system}.default;
+        storoslop = self.packages.${previous.stdenv.hostPlatform.system}.default;
       };
 
       homeManagerModules.default = import ./nix/home-manager.nix { inherit self; };
-      homeManagerModules.omp = self.homeManagerModules.default;
+      homeManagerModules.storoslop = self.homeManagerModules.default;
       nixosModules.default = import ./nix/nixos-module.nix { inherit self; };
-      nixosModules.omp = self.nixosModules.default;
+      nixosModules.storoslop = self.nixosModules.default;
     };
 }
