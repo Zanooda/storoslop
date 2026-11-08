@@ -693,86 +693,83 @@ describe("update-cli package manager commands", () => {
 	});
 
 	// Needs a prepared npm prefix/lib layout; the host npm state differs from CI.
-	it.skipIf(true)(
-		"overrides ambient min-release-age during actual npm resolution",
-		async () => {
-			if (!npmBinary) throw new Error("npm binary unavailable");
-			const root = await makeTempDir();
-			const now = new Date().toISOString();
-			const old = "2020-01-01T00:00:00.000Z";
-			const version = (v: string) => ({
-				name: "omp-age-gate-probe",
-				version: v,
-				dist: { tarball: "http://127.0.0.1/never-fetched.tgz" },
-			});
-			const packument = {
-				name: "omp-age-gate-probe",
-				"dist-tags": { latest: "2.0.0" },
-				versions: { "1.0.0": version("1.0.0"), "2.0.0": version("2.0.0") },
-				time: { created: old, modified: now, "1.0.0": old, "2.0.0": now },
+	it.skipIf(true)("overrides ambient min-release-age during actual npm resolution", async () => {
+		if (!npmBinary) throw new Error("npm binary unavailable");
+		const root = await makeTempDir();
+		const now = new Date().toISOString();
+		const old = "2020-01-01T00:00:00.000Z";
+		const version = (v: string) => ({
+			name: "omp-age-gate-probe",
+			version: v,
+			dist: { tarball: "http://127.0.0.1/never-fetched.tgz" },
+		});
+		const packument = {
+			name: "omp-age-gate-probe",
+			"dist-tags": { latest: "2.0.0" },
+			versions: { "1.0.0": version("1.0.0"), "2.0.0": version("2.0.0") },
+			time: { created: old, modified: now, "1.0.0": old, "2.0.0": now },
+		};
+		const server = Bun.serve({
+			hostname: "127.0.0.1",
+			port: 0,
+			fetch(request) {
+				const pathname = new URL(request.url).pathname;
+				if (pathname.endsWith("/omp-age-gate-probe")) return Response.json(packument);
+				return new Response("not found", { status: 404 });
+			},
+		});
+		try {
+			// The gate lives in an npmrc FILE, not env: the reported bug is
+			// npmrc-sourced, and the fixed overlay beats it via cross-source
+			// precedence (env outranks file). Same-source env would also mask
+			// the before/min-release-age exclusivity abort on npm 11.10-11.14.
+			const home = path.join(root, "home");
+			await fs.mkdir(home, { recursive: true });
+			await fs.mkdir(path.join(root, "prefix"), { recursive: true });
+			await Bun.write(path.join(home, ".npmrc"), "min-release-age=365\n");
+			// Bogus proxies keep a corporate proxy from intercepting the loopback
+			// registry; NO_PROXY exempts 127.0.0.1 so the fake registry stays reachable.
+			const env: Record<string, string> = {
+				PATH: process.env.PATH ?? "",
+				HOME: home,
+				// npm resolves the home npmrc from USERPROFILE and the global
+				// prefix from APPDATA on Windows; pin both inside the sandbox.
+				USERPROFILE: home,
+				npm_config_prefix: path.join(root, "prefix"),
+				npm_config_cache: path.join(root, "cache"),
+				npm_config_audit: "false",
+				npm_config_fund: "false",
+				npm_config_update_notifier: "false",
+				HTTP_PROXY: "http://127.0.0.1:9",
+				HTTPS_PROXY: "http://127.0.0.1:9",
+				ALL_PROXY: "http://127.0.0.1:9",
+				NO_PROXY: "127.0.0.1,localhost",
 			};
-			const server = Bun.serve({
-				hostname: "127.0.0.1",
-				port: 0,
-				fetch(request) {
-					const pathname = new URL(request.url).pathname;
-					if (pathname.endsWith("/omp-age-gate-probe")) return Response.json(packument);
-					return new Response("not found", { status: 404 });
-				},
-			});
-			try {
-				// The gate lives in an npmrc FILE, not env: the reported bug is
-				// npmrc-sourced, and the fixed overlay beats it via cross-source
-				// precedence (env outranks file). Same-source env would also mask
-				// the before/min-release-age exclusivity abort on npm 11.10-11.14.
-				const home = path.join(root, "home");
-				await fs.mkdir(home, { recursive: true });
-				await fs.mkdir(path.join(root, "prefix"), { recursive: true });
-				await Bun.write(path.join(home, ".npmrc"), "min-release-age=365\n");
-				// Bogus proxies keep a corporate proxy from intercepting the loopback
-				// registry; NO_PROXY exempts 127.0.0.1 so the fake registry stays reachable.
-				const env: Record<string, string> = {
-					PATH: process.env.PATH ?? "",
-					HOME: home,
-					// npm resolves the home npmrc from USERPROFILE and the global
-					// prefix from APPDATA on Windows; pin both inside the sandbox.
-					USERPROFILE: home,
-					npm_config_prefix: path.join(root, "prefix"),
-					npm_config_cache: path.join(root, "cache"),
-					npm_config_audit: "false",
-					npm_config_fund: "false",
-					npm_config_update_notifier: "false",
-					HTTP_PROXY: "http://127.0.0.1:9",
-					HTTPS_PROXY: "http://127.0.0.1:9",
-					ALL_PROXY: "http://127.0.0.1:9",
-					NO_PROXY: "127.0.0.1,localhost",
-				};
-				const run = async (extraEnv: Record<string, string | undefined>) => {
-					const proc = Bun.spawn(
-						[npmBinary, "install", "-g", "--dry-run", `--registry=${server.url}`, "omp-age-gate-probe@2.0.0"],
-						{ env: { ...env, ...extraEnv }, cwd: root, stdin: "ignore", stdout: "pipe", stderr: "pipe" },
-					);
-					const [stdout, stderr, exitCode] = await Promise.all([
-						new Response(proc.stdout).text(),
-						new Response(proc.stderr).text(),
-						proc.exited,
-					]);
-					return { out: stdout + stderr, exitCode };
-				};
+			const run = async (extraEnv: Record<string, string | undefined>) => {
+				const proc = Bun.spawn(
+					[npmBinary, "install", "-g", "--dry-run", `--registry=${server.url}`, "omp-age-gate-probe@2.0.0"],
+					{ env: { ...env, ...extraEnv }, cwd: root, stdin: "ignore", stdout: "pipe", stderr: "pipe" },
+				);
+				const [stdout, stderr, exitCode] = await Promise.all([
+					new Response(proc.stdout).text(),
+					new Response(proc.stderr).text(),
+					proc.exited,
+				]);
+				return { out: stdout + stderr, exitCode };
+			};
 
-				const gated = await run({});
-				expect(gated.exitCode).not.toBe(0);
-				expect(gated.out).toMatch(/notarget|No matching version/i);
+			const gated = await run({});
+			expect(gated.exitCode).not.toBe(0);
+			expect(gated.out).toMatch(/notarget|No matching version/i);
 
-				const overlay = buildNpmUpdateEnv({});
-				const allowed = await run(overlay);
-				expect(allowed.exitCode).toBe(0);
-				expect(allowed.out).toMatch(/add(ed)?\s+\S*omp-age-gate-probe\b[^\n]*2\.0\.0/);
-			} finally {
-				server.stop(true);
-			}
-		},
-	);
+			const overlay = buildNpmUpdateEnv({});
+			const allowed = await run(overlay);
+			expect(allowed.exitCode).toBe(0);
+			expect(allowed.out).toMatch(/add(ed)?\s+\S*omp-age-gate-probe\b[^\n]*2\.0\.0/);
+		} finally {
+			server.stop(true);
+		}
+	});
 });
 
 describe("update-cli npm rename contract", () => {
