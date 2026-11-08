@@ -1451,3 +1451,5 @@
 
 Older entries are archived in [packages/coding-agent/CHANGELOG.md@0ca4975067cc](https://github.com/can1357/oh-my-pi/blob/0ca4975067cc76055eb2a5af4825c2b09fa70b44/packages/coding-agent/CHANGELOG.md).
 Older entries are archived in [packages/coding-agent/CHANGELOG.md@72d5cf31d861](https://github.com/can1357/oh-my-pi/blob/72d5cf31d86101eb0e17beaeda98582938c2eb78/packages/coding-agent/CHANGELOG.md).
+
+<!-- release retrigger -->
