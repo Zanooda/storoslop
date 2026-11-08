@@ -4,7 +4,11 @@
  * returned sources — enforcing constraints the provider ignored and relaxing
  * any dimension that would eliminate every result.
  */
-import { afterEach, describe, expect, it, vi } from "bun:test";
+import { afterEach, describe, expect, it, vi, beforeAll, afterAll } from "bun:test";
+import {
+	enforceChatProviderRestrictionForTest,
+	resetChatProviderRestrictionForTest,
+} from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import type { AuthStorage } from "@oh-my-pi/pi-ai";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
@@ -43,6 +47,10 @@ async function stubRoleProvider(id: SearchProviderId, behaviour: (params: Search
 	});
 	return { authStorage, modelRegistry, getProvider };
 }
+
+// This suite asserts the fork's restricted pool (no xAI chat model).
+beforeAll(enforceChatProviderRestrictionForTest);
+afterAll(resetChatProviderRestrictionForTest);
 
 describe("web search directive pipeline", () => {
 	afterEach(() => {
