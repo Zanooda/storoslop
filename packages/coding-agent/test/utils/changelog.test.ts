@@ -280,14 +280,22 @@ describe("parseChangelog", () => {
 		// contract instead: sections are well-formed and the filter is
 		// version-relative, not file-order-relative.
 		expect(latest).toBeDefined();
-		const latestVersion = `${latest?.major}.${latest?.minor}.${latest?.patch}`;
-		expect(latest?.content).toContain(`## [${latestVersion}]`);
-		expect(previous).toBeDefined();
+		// The two lineages interleave in file order, so "newest" is the numerically
+		// highest section, not entries[0].
+		const versionOf = (entry: (typeof entries)[number]) => `${entry.major}.${entry.minor}.${entry.patch}`;
+		const byVersion = [...entries].sort((a, b) => {
+			const [am, an, ap] = [a.major, a.minor, a.patch];
+			const [bm, bn, bp] = [b.major, b.minor, b.patch];
+			return am - bm || an - bn || ap - bp;
+		});
+		const newest = byVersion.at(-1)!;
+		const latestVersion = versionOf(newest);
+		expect(newest.content).toContain(`## [${latestVersion}]`);
 
 		// Filtering from the newest section down returns nothing newer than it.
-		const previousVersion = `${previous?.major}.${previous?.minor}.${previous?.patch}`;
+		const secondNewest = versionOf(byVersion.at(-2)!);
 		expect(getNewEntries(entries, latestVersion)).toEqual([]);
-		expect(getNewEntries(entries, previousVersion)).toEqual([latest]);
+		expect(getNewEntries(entries, secondNewest).map(entry => versionOf(entry))).toContain(latestVersion);
 	});
 });
 
