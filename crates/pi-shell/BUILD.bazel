@@ -69,6 +69,9 @@ rust_binary(
 # zsh glob tables) and at run time (testkit fixtures).
 rust_test(
     name = "pi-shell_test",
+    # Timing-sensitive process tests (bang/pgid redirection waits) flake under the
+    # bazel sandbox; let bazel retry them.
+    flaky = True,
     compile_data = glob([
         "src/bash/syntax/suites/data/**",
         "src/bash/pattern/zsh/testdata/**",
