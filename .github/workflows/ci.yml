@@ -83,13 +83,13 @@ env:
    # rest. Together they must equal //:natives-all (checked in the cross job),
    # so a filegroup addition cannot silently skip both.
    NATIVES_X64_TARGETS: natives-linux-x64-baseline natives-linux-x64-modern
-   # Linux and Windows cross targets build on the hosted Ubuntu runners. Apple
-   # targets need the Xcode SDK, which only exists on the macOS runners
-   # (release_binary_hosted builds them natively); they stay listed in
-   # NATIVES_HOST_ONLY_TARGETS so the native_addons_cross coverage check still
-   # accounts for every addon in //:natives-all.
-   NATIVES_CROSS_TARGETS: natives-linux-arm64 natives-linux-musl-arm64 natives-linux-musl-x64-baseline natives-win32-arm64 natives-win32-x64-baseline
-   NATIVES_HOST_ONLY_TARGETS: natives-darwin-arm64 natives-darwin-x64-baseline
+   # Linux and Windows x64 cross targets build on the hosted Ubuntu runners. Apple
+   # targets need the Xcode SDK and win32-arm64 needs MSVC + a Windows SDK the zig
+   # cross toolchain cannot supply (it looks for libcmt.arm64.pdb); those three are
+   # built natively by release_binary_hosted and stay listed in
+   # NATIVES_HOST_ONLY_TARGETS so the coverage check still accounts for every addon.
+   NATIVES_CROSS_TARGETS: natives-linux-arm64 natives-linux-musl-arm64 natives-linux-musl-x64-baseline natives-win32-x64-baseline
+   NATIVES_HOST_ONLY_TARGETS: natives-darwin-arm64 natives-darwin-x64-baseline natives-win32-arm64
    # Per-test wall-clock ceiling (seconds) for scripts/ci-test-ts.ts. The
    # SQLite/subprocess-heavy coding-agent suites ran 1.5-2x slower on the
    # previous self-hosted microVM runners, which put several cases
