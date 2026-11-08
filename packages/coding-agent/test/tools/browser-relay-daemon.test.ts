@@ -431,7 +431,7 @@ import { restartRelayDaemon } from ${JSON.stringify(path.resolve(import.meta.dir
 const [ownedPort, manualPort, standIn] = [Bun.env.OMP_TEST_OWNED_PORT!, Bun.env.OMP_TEST_MANUAL_PORT!, Bun.env.OMP_TEST_STALE_RELAY!];
 const name = \`omp.browser.relay.\${ownedPort}\`;
 const ownedUrl = \`http://127.0.0.1:\${ownedPort}\`;
-const manual = Bun.spawn([process.execPath, standIn, manualPort, "18.0.0", "0"], { stdout: "pipe" });
+const manual = Bun.spawn([process.execPath, standIn, manualPort, "0.9.0", "0"], { stdout: "pipe" });
 try {
 	const client = await daemonClientForGlobal("browser-relay");
 	const describe = () =>
@@ -468,10 +468,10 @@ try {
 		const restarted = await restartRelayDaemon({ cdpUrl: ownedUrl, idleOnly: true });
 		return { restarted, kept: pid !== undefined && (await describe())?.pid === pid, version: await versionAt(ownedPort) };
 	};
-	const olderIdle = await restartOwned("18.0.0", "0");
-	const olderInUse = await restartOwned("18.0.0", "1");
+	const olderIdle = await restartOwned("0.9.0", "0");
+	const olderInUse = await restartOwned("0.9.0", "1");
 	const newerIdle = await restartOwned("999.0.0", "0");
-	const olderUncounted = await restartOwned("18.0.0", "");
+	const olderUncounted = await restartOwned("0.9.0", "");
 	await manual.stdout.getReader().read();
 	const manualRestarted = await restartRelayDaemon({ cdpUrl: \`http://127.0.0.1:\${manualPort}\`, idleOnly: true });
 	process.stdout.write(
@@ -495,10 +495,10 @@ try {
 		);
 		expect(result).toEqual({
 			olderIdle: { restarted: true, kept: false, version: "current" },
-			olderInUse: { restarted: false, kept: true, version: "18.0.0" },
+			olderInUse: { restarted: false, kept: true, version: "0.9.0" },
 			newerIdle: { restarted: false, kept: true, version: "999.0.0" },
-			olderUncounted: { restarted: false, kept: true, version: "18.0.0" },
-			manual: { restarted: false, version: "18.0.0" },
+			olderUncounted: { restarted: false, kept: true, version: "0.9.0" },
+			manual: { restarted: false, version: "0.9.0" },
 		});
 	}, 60_000);
 
@@ -648,7 +648,7 @@ Bun.serve({
 	port,
 	fetch: () =>
 		Response.json({
-			ompRelayVersion: "18.0.0",
+			ompRelayVersion: "0.9.0",
 			ompRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
 			ompExtensionDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
 			ompRelayCdpClients: 0,
@@ -750,7 +750,7 @@ import { acquireBrowser } from ${JSON.stringify(path.resolve(import.meta.dir, ".
 import { DISCARDED_TABS_PROTOCOL_VERSION } from ${JSON.stringify(path.resolve(import.meta.dir, "../../src/tools/browser/relay/protocol.ts"))};
 // A compatible relay from an older omp that nobody is connected to, until a newer omp with another protocol replaces it.
 let served = {
-	ompRelayVersion: "18.0.0",
+	ompRelayVersion: "0.9.0",
 	ompRelayDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
 	ompExtensionDiscardedTabsProtocol: String(DISCARDED_TABS_PROTOCOL_VERSION),
 	ompRelayCdpClients: 0,
