@@ -9,7 +9,7 @@ import { Memo } from "../../native/memo";
 import type { SetupScene, SetupSceneController, SetupSceneHost } from "./types";
 
 const INTRO =
-	"Updates install through whatever installed omp: the standalone binary, Homebrew, mise, bun, or npm. Change this later in /settings.";
+	"Updates install through whatever installed storoslop: the standalone binary, Homebrew, mise, bun, or npm. Change this later in /settings.";
 
 const UPDATE_ITEMS: readonly SelectItem[] = [
 	{
@@ -20,12 +20,12 @@ const UPDATE_ITEMS: readonly SelectItem[] = [
 	{
 		value: "notify",
 		label: "2  Notify me",
-		description: "Show a notice on startup; run omp update yourself",
+		description: "Show a notice on startup; run storoslop update yourself",
 	},
 ];
 
 class UpdatesSceneController implements SetupSceneController {
-	title = "Keep omp up to date";
+	title = "Keep storoslop up to date";
 	subtitle = "Choose how new releases reach you.";
 	#selectList: SelectList;
 	#committing = false;
@@ -103,12 +103,12 @@ class UpdatesSceneController implements SetupSceneController {
 }
 
 /**
- * Opt in to background self-update (`update.auto`). Skipped where omp cannot
- * update itself, notably under Tern, which keeps its omp current on its own.
+ * Opt in to background self-update (`update.auto`). Skipped where storoslop cannot
+ * update itself, notably under Tern, which keeps its storoslop current on its own.
  */
 export const updatesSetupScene: SetupScene = {
 	id: "auto-update",
-	title: "Keep omp up to date",
+	title: "Keep storoslop up to date",
 	step: "Updates",
 	minVersion: 3,
 	shouldRun: ctx => ctx.canAutoUpdate(),
