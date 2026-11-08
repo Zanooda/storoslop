@@ -848,9 +848,14 @@ jobs:
                     binary_path: packages/coding-agent/binaries/storoslop-darwin-x64,
                     native_targets: darwin-x64-baseline,
                  }
+               # Apple-silicon runners are not available to private repositories
+               # ("configuration 'macos-14-arm64-…' is not supported"), so darwin-arm64
+               # is cross-built on the Intel macOS runner: bazel builds the arm64 addon
+               # against the host Xcode SDK and bun cross-compiles the binary.
                - {
-                    os: macos-14,
+                    os: macos-15-intel,
                     platform: darwin,
+                    cross_arch: true,
                     target_id: darwin-arm64,
                     binary_path: packages/coding-agent/binaries/storoslop-darwin-arm64,
                     native_targets: darwin-arm64,
@@ -924,7 +929,8 @@ jobs:
               APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
            run: bash scripts/ci-macos-sign.sh "${{ matrix.binary_path }}"
          - name: Smoke release binary
-           if: matrix.platform == 'darwin'
+           # A cross-built arm64 binary cannot execute on the Intel runner.
+           if: matrix.platform == 'darwin' && matrix.cross_arch != true
            run: |
               runtime_dir="$(mktemp -d)"
               HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" "${{ matrix.binary_path }}" --version
