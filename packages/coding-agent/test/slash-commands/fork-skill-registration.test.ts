@@ -16,11 +16,16 @@ import {
 } from "@oh-my-pi/pi-coding-agent/slash-commands/builtin-registry";
 
 describe("fork skill slash-command registration survives registry refactors", () => {
-	it("registers /memory backed by the file-memory tool", () => {
+	it("registers /memory with the fork's file-memory verbs on the backend-aware command", () => {
 		const cmd = lookupBuiltinSlashCommand("memory");
 		expect(cmd).toBeDefined();
 		expect(cmd!.name).toBe("memory");
-		expect(cmd!.description).toMatch(/file memory/i);
+		// Upstream owns the command (view/stats/diagnose/...); the fork folds its
+		// file-memory verbs into the same surface rather than shadowing it.
+		const subcommands = (cmd!.subcommands ?? []).map(sub => sub.name);
+		expect(subcommands).toContain("write");
+		expect(subcommands).toContain("forget");
+		expect(subcommands).toContain("stats");
 	});
 
 	it("registers /memory-backend for memory maintenance", () => {

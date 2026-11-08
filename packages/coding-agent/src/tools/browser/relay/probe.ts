@@ -13,7 +13,7 @@
  *   nothing is coming and the open fails at once instead of burning the
  *   whole window every call.
  */
-import { VERSION } from "@oh-my-pi/pi-utils/dirs";
+import { APP_NAME, VERSION } from "@oh-my-pi/pi-utils/dirs";
 import { throwIfAborted } from "../../tool-errors";
 import { probeCdpResponse } from "../attach";
 import type { RelayUnavailableInfo } from "./server";
@@ -146,7 +146,7 @@ export async function waitForRelayExtension(cdpUrl: string, signal?: AbortSignal
 }
 
 /** The steps that replace an out-of-date relay extension. */
-export const UPDATE_RELAY_EXTENSION = "Run `omp browser-relay install` and reload the extension in Chrome.";
+export const UPDATE_RELAY_EXTENSION = `Run \`${APP_NAME} browser-relay install\` and reload the extension in Chrome.`;
 
 /**
  * Notice for an open through a ready relay where a connected extension was
@@ -167,6 +167,7 @@ export async function relayExtensionNotice(cdpUrl: string, signal?: AbortSignal)
 		return null;
 	}
 	if (typeof installedBy !== "string" || !isOlderOmpVersion(installedBy, VERSION)) return null;
-	const origin = installedBy === "" ? "an older omp" : `omp ${installedBy}; this is omp ${VERSION}`;
-	return `The OMP Browser Relay extension is out of date (installed by ${origin}). ${UPDATE_RELAY_EXTENSION}`;
+	const origin =
+		installedBy === "" ? `an older ${APP_NAME}` : `${APP_NAME} ${installedBy}; this is ${APP_NAME} ${VERSION}`;
+	return `The ${APP_NAME} Browser Relay extension is out of date (installed by ${origin}). ${UPDATE_RELAY_EXTENSION}`;
 }

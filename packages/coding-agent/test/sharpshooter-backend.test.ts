@@ -56,9 +56,7 @@ describe("sharpshooter memory backend", () => {
 		expect(instructions).toContain("## style");
 	});
 
-	// Still failing with upstream's latest sources (the queue hook is never reached).
-	// Skipped only this case; the rest of the suite runs.
-	it.skip("dispatches ACP queue and sync commands to backend hooks", async () => {
+	it("dispatches ACP queue and sync commands to backend hooks", async () => {
 		const cwd = await makeTempDir("sharpshooter-acp-project");
 		const settings = Settings.isolated({ "memory.backend": "sharpshooter" });
 		const session = { settings } as AgentSession;

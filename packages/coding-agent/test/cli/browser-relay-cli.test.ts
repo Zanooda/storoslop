@@ -89,12 +89,12 @@ describe("omp browser-relay install", () => {
 				if (message === "extension connected") hello.resolve();
 			},
 		});
-		const runningScript = relayExtensionFiles("18.6.1")["background.js"]!;
+		const runningScript = relayExtensionFiles("1.2.0")["background.js"]!;
 		const manifestOnDisk = JSON.parse(relayExtensionFiles(VERSION)["manifest.json"]!);
 		stopWorker = runExtensionWorker(runningScript, port, manifestOnDisk);
 		await hello.promise;
 		expect(await relayExtensionNotice(`http://127.0.0.1:${port}`)).toContain(
-			`installed by omp 18.6.1; this is omp ${VERSION}`,
+			`installed by storoslop 1.2.0; this is storoslop ${VERSION}`,
 		);
 	});
 });

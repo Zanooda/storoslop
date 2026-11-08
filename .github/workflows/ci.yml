@@ -248,12 +248,7 @@ jobs:
            # (limits are per-process and the server persists across steps).
            run: |
               if [ "$(ulimit -Sn)" != unlimited ] && [ "$(ulimit -Sn)" -lt 65536 ]; then ulimit -Sn 65536 || true; fi
-              # pi-shell's own suite (26 cases: terminfo/langinfo/env under the
-              # bazel sandbox) is red at upstream 88a69582c7 itself — upstream's CI
-              # has been failing on a frozen lockfile and never ran it. The crate is
-              # still built and lint-checked below; its tests come back when upstream
-              # greens them.
-              bazelisk --bazelrc="${{ steps.cache.outputs.rc }}" test //crates/... -//crates/pi-shell:pi-shell_test
+              bazelisk --bazelrc="${{ steps.cache.outputs.rc }}" test //crates/...
          # Clippy scope mirrors `cargo clippy --workspace` (libraries only, no
          # test targets) plus the strict/default split: crates with
          # `[lints] workspace = true` get the workspace policy.

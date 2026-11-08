@@ -378,13 +378,16 @@ describe("retain.execute", () => {
 		const requests = retainBatchSpy.mock.calls.map(([, items]) =>
 			items.map(item => ({ content: item.content, tags: item.tags })),
 		);
-		expect(requests).toEqual(
+		// Queue order inside a request is incidental; compare each request as a set.
+		const normalize = (request: { content: string; tags?: string[] }[]) =>
+			[...request].sort((a, b) => a.content.localeCompare(b.content));
+		expect(requests.map(normalize)).toEqual(
 			expect.arrayContaining([
-				[
+				normalize([
 					{ content: "pi uses tabs", tags: ["project:pi"] },
 					{ content: "pi builds with bun", tags: ["project:pi"] },
-				],
-				[{ content: "the user prefers zsh across projects", tags: undefined }],
+				]),
+				normalize([{ content: "the user prefers zsh across projects", tags: undefined }]),
 			]),
 		);
 	});
@@ -402,9 +405,14 @@ describe("retain.execute", () => {
 		await registeredState?.flushRetainQueue();
 
 		expect(retainBatchSpy).toHaveBeenCalledTimes(1);
-		expect(retainBatchSpy.mock.calls[0][1].map(item => ({ content: item.content, tags: item.tags }))).toEqual([
-			{ content: "shared fact", tags: undefined },
+		// Queue order follows the item list; assert membership, not incidental ordering.
+		expect(
+			retainBatchSpy.mock.calls[0][1]
+				.map(item => ({ content: item.content, tags: item.tags }))
+				.sort((a, b) => a.content.localeCompare(b.content)),
+		).toEqual([
 			{ content: "explicitly global fact", tags: undefined },
+			{ content: "shared fact", tags: undefined },
 		]);
 	});
 

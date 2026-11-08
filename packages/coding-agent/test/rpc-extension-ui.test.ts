@@ -457,6 +457,9 @@ export default function(pi) {
 					XDG_CACHE_HOME: temp.join("cache"),
 					CI: "true",
 					PI_NO_TITLE: "1",
+					// Child processes do not inherit the bun-test preload; opt into the
+					// upstream chat-provider surface this suite's fixtures assume.
+					PI_TEST_UNRESTRICTED_CHAT: "1",
 				},
 				stdin: "pipe",
 				stdout: "pipe",
@@ -732,6 +735,9 @@ describe("RPC ask dialog", () => {
 					XDG_CACHE_HOME: temp.join("cache"),
 					CI: "true",
 					PI_NO_TITLE: "1",
+					// Child processes do not inherit the bun-test preload; opt into the
+					// upstream chat-provider surface this suite's fixtures assume.
+					PI_TEST_UNRESTRICTED_CHAT: "1",
 				},
 				stdin: "pipe",
 				stdout: "pipe",
