@@ -8,6 +8,12 @@
 
 - Fixed the dashboard staying at an empty snapshot when the final ingest update arrives during an in-flight request
 - Fixed `omp stats` catching up on sessions at under one file a second while a dashboard page was open: during a full sync open pages now refresh at most every 15 seconds instead of after every batch
+## [18.18.2] - 2026-11-08
+
+### Fixed
+
+- Fixed the trace dashboard returning HTTP 431 for sessions with many subagents.
+
 ## [18.17.0] - 2026-11-06
 
 ### Fixed
