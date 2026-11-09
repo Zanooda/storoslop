@@ -2,22 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
-
-### Added
-
-- Added `macOSFrontApp()`, which reads and briefly keeps the front app on macOS, and `installSqliteLockShim()` / `heldFileKind()` for open-file-description SQLite locks on Linux
-
-### Changed
-
-- Replaced the embedded shell interpreter behind `Shell` and `executeShell` with pi's own bash engine in `pi-shell` (bash 5.3 semantics); the vendored brush crates are gone and a patched `grep-searcher` crate serves chunk-fed searches
-- Replaced the embedded shell interpreter behind `Shell` and `executeShell` with pi's own bash engine, now part of `pi-shell`: bash 5.3 semantics, including alias bodies with pipes, subshells and separators
-- Upstream `a536558dc2` integration (958 commits): adopted `parseCodeStatus`, the syntax-tree-memory-budgeted code-structure parse cache, `warmBlockParse`'s 2 MiB skip, and the single-file `grep` `maxCountPerFile` fix.
-
-### Fixed
-
-- Fixed iPhone Mirroring clicks, scrolls and keys reporting success while the mirror showed a connection screen
-- Fixed `parseKey`/`matchesKey` not recognizing the parameterless `CSI P`/`CSI Q`/`CSI S` forms kitty-protocol terminals send for F1/F2/F4, and modified F2–F9 matching other keys
 ## [18.18.2] - 2026-11-08
 
 ### Added
@@ -2258,6 +2242,23 @@
 ### Fixed
 
 - Fixed potential crashes when updating native binaries by using safe copy strategy that avoids overwriting in-memory binaries
+
+## [1.3.8] - 2026-11-04
+
+### Added
+
+- Added `macOSFrontApp()`, which reads and briefly keeps the front app on macOS, and `installSqliteLockShim()` / `heldFileKind()` for open-file-description SQLite locks on Linux
+
+### Changed
+
+- Replaced the embedded shell interpreter behind `Shell` and `executeShell` with pi's own bash engine in `pi-shell` (bash 5.3 semantics); the vendored brush crates are gone and a patched `grep-searcher` crate serves chunk-fed searches
+- Replaced the embedded shell interpreter behind `Shell` and `executeShell` with pi's own bash engine, now part of `pi-shell`: bash 5.3 semantics, including alias bodies with pipes, subshells and separators
+- Upstream `a536558dc2` integration (958 commits): adopted `parseCodeStatus`, the syntax-tree-memory-budgeted code-structure parse cache, `warmBlockParse`'s 2 MiB skip, and the single-file `grep` `maxCountPerFile` fix.
+
+### Fixed
+
+- Fixed iPhone Mirroring clicks, scrolls and keys reporting success while the mirror showed a connection screen
+- Fixed `parseKey`/`matchesKey` not recognizing the parameterless `CSI P`/`CSI Q`/`CSI S` forms kitty-protocol terminals send for F1/F2/F4, and modified F2–F9 matching other keys
 
 ## [1.3.7] - 2026-10-16
 

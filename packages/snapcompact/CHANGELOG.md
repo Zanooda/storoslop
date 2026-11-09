@@ -2,16 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
-
-### Added
-
-- Integrated upstream oh-my-pi `33ea58aa7d`, adding `archiveIncludesThinking()` and `viewSummary()` and keeping a summary an extension wrote in its own words
-
-### Fixed
-
-- Fixed `viewWithoutFrames` and `viewWithoutThinking` keeping an archive's reasoning for a reader without it when the summary declares no `¶think:` scope
-- Fixed `compact()` dropping the imaged history of an archive saved before omp 16.1.0 without a word: the new summary now counts those characters as dropped history ([#17883](https://github.com/can1357/oh-my-pi/pull/17883) by [@will-bogusz](https://github.com/will-bogusz))
 ## [18.17.0] - 2026-11-06
 
 ### Fixed
@@ -334,6 +324,17 @@
 
 - Fixed frame rendering at archive chunk boundaries to reopen dim spans when a chunk ends inside a dimmed tool-result segment
 - Fixed message serialization to strip user- and assistant-provided dim markers so only renderer-generated dim spans can be applied
+
+## [1.3.8] - 2026-11-04
+
+### Added
+
+- Integrated upstream oh-my-pi `33ea58aa7d`, adding `archiveIncludesThinking()` and `viewSummary()` and keeping a summary an extension wrote in its own words
+
+### Fixed
+
+- Fixed `viewWithoutFrames` and `viewWithoutThinking` keeping an archive's reasoning for a reader without it when the summary declares no `¶think:` scope
+- Fixed `compact()` dropping the imaged history of an archive saved before omp 16.1.0 without a word: the new summary now counts those characters as dropped history ([#17883](https://github.com/can1357/oh-my-pi/pull/17883) by [@will-bogusz](https://github.com/will-bogusz))
 
 ## [1.2.0] - 2026-08-31
 

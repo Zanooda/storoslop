@@ -2,7 +2,17 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
+## [1.3.9] - 2026-11-09
+
+### Added
+
+- Added `isPidAlive`, `asStrictBytes`, `ensureSqliteLockShim` and `assertNotHeldOpen` (SQLite `EBUSY` guard on files this process holds open)
+
+### Changed
+
+- ACP runtime validators report each failing field's path and reason in `error.issues` instead of a single `Invalid <label>`
+- Upstream `a536558dc2` integration (958 commits): adopted the shared `slugify()` helper, `sqliteFileIdentity()`, and the aborted-subprocess rejection fix.
+
 ## [18.18.2] - 2026-11-08
 
 ### Added
@@ -23,14 +33,8 @@
 
 ## [18.17.0] - 2026-11-06
 
-### Added
-
-- Added `isPidAlive`, `asStrictBytes`, `ensureSqliteLockShim` and `assertNotHeldOpen` (SQLite `EBUSY` guard on files this process holds open)
-
 ### Changed
 
-- ACP runtime validators report each failing field's path and reason in `error.issues` instead of a single `Invalid <label>`
-- Upstream `a536558dc2` integration (958 commits): adopted the shared `slugify()` helper, `sqliteFileIdentity()`, and the aborted-subprocess rejection fix.
 - Added `getUpdateStateDir()`, returning the auto-update state directory (`~/.omp/update`).
 - Added `logger.setLogForwarder()` and `logger.emitForeign()` to forward log records across threads, preserving context and timestamps.
 - Added `expandTilde()` to expand a leading `~` to the home directory.

@@ -2,12 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
-
-### Added
-
-- Added an optional `heat` value in [0, 1] to `code` line marks (`TspCodeMark`), so a line can be shaded by a score. A mark's `tone` is now optional.
-- Added `code` folds (`TspCodeFold`: runs of lines drawn as one row that opens in place, with an optional label, note, tone and hover card), per-line score gradients (`TspCodeMark.wash`: scores washing the row from left to right) and an overview strip (`TspCodeProps.overview`).
 ## [18.18.0] - 2026-11-07
 
 ### Changed
@@ -159,3 +153,10 @@
 ### Added
 
 - Added shared collab live-session wire contracts for the host CLI and browser guest client.
+
+## [1.3.8] - 2026-11-04
+
+### Added
+
+- Added an optional `heat` value in [0, 1] to `code` line marks (`TspCodeMark`), so a line can be shaded by a score. A mark's `tone` is now optional.
+- Added `code` folds (`TspCodeFold`: runs of lines drawn as one row that opens in place, with an optional label, note, tone and hover card), per-line score gradients (`TspCodeMark.wash`: scores washing the row from left to right) and an overview strip (`TspCodeProps.overview`).

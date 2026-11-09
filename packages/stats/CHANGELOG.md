@@ -2,12 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
-
-### Fixed
-
-- Fixed the dashboard staying at an empty snapshot when the final ingest update arrives during an in-flight request
-- Fixed `omp stats` catching up on sessions at under one file a second while a dashboard page was open: during a full sync open pages now refresh at most every 15 seconds instead of after every batch
 ## [18.18.2] - 2026-11-08
 
 ### Fixed
@@ -503,6 +497,13 @@
 ### Fixed
 
 - Include subtask session files in usage stats ([#250](https://github.com/can1357/oh-my-pi/issues/250))
+
+## [1.3.8] - 2026-11-04
+
+### Fixed
+
+- Fixed the dashboard staying at an empty snapshot when the final ingest update arrives during an in-flight request
+- Fixed `omp stats` catching up on sessions at under one file a second while a dashboard page was open: during a full sync open pages now refresh at most every 15 seconds instead of after every batch
 
 ## [1.3.7] - 2026-10-16
 

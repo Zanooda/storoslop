@@ -2,33 +2,12 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
-
-### Added
-
-- `/login mistral` signs in through the browser like the Mistral Vibe CLI and stores the minted API key, whose usage counts against the plan's Vibe Code quota
-- Added `dropsForeignReasoningPayload`, `isFactoryDroidGeminiWire` and `keepsFactoryGeminiReasoning`, and Factory Droid Beam 1.0 requests accept tool-call turns without reasoning
-
-### Changed
-
-- Deprecated `formatError` on the embeddings, images, rerank, speech, transcriptions, video, pi-native and SystemOne server modules, and `asStrict` in `providers/aws-sigv4`
-- Upstream `a536558dc2` integration (958 commits): adopted scoped `startAuthGateway` clients, `isSurvivingAssistant`, and the Cursor, Codex SSE and Anthropic fallback-credit recovery fixes.
-
-- Added opt-in standard Responses WebSockets for catalog-supported models, with incremental turns and session-scoped HTTP/SSE fallback; OMP enables them through settings ([#17354](https://github.com/can1357/oh-my-pi/pull/17354) by [@TatsukiMeng](https://github.com/TatsukiMeng))
-- `AuthStorage` can be constructed over an `AuthStorageBackend` (its namespaces plus `setAccountPolicies`/`replaceStore`/`close`) instead of a credential store, so another thread's instance can serve every call
-- Anthropic sessions on the official API now use message threads (`message-threads-2026-08-12`, as Claude Code does): after the first turn each request sends only the new messages, cutting time to first token in long conversations; a refused or expired thread replays the full conversation automatically. `statefulResponses: false` or `PI_ANTHROPIC_MESSAGE_THREADS=0` turns it off, `PI_ANTHROPIC_MESSAGE_THREADS=1` opts other endpoints in
-- Added the `devin-cli` login, which adopts the Devin CLI's `credentials.toml` seat key as a `devin` API key ([#13637](https://github.com/can1357/oh-my-pi/pull/13637) by [@pavel-kalmykov](https://github.com/pavel-kalmykov))
-- Added the `devin-windsurf` login, which exchanges a Windsurf Enterprise sign-in for the seat's raw API key and stores it as a `devin` API key ([#13288](https://github.com/can1357/oh-my-pi/pull/13288) by [@pavel-kalmykov](https://github.com/pavel-kalmykov))
-- Factory Droid Gemini 4 Argon requests match droid's: no sampling parameters, the output cap at the model maximum, and its earlier turns replayed exactly as Gemini streamed them ([#17861](https://github.com/can1357/oh-my-pi/pull/17861) by [@will-bogusz](https://github.com/will-bogusz))
+## [1.3.9] - 2026-11-09
 
 ### Fixed
 
-- Fixed account switching stopping after rate-limited accounts when model discovery had not seen every stored account; other eligible accounts are now tried before blocked fallbacks
-- OAuth broker validation now checks optional residency, inference-region, and selected-organization metadata in uploaded credentials and remote snapshots
-- Fixed Muse Code subscription sessions failing every turn with `403 client_attestation_denied` when tools like `bash` or `web_search` were available; Muse Code requests now use tool names Meta accepts and calls still run under their own names ([#17435](https://github.com/can1357/oh-my-pi/issues/17435), [#17515](https://github.com/can1357/oh-my-pi/pull/17515) by [@harshav167](https://github.com/harshav167), continued in [#18053](https://github.com/can1357/oh-my-pi/pull/18053) by [@abilliontokens](https://github.com/abilliontokens))
-- Fixed xAI speech requests failing with `422 missing field language`: `xai-tts` now sends `language`, which xAI's `/v1/tts` requires, defaulting to `auto` (automatic detection) when the caller passes none, as the auth gateway's `/v1/audio/speech` does ([#17992](https://github.com/can1357/oh-my-pi/pull/17992) by [@Mirceone](https://github.com/Mirceone))
-- Fixed Codex WebSocket turns sending a delta `input` after a pooled socket reconnected (closed, idle eviction, token refresh, or prewarm routing-hint change) or when `onPayload` deleted `previous_response_id` (including when it also rewrote the input), and skipped late prewarm while a socket is busy or holding accepted steering ([#17809](https://github.com/can1357/oh-my-pi/pull/17809) by [@xiangnan0811](https://github.com/xiangnan0811)).
-- API-key logins now honor the auth rule's `store-as` provider instead of storing the key under the auth id ([#13637](https://github.com/can1357/oh-my-pi/pull/13637) by [@pavel-kalmykov](https://github.com/pavel-kalmykov))
+- Fixed Factory Droid Fable requests offering a refusal fallback model your organization excludes; Claude requests now offer only models the account can use
+
 ## [18.18.2] - 2026-11-08
 
 ### Added
@@ -74,7 +53,6 @@
 
 ### Fixed
 
-- Fixed Factory Droid Fable requests offering a refusal fallback model your organization excludes; Claude requests now offer only models the account can use
 - Fixed account switching stopping at rate-limited accounts; other eligible stored accounts are now tried first
 - Fixed OpenRouter Decisions judges ignoring `compat.openRouterRouting` and `compat.extraBody`, including `@provider` pins ([#18140](https://github.com/can1357/oh-my-pi/issues/18140))
 - OAuth broker now validates residency, inference-region, and selected-organization metadata in uploaded credentials and remote snapshots
@@ -2256,59 +2234,4 @@
 - Fixed Ollama/Ollama Cloud EOS-only completions to retry empty stops with a single output token before the agent loop can halt silently. ([#4659](https://github.com/can1357/oh-my-pi/issues/4659))
 - Fixed Claude Sonnet 5 failing every request on feature-gated gateways (Azure Foundry, OpenAI-compatible relays) that reject strict tools with "structured_outputs not supported" — the rejection is now classified as a strict-tool rejection, so the request retries without strict tools and the session remembers the downgrade.
 
-## [16.3.7] - 2026-07-05
-
-### Fixed
-
-- Fixed formatting of demoted reasoning blocks to prevent accidental concatenation with prose
-- Fixed terminal whitespace issues in assistant messages that caused rejections by Anthropic API
-- Fixed Cursor provider handling of empty-pattern grep arguments to return a clear, actionable error instead of a generic error and a broken TUI rendering.
-- Fixed Google Cloud Code Assist API (Antigravity) and Gemini CLI to immediately bubble up underlying API errors (such as safety or recitation blocks) instead of incorrectly retrying and hiding them behind a generic empty-response message.
-- Fixed GitHub Copilot OpenAI Responses replay to prevent empty reasoning-only assistant turns from being persisted in history and poisoning subsequent requests.
-- Fixed classification of provider gateway quota-insufficient errors so they are correctly identified as usage-limit errors rather than generic 403 failures.
-- Fixed OpenAI-compatible Responses models (such as DeepSeek endpoints) to preserve user-configured tool strictness settings unless strict mode is explicitly unsupported.
-- Fixed custom openai-codex-responses providers failing when no ChatGPT account ID claim is present by omitting the header when it cannot be derived.
-- Fixed token accounting for OpenAI Responses and Codex providers to correctly include provider-side orchestration tokens in billing totals without misclassifying them as uncached prompt input.
-- Fixed Google Gemini and Cloud Code Assist providers to preserve the requested reasoning tier when sending requests with hidden thinking summaries.
-- Fixed parallel OpenAI-compatible tool-call streaming to prevent argument data from bleeding across concurrent commands when identifiers are missing.
-- Fixed Anthropic Claude reasoning and thinking replay handling. Same-model replays now drop unsigned prior reasoning blocks to prevent reasoning-extraction refusals, while cross-model replays (including Bedrock cross-region profiles) correctly demote reasoning without emitting raw thinking tags or causing text-flattening formatting issues.
-- Fixed custom OpenAI-compatible relays serving standard OpenAI model IDs to be correctly classified as OpenAI-family targets for fast mode.
-
-## [16.3.6] - 2026-07-04
-
-### Added
-
-- Persisted credential rate-limit blocks across processes: `auth_credential_blocks` (auth schema v5) stores per-credential blocks keyed by row id + provider key + block scope with MAX-upsert semantics, `AuthStorage` merges persisted and in-memory blocks on read, and auth-broker snapshots/SSE carry per-entry blocks with `POST /v1/credential/:id/block` and `DELETE /v1/credential/:id/blocks` endpoints so gateway and sibling omp processes stop re-discovering exhausted accounts by burning a 429 each.
-
-### Fixed
-
-- Fixed Anthropic credential selection sampling Fable/Mythos-exhausted accounts on every new session: a Fable/Mythos weekly cap now proactively hard-blocks the credential when confirmed exhausted (server `exhausted` status or used fraction >= 1) with a live `resetsAt`, and a live Fable 429 extends the reactive block to the confirmed tier reset instead of the 60s default. Unconfirmed rows (missing/expired reset, below cap) remain ranking hints only, preserving the false-100% guard.
-- Fixed Ollama/Ollama Cloud tool requests failing with HTTP 400 by rewriting boolean subschemas (`true`/`false`) into a value-widening `anyOf` union of primitive types, stripping boolean `additionalProperties`/`unevaluatedProperties`, and flattening nullable `type` arrays before serializing tool parameters, so unconstrained fields still advertise "any JSON value" to grammar-constrained samplers (llama.cpp) instead of collapsing to an empty object. ([#4488](https://github.com/can1357/oh-my-pi/issues/4488))
-
-## [16.3.5] - 2026-07-04
-
-### Added
-
-- `OAuthCallbackFlow` now serves a `GET /launch` route on its loopback callback server that 302-redirects to the pending authorization URL, and exposes that short URL as `OAuthAuthInfo.launchUrl`. UIs can advertise it as a truncation-safe copy target (~30 chars) instead of the full authorize URL, so terminals narrower than the composed row cannot silently drop OAuth query parameters like `code_challenge_method=S256` ([#4418](https://github.com/can1357/oh-my-pi/issues/4418)).
-- Preserved explicit `tool.strict === false` on OpenAI-family function tool payloads (openai-responses, openai-codex-responses, openai-completions) so backends that distinguish `strict: false` from an omitted flag stop over-filling optional arguments ([#4336](https://github.com/can1357/oh-my-pi/issues/4336)).
-
-### Fixed
-
-- Fixed tool-call validation to strip stray trailing line terminators on schema-matching enum values and on well-known identifier fields (`path`, `paths`, `file`, `file_path`, `url`, `uri`, `title`, `label`) before dispatch, keeping ordinary trailing spaces and content-carrying fields (`content`, `input`, `code`, `command`, etc.) intact ([#4461](https://github.com/can1357/oh-my-pi/issues/4461)).
-
-## [16.3.4] - 2026-07-03
-
-### Added
-
-- Added support for Baseten as an AI provider
-
-### Changed
-
-- Improved Claude usage reliability by removing proactive hard-blocking for Fable and Mythos tiers
-
-### Fixed
-
-- Fixed Anthropic OAuth account rotation to exclude unreliable model-scoped Fable/Mythos weekly caps from proactive hard-blocking, ensuring they act only as ranking priority hints while still allowing reactive 429-fallback to rotate and reach serviceable siblings.
-
-Older entries are archived in [packages/ai/CHANGELOG.md@6c6c5b3ca4db](https://github.com/can1357/oh-my-pi/blob/6c6c5b3ca4db5069a08427d488b8de479ff158bf/packages/ai/CHANGELOG.md).
-Older entries are archived in [packages/ai/CHANGELOG.md@bdbb5c920f69](https://github.com/can1357/oh-my-pi/blob/bdbb5c920f693caff287c50996c116e42e37992b/packages/ai/CHANGELOG.md).
+Older entries are archived in [packages/ai/CHANGELOG.md@16375d03844f](https://github.com/can1357/oh-my-pi/blob/16375d03844f3c016cdb74894a04a658f94c1b41/packages/ai/CHANGELOG.md).

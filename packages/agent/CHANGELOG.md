@@ -2,21 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
-
-### Changed
-
-- Deprecated `createFileOps`, `computeFileLists`, `formatFileOperations`, `upsertFileOperations`, `isUrlSchemePath` and `FileOperations` in `@oh-my-pi/pi-agent-core/compaction`; they now re-export `@oh-my-pi/snapcompact`
-- Context estimates count text with native tokenizers, and a model with no known tokenizer family counts in o200k_base instead of guessing 4 bytes per token
-- Upstream `a536558dc2` integration (958 commits): adopted `Agent.prioritizeSteering`, `Tokenizer.countLatestTurn`, and `resumedToolCallIds` on `agent_start`.
-
-### Fixed
-
-- Fixed context estimates charging another model's thinking signatures or redacted thinking, which the request strips
-
-### Removed
-
-- Removed `PI_TOKENIZER_ACCURATE`; every model is counted with a native tokenizer
 ## [18.18.2] - 2026-11-08
 
 ### Added
@@ -1848,6 +1833,22 @@
 ## [1.337.0] - 2026-01-02
 
 Initial release under @oh-my-pi scope. See previous releases at [badlogic/pi-mono](https://github.com/badlogic/pi-mono).
+
+## [1.3.8] - 2026-11-04
+
+### Changed
+
+- Deprecated `createFileOps`, `computeFileLists`, `formatFileOperations`, `upsertFileOperations`, `isUrlSchemePath` and `FileOperations` in `@oh-my-pi/pi-agent-core/compaction`; they now re-export `@oh-my-pi/snapcompact`
+- Context estimates count text with native tokenizers, and a model with no known tokenizer family counts in o200k_base instead of guessing 4 bytes per token
+- Upstream `a536558dc2` integration (958 commits): adopted `Agent.prioritizeSteering`, `Tokenizer.countLatestTurn`, and `resumedToolCallIds` on `agent_start`.
+
+### Fixed
+
+- Fixed context estimates charging another model's thinking signatures or redacted thinking, which the request strips
+
+### Removed
+
+- Removed `PI_TOKENIZER_ACCURATE`; every model is counted with a native tokenizer
 
 ## [1.3.7] - 2026-10-16
 

@@ -2,26 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.8] - 2026-11-04
-
-### Added
-
-- Adopted upstream `33ea58aa7d` (`18.16.0`) model catalog wholesale, with the fork's `storoslop/deepseek-v4.1-flash` seed merged at read time so single-provider setups keep working
-- Added Scaleway Generative APIs (12 serverless chat models, glm-5.3 default), Mistral Vibe browser sign-in, and Factory Droid's droid 1.1.0 models with dated credit rates
-
-### Changed
-
-- GPT-3.5 and GPT-4 resolve the `cl100k` tokenizer, and catalog models drive native-tokenizer context estimates instead of a bytes-per-token guess
-- Upstream `a536558dc2` integration (958 commits): adopted the `keep-bundled-names` attribute, the `gpt-image` family split, Vertex 1h prompt-cache retention, and the `sambanova` provider; the runtime registry stays single-provider over the bundled storoslop seed.
-- Added the `tool-name-prefix` compat axis for Responses hosts that reject requests declaring certain exact tool names; Muse Code sets it to `_` ([#17435](https://github.com/can1357/oh-my-pi/issues/17435), [#17515](https://github.com/can1357/oh-my-pi/pull/17515) by [@harshav167](https://github.com/harshav167), continued in [#18053](https://github.com/can1357/oh-my-pi/pull/18053) by [@abilliontokens](https://github.com/abilliontokens))
-- Added the `supports-message-threads` compat axis (`supportsMessageThreads`), enabled for Claude 4.5 and newer on the first-party Anthropic provider
-- Added a standard Responses WebSocket capability rule for explicit opt-in through OMP settings or SDK preferences, disabled by default ([#17354](https://github.com/can1357/oh-my-pi/pull/17354) by [@TatsukiMeng](https://github.com/TatsukiMeng))
-- Added Factory Droid Gemini 4 Argon, listed on Global inference once the account's feature flag enables it ([#17861](https://github.com/can1357/oh-my-pi/pull/17861) by [@will-bogusz](https://github.com/will-bogusz))
-- Added Muse Spark 1.3 to Factory Droid for accounts with Factory's `muse_spark_1_3` flag, on the Global region only: requests go over Responses to Factory's Vertex upstream with low to xhigh effort, and later turns omit the earlier turns' encrypted reasoning as Droid does ([#17862](https://github.com/can1357/oh-my-pi/pull/17862) by [@will-bogusz](https://github.com/will-bogusz))
-### Changed
-
-- Added a `balanced` delegation bias between `eager` and `restrained`; models without a `delegation-bias` rule now resolve to it instead of `eager`
-
 ## [18.18.2] - 2026-11-08
 
 ### Fixed
@@ -2379,6 +2359,24 @@
 ### Removed
 
 - Removed the runtime enrichment layer: `enrichModelThinking` (and its non-enumerable memo-slot cache), `refreshModelThinking`, `modelOmitsReasoningEffort`, and the `model-thinking` re-exports of generator-only policies. Thinking metadata is resolved exactly once inside `buildModel`; runtime helpers (`getSupportedEfforts`, `clampThinkingLevelForModel`, `requireSupportedEffort`, the effort mappers) are pure field reads.
+
+## [1.3.8] - 2026-11-04
+
+### Added
+
+- Adopted upstream `33ea58aa7d` (`18.16.0`) model catalog wholesale, with the fork's `storoslop/deepseek-v4.1-flash` seed merged at read time so single-provider setups keep working
+- Added Scaleway Generative APIs (12 serverless chat models, glm-5.3 default), Mistral Vibe browser sign-in, and Factory Droid's droid 1.1.0 models with dated credit rates
+
+### Changed
+
+- GPT-3.5 and GPT-4 resolve the `cl100k` tokenizer, and catalog models drive native-tokenizer context estimates instead of a bytes-per-token guess
+- Upstream `a536558dc2` integration (958 commits): adopted the `keep-bundled-names` attribute, the `gpt-image` family split, Vertex 1h prompt-cache retention, and the `sambanova` provider; the runtime registry stays single-provider over the bundled storoslop seed.
+- Added the `tool-name-prefix` compat axis for Responses hosts that reject requests declaring certain exact tool names; Muse Code sets it to `_` ([#17435](https://github.com/can1357/oh-my-pi/issues/17435), [#17515](https://github.com/can1357/oh-my-pi/pull/17515) by [@harshav167](https://github.com/harshav167), continued in [#18053](https://github.com/can1357/oh-my-pi/pull/18053) by [@abilliontokens](https://github.com/abilliontokens))
+- Added the `supports-message-threads` compat axis (`supportsMessageThreads`), enabled for Claude 4.5 and newer on the first-party Anthropic provider
+- Added a standard Responses WebSocket capability rule for explicit opt-in through OMP settings or SDK preferences, disabled by default ([#17354](https://github.com/can1357/oh-my-pi/pull/17354) by [@TatsukiMeng](https://github.com/TatsukiMeng))
+- Added Factory Droid Gemini 4 Argon, listed on Global inference once the account's feature flag enables it ([#17861](https://github.com/can1357/oh-my-pi/pull/17861) by [@will-bogusz](https://github.com/will-bogusz))
+- Added Muse Spark 1.3 to Factory Droid for accounts with Factory's `muse_spark_1_3` flag, on the Global region only: requests go over Responses to Factory's Vertex upstream with low to xhigh effort, and later turns omit the earlier turns' encrypted reasoning as Droid does ([#17862](https://github.com/can1357/oh-my-pi/pull/17862) by [@will-bogusz](https://github.com/will-bogusz))
+- Added a `balanced` delegation bias between `eager` and `restrained`; models without a `delegation-bias` rule now resolve to it instead of `eager`
 
 ## [1.3.7] - 2026-10-16
 
