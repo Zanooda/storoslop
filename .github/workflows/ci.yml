@@ -813,6 +813,13 @@ jobs:
            env:
               RELEASE_TARGETS: ${{ matrix.target_id }}
            run: bun run ci:release:build-binaries
+         # bun's cross-compiled arm64 output carries no signature, and Apple silicon
+         # refuses to execute an unsigned arm64 binary.
+         - name: Ad-hoc sign the cross-built binary
+           if: matrix.cross_arch == true
+           run: |
+              codesign --force --sign - --timestamp=none "${{ matrix.binary_path }}"
+              codesign --verify --strict --verbose=4 "${{ matrix.binary_path }}"
          # Windows binary is cross-built on Linux, so we have no Windows runner
          # to smoke it on. Cross-build correctness is verified via the bun
          # `--compile --target=bun-windows-x64-*` cross-compile. Musl binaries

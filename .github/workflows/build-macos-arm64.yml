@@ -42,6 +42,12 @@ jobs:
           RELEASE_TARGETS: darwin-arm64
         run: bun run ci:release:build-binaries
       # Cross-built arm64 cannot execute here; the release run smokes darwin-x64.
+      # bun's cross-compiled arm64 output carries no signature, and Apple silicon
+      # refuses to execute an unsigned arm64 binary. Ad-hoc sign it on this host.
+      - name: Ad-hoc sign the cross-built binary
+        run: |
+          codesign --force --sign - --timestamp=none packages/coding-agent/binaries/storoslop-darwin-arm64
+          codesign --verify --strict --verbose=4 packages/coding-agent/binaries/storoslop-darwin-arm64
       - name: Upload release binary artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
