@@ -189,7 +189,9 @@ describe("setup surfaces under native rendering", () => {
 		}
 	});
 
-	it("does not repaint an idle ANSI scene while keeping timed phases animated", async () => {
+	// Fork: the setup wizard starts directly at the first scene (no animated splash),
+	// so the timed phase this case animates does not exist here.
+	it.skip("does not repaint an idle ANSI scene while keeping timed phases animated", async () => {
 		setNativeRendering(false);
 		const ui = fakeUi();
 		const scene = probeScene("idle");
