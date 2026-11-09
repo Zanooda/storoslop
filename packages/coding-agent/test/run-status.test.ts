@@ -139,7 +139,7 @@ describe("run status OSC 7501 reporting", () => {
 		setRunStatus({ state: "working" });
 		setRunStatus({ state: "done" });
 		settleStartupRun();
-		expect(writes).toEqual([report("state=working:app=omp"), report("state=done:app=omp")]);
+		expect(writes).toEqual([report("state=working:app=storoslop"), report("state=done:app=storoslop")]);
 
 		disposeProgramStatus();
 		writes.length = 0;
@@ -150,6 +150,6 @@ describe("run status OSC 7501 reporting", () => {
 		expect(titleGenerator.setTerminalTitleState).toHaveBeenLastCalledWith("working");
 		setProgramStatusEnabled(true);
 		settleStartupRun();
-		expect(writes).toEqual([report("state=working:app=omp"), report("state=idle:app=omp")]);
+		expect(writes).toEqual([report("state=working:app=storoslop"), report("state=idle:app=storoslop")]);
 	});
 });

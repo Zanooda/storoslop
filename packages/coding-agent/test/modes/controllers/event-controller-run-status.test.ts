@@ -62,8 +62,10 @@ function toolEnd(toolCallId: string, toolName: string): AgentSessionEvent {
 	} as unknown as AgentSessionEvent;
 }
 
+// The ask tool is an HTML form now: the run status reads the question from the
+// first named field's label.
 function askArgs(question: string): Record<string, unknown> {
-	return { questions: [{ id: "q", question, options: [{ label: "Yes" }, { label: "No" }] }] };
+	return { html: `<form><label>${question} <input type="text" name="q"></label></form>` };
 }
 
 describe("EventController run status at turn end", () => {

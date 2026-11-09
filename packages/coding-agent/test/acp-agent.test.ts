@@ -1446,9 +1446,9 @@ describe("ACP agent", () => {
 		await Bun.write(path.join(other, "wrong.ts"), "export default function wrong() {}\n");
 		await Bun.write(path.join(target, "package.json"), JSON.stringify({ omp: { extensions: ["./hello.ts"] } }));
 		await Bun.write(path.join(target, "hello.ts"), "export default function hello() {}\n");
-		await Bun.write(path.join(harness.cwdA, ".omp", "config.yml"), "extensions:\n  - ./other\n");
+		await Bun.write(path.join(harness.cwdA, ".storoslop", "config.yml"), "extensions:\n  - ./other\n");
 		await Bun.write(
-			path.join(harness.cwdB, ".omp", "config.yml"),
+			path.join(harness.cwdB, ".storoslop", "config.yml"),
 			"extensions:\n  - ./fleet\ndisabledExtensions:\n  - extension-module:hello\n",
 		);
 		cfgExtensions.set(Settings.instance, [other]);

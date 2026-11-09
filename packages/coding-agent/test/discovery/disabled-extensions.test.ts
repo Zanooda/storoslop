@@ -252,7 +252,7 @@ describe("disabledExtensions runtime filtering", () => {
 		);
 		await Bun.write(guard, "export default function guard() {}\n");
 		// The loader's hook discovery reads configured package roots from disk.
-		await Bun.write(path.join(tempHomeDir, ".omp", "agent", "config.yml"), `extensions:\n  - ${fleet}\n`);
+		await Bun.write(path.join(tempHomeDir, ".storoslop", "agent", "config.yml"), `extensions:\n  - ${fleet}\n`);
 		const roots: EffectiveExtensionRoots = {
 			explicit: [],
 			mode: "merge",
