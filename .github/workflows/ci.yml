@@ -253,6 +253,12 @@ jobs:
            uses: ./.github/actions/bazel-cache
            with:
               scope: linux
+         # The Linux N-API cdylib links with lld explicitly: GNU ld (Bazel's cc
+         # toolchain forces gold here) rejects rustc's version script combined
+         # with the addon's :exports_map. Bazel passes -B/usr/bin, so lld must
+         # live there; the hosted image does not ship it.
+         - name: Install lld
+           run: sudo apt-get update && sudo apt-get install -y lld
          - name: Rust tests
            # The ulimit guard runs in the step that launches the bazel server
            # (limits are per-process and the server persists across steps).

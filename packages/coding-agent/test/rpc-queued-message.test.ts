@@ -38,7 +38,7 @@ describe("RPC queued-message editing", () => {
 
 	afterEach(async () => {
 		await client?.stop();
-		// keep temp for debugging
+		await removeWithRetries(directory);
 	});
 
 	/** Starts the fixture under `script` with a first turn that streams until aborted. */
