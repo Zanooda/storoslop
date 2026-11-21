@@ -1063,9 +1063,16 @@ jobs:
            run: |
               codesign -dvvv ./storoslop-darwin-arm64
               codesign --verify --strict --verbose=4 ./storoslop-darwin-arm64
-              runtime_dir="$(mktemp -d)"
-              HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" ./storoslop-darwin-arm64 --version
-              HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" ./storoslop-darwin-arm64 --smoke-test
+              file ./storoslop-darwin-arm64
+              # Rosetta translates x86 on arm64, never arm64 on x86; the Intel
+              # runner can only validate the signature and file identity.
+              if [ "$(uname -m)" = "arm64" ]; then
+                runtime_dir="$(mktemp -d)"
+                HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" ./storoslop-darwin-arm64 --version
+                HOME="$runtime_dir/home" XDG_DATA_HOME="$runtime_dir/xdg" ./storoslop-darwin-arm64 --smoke-test
+              else
+                echo "host is $(uname -m); arm64 execution and smoke test need an Apple silicon runner"
+              fi
          - name: Assert signed release is not ad-hoc
            if: env.MACOS_SIGNING == 'true'
            run: |
