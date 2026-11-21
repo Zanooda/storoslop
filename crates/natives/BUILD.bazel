@@ -203,6 +203,16 @@ rust_shared_library(
         ],
         "@platforms//os:linux": [
             "-Clink-arg=-Wl,-z,nodelete",
+            # GNU gold (Bazel's cc flags force it on hosted runners) rejects a
+            # second anonymous version script ("version script assignment of
+            # '' to symbol napi_register_module_v1 failed") where rustc's own
+            # script and :exports_map are both applied. lld accepts both
+            # scripts and applies :exports_map last, exactly like the zig cc
+            # link this target was designed for; rustc already passes
+            # `-B .../gcc-ld -fuse-ld=lld`, so re-selecting lld last uses its
+            # bundled rust-lld. This link arg is appended after the cc
+            # toolchain flags, so it wins over Bazel's -fuse-ld=gold.
+            "-Clink-arg=-fuse-ld=lld",
             "-Clink-arg=-Wl,--version-script=$(execpath :exports_map)",
         ],
         "//conditions:default": [],

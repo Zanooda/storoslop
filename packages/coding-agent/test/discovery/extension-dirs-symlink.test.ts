@@ -42,9 +42,9 @@ describe("extension manifest discovery through linked directories", () => {
 		shared = path.join(root, "shared");
 		process.env.HOME = home;
 		vi.spyOn(os, "homedir").mockReturnValue(home);
-		setAgentDir(path.join(home, ".omp", "agent"));
+		setAgentDir(path.join(home, ".storoslop", "agent"));
 		await Promise.all([
-			fs.mkdir(path.join(home, ".omp", "agent", "extensions"), { recursive: true }),
+			fs.mkdir(path.join(home, ".storoslop", "agent", "extensions"), { recursive: true }),
 			fs.mkdir(path.join(home, ".gemini", "extensions"), { recursive: true }),
 			fs.mkdir(shared, { recursive: true }),
 			fs.mkdir(path.join(project, ".git"), { recursive: true }),
@@ -68,7 +68,7 @@ describe("extension manifest discovery through linked directories", () => {
 		let extensionsDir: string;
 
 		beforeEach(() => {
-			extensionsDir = path.join(home, ".omp", "agent", "extensions");
+			extensionsDir = path.join(home, ".storoslop", "agent", "extensions");
 		});
 
 		test.skipIf(!SYMLINKS_USABLE)("discovers an extension package linked into the extensions dir", async () => {

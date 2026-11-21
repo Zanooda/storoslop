@@ -22,7 +22,12 @@ describe("RPC queued-message editing", () => {
 		return new RpcClient({
 			command: [process.execPath, path.join(import.meta.dir, "fixtures", "queued-message-rpc-agent.ts")],
 			cwd: directory,
-			env: { PI_CODING_AGENT_DIR: directory, PI_NO_TITLE: "1", QUEUED_RPC_SCRIPT: script ?? "" },
+			env: {
+				PI_CODING_AGENT_DIR: directory,
+				PI_NO_TITLE: "1",
+				QUEUED_RPC_SCRIPT: script ?? "",
+				OMP_LOG_LEVEL: "debug",
+			},
 		});
 	}
 
@@ -33,7 +38,7 @@ describe("RPC queued-message editing", () => {
 
 	afterEach(async () => {
 		await client?.stop();
-		await removeWithRetries(directory);
+		// keep temp for debugging
 	});
 
 	/** Starts the fixture under `script` with a first turn that streams until aborted. */
@@ -47,6 +52,10 @@ describe("RPC queued-message editing", () => {
 		try {
 			await client.prompt("start a long turn");
 			await withTimeout(agentStarted.promise, 10_000, "First turn never started streaming");
+			// Fork: let the scripted model call start before the caller aborts. A
+			// resume that lands first leaves the mock's held response unconsumed, so
+			// the continuation reuses that held call instead of answering.
+			await Bun.sleep(500);
 		} finally {
 			unsubscribe();
 		}

@@ -111,7 +111,11 @@ describe("auth broker settings take effect live", () => {
 
 	it.each([
 		{ layer: "global config", file: ["agent", "config.yml"], expected: "stored-key" },
-		{ layer: "project config (a repository cannot unpause)", file: [".omp", "config.yml"], expected: undefined },
+		{
+			layer: "project config (a repository cannot unpause)",
+			file: [".storoslop", "config.yml"],
+			expected: undefined,
+		},
 	])("discovery with $layer listing a paused provider", async ({ file, expected }) => {
 		const paused = "discovery-paused-test";
 		vi.spyOn(compatAuth, "providerDisabledReason").mockImplementation(provider =>

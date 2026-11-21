@@ -2,7 +2,7 @@
  * A real omp daemon isolated in a private temp dir, plus a raw protocol
  * connection to it, for tests of `proc` units, leases and the store.
  *
- * Nothing here touches `process.env` or `~/.omp`: the daemon runs as a child
+ * Nothing here touches `process.env` or `~/.storoslop`: the daemon runs as a child
  * process whose env names the temp dir (`OMP_DAEMON_DIR`), and connections dial
  * its endpoint and read its token directly. {@link TestDaemon.dispose} stops
  * every unit it saw (detached ones outlive the daemon), shuts the daemon down,

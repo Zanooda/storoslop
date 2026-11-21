@@ -34,7 +34,7 @@ describe("PI_CONFIG_DIR", () => {
 		};
 		// Native user config follows the active profile through getAgentDir(), not
 		// ctx.home, so it stays in sync with builtin.ts and getMCPConfigPath("user").
-		// The old behavior joined ctx.home + ".omp/agent" and leaked the default
+		// The old behavior joined ctx.home + ".storoslop/agent" and leaked the default
 		// profile's config into every profile.
 		expect(getUserPath(ctx, "native", "commands")).toBe(path.join(getAgentDir(), "commands"));
 		expect(getUserPath(ctx, "native", "commands")).not.toContain(ctx.home);
@@ -53,7 +53,7 @@ describe("PI_CONFIG_DIR", () => {
 		const agentDir = path.resolve(os.tmpdir(), "omp-custom-agent-dir");
 		startWith({ PI_CODING_AGENT_DIR: agentDir });
 		const result = getConfigDirs("agents", { project: false });
-		expect(result[0]).toEqual({ path: path.join(agentDir, "agents"), source: ".omp", level: "user" });
+		expect(result[0]).toEqual({ path: path.join(agentDir, "agents"), source: ".storoslop", level: "user" });
 	});
 });
 

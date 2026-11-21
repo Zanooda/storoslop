@@ -62,11 +62,15 @@ describe("per-install prompt perturbation", () => {
 		expect(missing).toEqual([]);
 	});
 
-	it("drops the system-prompt opener instead of paraphrasing it", async () => {
+	it("drops the system-prompt persona line instead of paraphrasing it", async () => {
+		// Fork: the system prompt opens with the harness directive lines, and the
+		// persona sentence sits below them; perturbation still drops that sentence.
 		const promptUrl = new URL("../../coding-agent/src/prompts/system/system-prompt.md", import.meta.url);
 		const prompt = await Bun.file(promptUrl).text();
-		expect(prompt.startsWith("You are omp's trusted coding assistant.\n\n")).toBe(true);
-		expect(perturbPromptText(prompt).startsWith("# Engineering\n")).toBe(true);
+		expect(prompt.startsWith("RFC 2119 keywords:")).toBe(true);
+		const perturbed = perturbPromptText(prompt);
+		expect(perturbed.startsWith("RFC 2119 keywords:")).toBe(true);
+		expect(perturbed).not.toContain("Helpful, trusted assistant for load-bearing changes");
 	});
 
 	it("leaves text that matches no pooled source untouched", () => {

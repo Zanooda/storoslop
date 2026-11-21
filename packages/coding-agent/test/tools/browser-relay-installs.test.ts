@@ -256,11 +256,11 @@ describe("Chrome native host install", () => {
 				"BraveSoftware/Brave-Browser",
 			].map(browser => `.config/${browser}/NativeMessagingHosts`),
 		},
-		{ platform: "win32", roots: [".omp/browser-relay"] },
+		{ platform: "win32", roots: [".storoslop/browser-relay"] },
 	];
 	for (const { platform, roots } of pathCases) {
 		it(`writes a native host manifest admitting every install's ID to every ${platform} browser location`, async () => {
-			const dir = home.join(".omp/browser-relay");
+			const dir = home.join(".storoslop/browser-relay");
 			const ids = [
 				"pppppppppppppppppppppppppppppppp",
 				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

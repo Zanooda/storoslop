@@ -41,7 +41,7 @@ describe("omp auth-broker serve shutdown", () => {
 			using tempDir = TempDir.createSync("@omp-auth-broker-shutdown-");
 			const home = tempDir.join("home");
 			fs.mkdirSync(home);
-			const dbPath = path.join(home, ".omp", "agent", "agent.db");
+			const dbPath = path.join(home, ".storoslop", "agent", "agent.db");
 			fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 			const tokenRequested = Promise.withResolvers<void>();

@@ -1,6 +1,6 @@
 /**
  * Contract: collab tests never leak guest replica `.jsonl` files or host
- * discovery sockets into the developer's real `~/.omp`.
+ * discovery sockets into the developer's real `~/.storoslop`.
  * `installInMemoryRelay()` redirects an unmocked `os.homedir()` into a
  * per-install temp directory (while preserving an explicit `setAgentDir()`
  * override or caller-owned `os.homedir()` spy) and `uninstallInMemoryRelay()`

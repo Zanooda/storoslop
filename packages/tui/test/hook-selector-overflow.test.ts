@@ -96,7 +96,7 @@ describe("HookSelectorComponent", () => {
 			{
 				label: "Use existing local credentials",
 				description:
-					"Authenticate via the provider keys and OAuth state already configured under ~/.omp without opening a new browser-based setup flow.",
+					"Authenticate via the provider keys and OAuth state already configured under ~/.storoslop without opening a new browser-based setup flow.",
 			},
 			{
 				label: "Set up omp in terminal",
