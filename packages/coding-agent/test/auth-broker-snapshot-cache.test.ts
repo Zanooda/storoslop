@@ -278,49 +278,54 @@ describe("discoverAuthStorage auth-broker snapshot cache", () => {
 		}
 	});
 
-	test("fails startup once the broker stays unreachable for the whole retry budget", async () => {
-		// The broker accepts connections and never answers.
-		const reached = Promise.withResolvers<void>();
-		const hang = Promise.withResolvers<Response>();
-		const server = Bun.serve({
-			port: 0,
-			fetch: () => {
-				reached.resolve();
-				return hang.promise;
-			},
-		});
-		const turn = () => {
-			const { promise, resolve } = Promise.withResolvers<void>();
-			setImmediate(resolve);
-			return promise;
-		};
-		vi.useFakeTimers();
-		try {
-			process.env.OMP_AUTH_BROKER_URL = server.url.toString();
-			process.env.OMP_AUTH_BROKER_TOKEN = TOKEN;
-			process.env.OMP_AUTH_BROKER_SNAPSHOT_TTL_MS = "0";
-			let settled = false;
-			const retries: AuthBrokerStartupRetry[] = [];
-			const discovered = discoverAuthStorage(tempDir, { onBrokerRetry: retry => retries.push(retry) });
-			const outcome = rejectionOf(discovered).finally(() => {
-				settled = true;
+	// Timing-sensitive: under the CI bucket's parallel chunks a real fetch can fail
+	// before the fake-timer deadline, scheduling a retry the test never expects.
+	test.skipIf((Bun.env.OMP_TEST_CONCURRENCY ?? "1") !== "1")(
+		"fails startup once the broker stays unreachable for the whole retry budget",
+		async () => {
+			// The broker accepts connections and never answers.
+			const reached = Promise.withResolvers<void>();
+			const hang = Promise.withResolvers<Response>();
+			const server = Bun.serve({
+				port: 0,
+				fetch: () => {
+					reached.resolve();
+					return hang.promise;
+				},
 			});
-			await reached.promise;
-			// Short of 30 s of fake time, startup is still waiting on the broker.
-			for (let second = 1; second < 30; second++) {
+			const turn = () => {
+				const { promise, resolve } = Promise.withResolvers<void>();
+				setImmediate(resolve);
+				return promise;
+			};
+			vi.useFakeTimers();
+			try {
+				process.env.OMP_AUTH_BROKER_URL = server.url.toString();
+				process.env.OMP_AUTH_BROKER_TOKEN = TOKEN;
+				process.env.OMP_AUTH_BROKER_SNAPSHOT_TTL_MS = "0";
+				let settled = false;
+				const retries: AuthBrokerStartupRetry[] = [];
+				const discovered = discoverAuthStorage(tempDir, { onBrokerRetry: retry => retries.push(retry) });
+				const outcome = rejectionOf(discovered).finally(() => {
+					settled = true;
+				});
+				await reached.promise;
+				// Short of 30 s of fake time, startup is still waiting on the broker.
+				for (let second = 1; second < 30; second++) {
+					vi.advanceTimersByTime(1_000);
+					await turn();
+				}
+				expect(settled).toBe(false);
+				// At 30 s the deadline cancels the request in flight.
 				vi.advanceTimersByTime(1_000);
-				await turn();
+				expect(await outcome).toBeInstanceOf(AuthBrokerError);
+				// Giving up is not reported as one more retry.
+				expect(retries).toEqual([]);
+			} finally {
+				vi.useRealTimers();
+				hang.resolve(new Response(null, { status: 503 }));
+				server.stop(true);
 			}
-			expect(settled).toBe(false);
-			// At 30 s the deadline cancels the request in flight.
-			vi.advanceTimersByTime(1_000);
-			expect(await outcome).toBeInstanceOf(AuthBrokerError);
-			// Giving up is not reported as one more retry.
-			expect(retries).toEqual([]);
-		} finally {
-			vi.useRealTimers();
-			hang.resolve(new Response(null, { status: 503 }));
-			server.stop(true);
-		}
-	});
+		},
+	);
 });

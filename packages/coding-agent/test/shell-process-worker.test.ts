@@ -30,6 +30,20 @@ async function run(spec: ShellProcessSpec, stdin = ""): Promise<{ stdout: string
  * Run `command` as a shell process on pipes, send it `signal` once it printed
  * a first line, and collect everything it printed until its output closed.
  */
+/** Waits for a pid to disappear; a just-reaped child can outlive its exit briefly. */
+async function waitForProcessExit(pid: number, timeoutMs: number): Promise<void> {
+	const deadline = performance.now() + timeoutMs;
+	while (performance.now() < deadline) {
+		try {
+			process.kill(pid, 0);
+		} catch {
+			return;
+		}
+		await Bun.sleep(10);
+	}
+	throw new Error(`process ${pid} still exists after ${timeoutMs}ms`);
+}
+
 async function terminate(command: string, signal: NodeJS.Signals): Promise<{ exitCode: number; printed: string }> {
 	const { application, args } = shellProcessCommand({ command });
 	const child = Bun.spawn([application, ...args], { stdout: "pipe", stderr: "pipe" });
@@ -146,7 +160,7 @@ describe("shell process on pipes", () => {
 			expect(exitCode).toBe(143);
 			// Nothing after the program ran, and the program is gone with its shell.
 			expect(printed).toMatch(/^\d+\n$/);
-			expect(() => process.kill(Number(printed), 0)).toThrow();
+			await waitForProcessExit(Number(printed), 2_000);
 		},
 		60_000,
 	);
