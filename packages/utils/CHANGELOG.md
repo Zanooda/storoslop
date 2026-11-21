@@ -2,16 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.9] - 2026-11-09
-
-### Added
-
-- Added `isPidAlive`, `asStrictBytes`, `ensureSqliteLockShim` and `assertNotHeldOpen` (SQLite `EBUSY` guard on files this process holds open)
-
-### Changed
-
-- ACP runtime validators report each failing field's path and reason in `error.issues` instead of a single `Invalid <label>`
-- Upstream `a536558dc2` integration (958 commits): adopted the shared `slugify()` helper, `sqliteFileIdentity()`, and the aborted-subprocess rejection fix.
 ## [19.1.0] - 2026-11-21
 
 ### Added
@@ -1207,6 +1197,17 @@
 ### Added
 
 - Added an XDG-aware tiny-title model cache directory helper for coding-agent local title models.
+
+## [1.3.9] - 2026-11-09
+
+### Added
+
+- Added `isPidAlive`, `asStrictBytes`, `ensureSqliteLockShim` and `assertNotHeldOpen` (SQLite `EBUSY` guard on files this process holds open)
+
+### Changed
+
+- ACP runtime validators report each failing field's path and reason in `error.issues` instead of a single `Invalid <label>`
+- Upstream `a536558dc2` integration (958 commits): adopted the shared `slugify()` helper, `sqliteFileIdentity()`, and the aborted-subprocess rejection fix.
 
 ## [1.3.7] - 2026-10-16
 

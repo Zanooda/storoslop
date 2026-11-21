@@ -2,7 +2,6 @@
 
 ## [Unreleased]
 
-## [1.3.9] - 2026-11-09
 ## [19.1.0] - 2026-11-21
 
 ### Added
@@ -359,3 +358,4 @@
 ### Security
 
 - Hardened transcript Markdown rendering by escaping embedded HTML and allowing only safe link schemes
+
