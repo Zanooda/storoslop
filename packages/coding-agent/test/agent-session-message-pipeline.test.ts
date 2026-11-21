@@ -103,6 +103,7 @@ describe("AgentSession message pipeline", () => {
 
 	afterEach(async () => {
 		vi.restoreAllMocks();
+		memoryBackend.setMemoryBackendForTest(undefined);
 		clearCustomApis();
 		for (const session of sessions.splice(0)) {
 			await session.dispose();
@@ -2194,7 +2195,7 @@ describe("AgentSession message pipeline", () => {
 				};
 			},
 		};
-		vi.spyOn(memoryBackend, "resolveMemoryBackend").mockResolvedValue(fakeBackend);
+		memoryBackend.setMemoryBackendForTest(fakeBackend);
 		registerCustomApi(api, (_model, context) => {
 			contexts.push(context);
 			const stream = new AssistantMessageEventStream();
@@ -2276,7 +2277,7 @@ describe("AgentSession message pipeline", () => {
 				};
 			},
 		};
-		vi.spyOn(memoryBackend, "resolveMemoryBackend").mockResolvedValue(fakeBackend);
+		memoryBackend.setMemoryBackendForTest(fakeBackend);
 		registerCustomApi(api, (_model, context) => {
 			contexts.push(context);
 			const stream = new AssistantMessageEventStream();
@@ -3023,7 +3024,7 @@ describe("AgentSession message pipeline", () => {
 				};
 			},
 		};
-		vi.spyOn(memoryBackend, "resolveMemoryBackend").mockResolvedValue(fakeBackend);
+		memoryBackend.setMemoryBackendForTest(fakeBackend);
 		registerCustomApi(api, (_model, context) => {
 			contexts.push(context);
 			const stream = new AssistantMessageEventStream();
@@ -3117,7 +3118,7 @@ describe("AgentSession message pipeline", () => {
 				};
 			},
 		};
-		vi.spyOn(memoryBackend, "resolveMemoryBackend").mockResolvedValue(fakeBackend);
+		memoryBackend.setMemoryBackendForTest(fakeBackend);
 		registerCustomApi(api, (_model, context) => {
 			contexts.push(context);
 			const stream = new AssistantMessageEventStream();
@@ -3215,7 +3216,7 @@ describe("AgentSession message pipeline", () => {
 				};
 			},
 		};
-		vi.spyOn(memoryBackend, "resolveMemoryBackend").mockResolvedValue(fakeBackend);
+		memoryBackend.setMemoryBackendForTest(fakeBackend);
 		registerCustomApi(api, (_model, context) => {
 			contexts.push(context);
 			const stream = new AssistantMessageEventStream();

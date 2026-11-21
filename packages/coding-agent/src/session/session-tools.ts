@@ -2699,7 +2699,7 @@ export class SessionTools {
 		const withFileMemory = await this.#appendFileMemoryToPrompt(staged.systemPrompt);
 		// Fork: the ambient file memory rides only the delivered turn prompt; `commit`
 		// still persists the backend injection alone so it is not double-applied.
-		return withFileMemory === staged.systemPrompt ? staged : { systemPrompt: withFileMemory, commit: staged.commit };
+		return withFileMemory === staged.systemPrompt ? staged : { ...staged, systemPrompt: withFileMemory };
 	}
 
 	/** Stages the configured memory backend's `beforeAgentStartPrompt` injection. */
