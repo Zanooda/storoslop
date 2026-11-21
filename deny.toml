@@ -26,6 +26,7 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "BSL-1.0",
+    "bzip2-1.0.6",
     "CC0-1.0",
     "ISC",
     "MIT",
@@ -33,7 +34,7 @@ allow = [
     "Unicode-3.0",
     "Zlib",
 ]
-# uluru (via pi-vcs → jj-lib → gix → gix-pack) is MPL-2.0: file-level
+# uluru (via omp-vcs → jj-lib → gix → gix-pack) is MPL-2.0: file-level
 # copyleft, satisfied by upstream source availability; no obligations attach
 # to our unmodified use. Keep it package-scoped rather than globally admitting
 # copyleft dependencies: distributions disclose source availability in the
@@ -42,6 +43,9 @@ allow = [
 # The former inferno CDDL-1.0 exception is gone with the dependency itself —
 # upstream's flamegraph renderer replaced inferno with an in-tree encoder.
 exceptions = [
+    # uluru (via omp-vcs → jj-lib → gix → gix-pack) is MPL-2.0: file-level
+    # copyleft, satisfied by upstream source availability; no obligations
+    # attach to our unmodified use.
     { allow = ["MPL-2.0"], crate = "uluru@3.1.0" },
 ]
 

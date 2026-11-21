@@ -18,7 +18,7 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import type { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
-import { createInMemoryAuthStorage } from "./helpers/agent-session-setup";
+import { createInMemoryAuthStorage, fixedAdvisorTools } from "./helpers/agent-session-setup";
 
 const ADVISE_CALL = {
 	type: "toolCall",
@@ -81,7 +81,7 @@ describe("advisor advise-only turn terminates the review", () => {
 			sessionManager: SessionManager.inMemory(tempDir.path()),
 			settings,
 			modelRegistry: new ModelRegistry(authStorage, tempDir.join("models.yml")),
-			advisorTools: [readTool],
+			advisorTools: fixedAdvisorTools(readTool),
 			advisorStreamFn: advisorMock.stream,
 		});
 		settings.setModelRole("advisor", "storoslop/deepseek-v4.1-flash");

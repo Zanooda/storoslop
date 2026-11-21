@@ -11,6 +11,7 @@ import {
 	type ToolResultWithAdditionalContext,
 } from "@oh-my-pi/pi-agent-core";
 import { type BlockState, handleServerMessage, type ToolCallState } from "@oh-my-pi/pi-ai/providers/cursor";
+import { CursorExecOrder } from "@oh-my-pi/pi-ai/providers/cursor/exec-order";
 import { buildPiReadResult, piTruncation } from "@oh-my-pi/pi-ai/providers/cursor/exec-modern";
 import type { AssistantMessage, ToolResultMessage } from "@oh-my-pi/pi-ai/types";
 import { AssistantMessageEventStream } from "@oh-my-pi/pi-ai/utils/event-stream";
@@ -27,7 +28,6 @@ import {
 import { create, fromBinary } from "@oh-my-pi/pi-catalog/discovery/protobuf";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { CursorExecHandlers } from "@oh-my-pi/pi-coding-agent/cursor";
-import { registerArtifactsDir } from "@oh-my-pi/pi-coding-agent/internal-urls/registry-helpers";
 import {
 	bridgeToolMap,
 	createBridgeEditTool,
@@ -42,9 +42,10 @@ import { ExtensionToolWrapper } from "@oh-my-pi/pi-coding-agent/extensibility/ex
 import { BUILTIN_TOOLS, GrepTool, ReadTool, type Tool, type ToolSession } from "@oh-my-pi/pi-coding-agent/tools";
 import { BashTool } from "@oh-my-pi/pi-coding-agent/tools/bash";
 import { TodoTool } from "@oh-my-pi/pi-coding-agent/tools/todo";
+import { WriteTool } from "@oh-my-pi/pi-coding-agent/tools/write";
 import type { TruncationMeta } from "@oh-my-pi/pi-tui/tools/output-meta";
 import type { TodoPhase } from "@oh-my-pi/pi-tui/tools/todo";
-import { removeWithRetries } from "@oh-my-pi/pi-utils";
+import { removeWithRetries, spillFileName, spillUrl } from "@oh-my-pi/pi-utils";
 import { AdviseTool } from "../src/advisor/advise-tool";
 
 function yoloToolContext(): AgentToolContext {
@@ -356,7 +357,7 @@ describe("bridge tool resolution beyond the model-facing registry", () => {
 		// `getEditReplaceTool` — otherwise every modern edit answers
 		// `Tool "edit" not available` and the file is untouched.
 		// (Not the `getTool` fallback: that resolver also serves the agent
-		// loop's unadvertised calls, so it stays device-only.)
+		// loop's unadvertised calls, so it stays mounted-tool-only.)
 
 		const target = path.join(cwd, "sample.txt");
 		await Bun.write(target, "alpha\nbeta\n");
@@ -724,6 +725,262 @@ describe("Cursor MCP StrReplace fallback", () => {
 
 		expect(result.isError).toBe(true);
 		expect(await Bun.file(target).text()).toBe("alpha\nbeta\n");
+	});
+});
+
+// An MCP frame's tool runs directly through this bridge, never through the
+// agent loop's batch scheduler, so the provider's exec ordering is the only
+// thing keeping an exclusive tool (`edit`, `write`) from racing the frames
+// around it. These drive the real provider dispatch and bridge with a tool
+// held open mid-call: a neighbour that starts inside that window read the
+// old file, whatever its result later claims.
+describe("Cursor MCP exec ordering", () => {
+	let cwd: string;
+
+	beforeEach(async () => {
+		cwd = await fs.mkdtemp(path.join(os.tmpdir(), "cursor-mcp-order-"));
+	});
+
+	afterEach(async () => {
+		await removeWithRetries(cwd);
+	});
+
+	/**
+	 * A runner whose `tool_call` hook holds the wrapped tool before it
+	 * executes. The wrapper awaits the hook, so awaiting the callback's
+	 * promise parks the real tool mid-call without faking its execution.
+	 */
+	function gatingRunner(onCall: (toolName: string) => Promise<void> | void): ExtensionRunner {
+		return {
+			...passthroughRunner(),
+			emitToolCall: async (event: { toolName: string }) => {
+				await onCall(event.toolName);
+				return undefined;
+			},
+		} as unknown as ExtensionRunner;
+	}
+
+	/** A real tool behind {@link gatingRunner}, at the registry's erased `Tool` shape. */
+	function gatedTool(tool: Tool, onCall: (toolName: string) => Promise<void> | void): Tool {
+		return new ExtensionToolWrapper(tool, gatingRunner(onCall)) as unknown as Tool;
+	}
+
+	function execMcp(toolName: string, toolCallId: string, args: Record<string, unknown>) {
+		return create(AgentServerMessageSchema, {
+			message: {
+				case: "execServerMessage",
+				value: create(ExecServerMessageSchema, {
+					id: 1,
+					execId: `exec-${toolCallId}`,
+					message: {
+						case: "mcpArgs",
+						value: create(McpArgsSchema, {
+							name: toolName,
+							toolName,
+							toolCallId,
+							providerIdentifier: "pi-agent",
+							args: Object.fromEntries(
+								Object.entries(args).map(([key, value]) => [
+									key,
+									new TextEncoder().encode(JSON.stringify(value)),
+								]),
+							),
+						}),
+					},
+				}),
+			},
+		});
+	}
+
+	function execShell(toolCallId: string, command: string) {
+		return create(AgentServerMessageSchema, {
+			message: {
+				case: "execServerMessage",
+				value: create(ExecServerMessageSchema, {
+					id: 2,
+					execId: `exec-${toolCallId}`,
+					message: {
+						case: "shellArgs",
+						value: create(ShellArgsSchema, { toolCallId, command, workingDirectory: cwd }),
+					},
+				}),
+			},
+		});
+	}
+
+	function execRead(toolCallId: string, target: string) {
+		return create(AgentServerMessageSchema, {
+			message: {
+				case: "execServerMessage",
+				value: create(ExecServerMessageSchema, {
+					id: 3,
+					execId: `exec-${toolCallId}`,
+					message: { case: "readArgs", value: create(ReadArgsSchema, { path: target, toolCallId }) },
+				}),
+			},
+		});
+	}
+
+	function setup(handlers: CursorExecHandlers) {
+		const state = newBlockState();
+		state.execOrder = new CursorExecOrder();
+		const toolResults: ToolResultMessage[] = [];
+		const h2Request = { write: () => true } as unknown as Parameters<typeof handleServerMessage>[5];
+		const dispatch = (msg: Parameters<typeof handleServerMessage>[0]) =>
+			handleServerMessage(
+				msg,
+				cursorAssistantMessage(),
+				new AssistantMessageEventStream(),
+				state,
+				new Map(),
+				h2Request,
+				handlers,
+				result => {
+					toolResults.push(result);
+				},
+				{ sawTokenDelta: false },
+				[],
+			);
+		const resultText = (toolCallId: string): string => {
+			const result = toolResults.find(entry => entry.toolCallId === toolCallId);
+			if (!result) throw new Error(`expected a tool result for ${toolCallId}`);
+			expect(result.isError).toBe(false);
+			return result.content.map(part => (part.type === "text" ? part.text : "")).join("");
+		};
+		return { dispatch, resultText };
+	}
+
+	/** Lets every frame that is free to start reach its tool; a gated frame stays parked however long this yields. */
+	async function flushFrames(): Promise<void> {
+		await Bun.sleep(0);
+	}
+
+	it("MCP edit completes before a later shell reads the file", async () => {
+		const target = path.join(cwd, "note.txt");
+		await Bun.write(target, "apple\n");
+		const session = createTestSession(cwd);
+		const editStarted = Promise.withResolvers<void>();
+		const editGate = Promise.withResolvers<void>();
+		let shellStarted = false;
+		const handlers = new CursorExecHandlers({
+			cwd,
+			tools: new Map<string, Tool>([
+				[
+					"bash",
+					gatedTool(new BashTool(session), () => {
+						shellStarted = true;
+					}),
+				],
+			]),
+			getEditReplaceTool: () =>
+				createBridgeEditTool(
+					session,
+					gatingRunner(async () => {
+						editStarted.resolve();
+						await editGate.promise;
+					}),
+				),
+			getToolContext: () => yoloToolContext(),
+		});
+		const { dispatch, resultText } = setup(handlers);
+
+		const edit = dispatch(execMcp("edit", "call-edit", { path: target, old_string: "apple", new_string: "orange" }));
+		await editStarted.promise;
+		const shell = dispatch(execShell("call-shell", "cat note.txt"));
+		await flushFrames();
+		const shellRanBeforeEditFinished = shellStarted;
+
+		editGate.resolve();
+		await Promise.all([edit, shell]);
+
+		expect(shellRanBeforeEditFinished).toBe(false);
+		expect(resultText("call-shell")).toContain("orange");
+		expect(await Bun.file(target).text()).toBe("orange\n");
+	});
+
+	it("MCP edit waits for an earlier read to finish", async () => {
+		const target = path.join(cwd, "note.txt");
+		await Bun.write(target, "apple\n");
+		const session = createTestSession(cwd);
+		const readStarted = Promise.withResolvers<void>();
+		const readGate = Promise.withResolvers<void>();
+		let editStarted = false;
+		const handlers = new CursorExecHandlers({
+			cwd,
+			tools: new Map<string, Tool>([
+				[
+					"read",
+					gatedTool(new ReadTool(session), async () => {
+						readStarted.resolve();
+						await readGate.promise;
+					}),
+				],
+			]),
+			getEditReplaceTool: () =>
+				createBridgeEditTool(
+					session,
+					gatingRunner(() => {
+						editStarted = true;
+					}),
+				),
+			getToolContext: () => yoloToolContext(),
+		});
+		const { dispatch, resultText } = setup(handlers);
+
+		const read = dispatch(execRead("call-read", target));
+		await readStarted.promise;
+		const edit = dispatch(execMcp("edit", "call-edit", { path: target, old_string: "apple", new_string: "orange" }));
+		await flushFrames();
+		const editRanBeforeReadFinished = editStarted;
+
+		readGate.resolve();
+		await Promise.all([read, edit]);
+
+		expect(editRanBeforeReadFinished).toBe(false);
+		expect(resultText("call-read")).toContain("apple");
+		expect(await Bun.file(target).text()).toBe("orange\n");
+	});
+
+	it("MCP write completes before a later read of the file", async () => {
+		const target = path.join(cwd, "note.txt");
+		await Bun.write(target, "apple\n");
+		const session = createTestSession(cwd);
+		const writeStarted = Promise.withResolvers<void>();
+		const writeGate = Promise.withResolvers<void>();
+		let readStarted = false;
+		const handlers = new CursorExecHandlers({
+			cwd,
+			tools: new Map<string, Tool>([
+				[
+					"write",
+					gatedTool(new WriteTool(session), async () => {
+						writeStarted.resolve();
+						await writeGate.promise;
+					}),
+				],
+				[
+					"read",
+					gatedTool(new ReadTool(session), () => {
+						readStarted = true;
+					}),
+				],
+			]),
+			getToolContext: () => yoloToolContext(),
+		});
+		const { dispatch, resultText } = setup(handlers);
+
+		const write = dispatch(execMcp("write", "call-write", { path: target, content: "orange\n" }));
+		await writeStarted.promise;
+		const read = dispatch(execRead("call-read", target));
+		await flushFrames();
+		const readRanBeforeWriteFinished = readStarted;
+
+		writeGate.resolve();
+		await Promise.all([write, read]);
+
+		expect(readRanBeforeWriteFinished).toBe(false);
+		expect(resultText("call-read")).toContain("orange");
+		expect(await Bun.file(target).text()).toBe("orange\n");
 	});
 });
 
@@ -1207,7 +1464,7 @@ describe("CursorExecHandlers argument validation", () => {
 });
 
 describe("CursorExecHandlers mounted tool bridge", () => {
-	it("executes MCP tools resolved from the xd:// registry", async () => {
+	it("executes mounted MCP tools resolved by bare name", async () => {
 		const mountedTool: AgentTool = {
 			name: "mcp__fixture_report",
 			label: "Fixture Report",
@@ -1236,12 +1493,12 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 		expect(result.content).toEqual([{ type: "text", text: "reported" }]);
 	});
 
-	it("routes wrapped mounted devices through the approval gate", async () => {
+	it("routes wrapped mounted tools through the approval gate", async () => {
 		let executed = false;
-		const device: AgentTool = {
+		const mounted: AgentTool = {
 			name: "ast_edit",
 			label: "AST Edit",
-			description: "structural edit device",
+			description: "structural edit tool",
 			parameters: type({}),
 			async execute() {
 				executed = true;
@@ -1251,7 +1508,7 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 		// The deny path throws inside resolveApproval before any handler runs;
 		// the stub only needs the loop-emission marker probe the wrapper always
 		// consults first.
-		const wrapped = new ExtensionToolWrapper(device, {
+		const wrapped = new ExtensionToolWrapper(mounted, {
 			consumeToolCallEmitted: () => false,
 		} as unknown as ExtensionRunner);
 		const settings = Settings.isolated({ "tools.approval": { ast_edit: "deny" } });
@@ -1259,15 +1516,15 @@ describe("CursorExecHandlers mounted tool bridge", () => {
 			cwd: ".",
 			// The canonical map contains the undecorated mounted tool. The execution
 			// override must win or Cursor bypasses the approval gate.
-			tools: new Map([[device.name, device]]),
-			getExecutableTool: name => (name === device.name ? (wrapped as unknown as AgentTool) : undefined),
+			tools: new Map([[mounted.name, mounted]]),
+			getExecutableTool: name => (name === mounted.name ? (wrapped as unknown as AgentTool) : undefined),
 			getToolContext: () => ({ settings }) as AgentToolContext,
 		});
 
 		const result = await handlers.mcp({
-			name: device.name,
+			name: mounted.name,
 			providerIdentifier: "pi-agent",
-			toolName: device.name,
+			toolName: mounted.name,
 			toolCallId: "call-denied",
 			args: {},
 			rawArgs: {},
@@ -2266,7 +2523,7 @@ describe("CursorExecHandlers Pi frame translation", () => {
 		} as never);
 		for (const result of [legacy, modern]) {
 			expect(result.isError).toBe(false);
-			expect(result.content).toEqual([{ type: "text", text: "line997\nline998" }]);
+			expect(result.content).toEqual([{ type: "text", text: "line997\nline998\n" }]);
 		}
 		const last = await handlers.piRead({
 			toolCallId: "last-line",
@@ -2413,24 +2670,20 @@ describe("CursorExecHandlers Pi frame translation", () => {
 		expect(splitText).not.toContain("IHDR");
 	});
 
-	it("routes internal artifact reads through both Cursor frames", async () => {
-		const artifacts = path.join(cwd, "artifacts");
-		await fs.mkdir(artifacts);
-		await Bun.write(path.join(artifacts, "0.read.log"), "cursor-artifact-content\n");
-		const unregister = registerArtifactsDir(artifacts);
-		try {
-			const handlers = new CursorExecHandlers({
-				cwd,
-				tools: new Map<string, Tool>([["read", new ReadTool(createTestSession(cwd))]]),
-			});
-			const legacy = await handlers.read(create(ReadArgsSchema, { path: "artifact://0:raw" }));
-			const modern = await handlers.piRead({ toolCallId: "artifact-read", args: { path: "artifact://0" } });
-			for (const result of [legacy, modern]) {
-				expect(result.isError).toBe(false);
-				expect(result.content).toEqual([{ type: "text", text: "cursor-artifact-content\n" }]);
-			}
-		} finally {
-			unregister();
+	it("routes spill reads through both Cursor frames", async () => {
+		const sessionDir = path.join(cwd, "session");
+		await Bun.write(path.join(sessionDir, "local", spillFileName(0)), "cursor-spill-content\n");
+		const handlers = new CursorExecHandlers({
+			cwd,
+			tools: new Map<string, Tool>([
+				["read", new ReadTool(createTestSession(cwd, { getArtifactsDir: () => sessionDir }))],
+			]),
+		});
+		const legacy = await handlers.read(create(ReadArgsSchema, { path: `${spillUrl(0)}:raw` }));
+		const modern = await handlers.piRead({ toolCallId: "spill-read", args: { path: spillUrl(0) } });
+		for (const result of [legacy, modern]) {
+			expect(result.isError).toBe(false);
+			expect(result.content).toEqual([{ type: "text", text: "cursor-spill-content\n" }]);
 		}
 	});
 

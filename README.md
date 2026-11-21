@@ -194,7 +194,7 @@ _[Watch the capture ↗](https://omp.sh/clips/collab.mp4)_
 
 ### 08 · Read a pdf on arxiv, why not?
 
-web_search chains twenty-four ranked providers and hands whatever URLs it finds straight to read. Arxiv PDFs, GitHub pages, Stack Overflow threads come back as structured markdown with anchors intact — the same tool surface you use on local files. Cite, follow, quote, never lose where you came from.
+web_search chains twenty-five ranked providers and hands whatever URLs it finds straight to read. Arxiv PDFs, GitHub pages, Stack Overflow threads come back as structured markdown with anchors intact — the same tool surface you use on local files. Cite, follow, quote, never lose where you came from.
 
 ![storoslop TUI: web_search returns 10 ranked Perplexity sources for inference-time compute scaling, the agent picks an arxiv paper, calls read https://arxiv.org/pdf/2604.10739v1, and summarizes the paper's headline result with real numbers.](https://omp.sh/clips/web-poster.webp)
 
@@ -250,7 +250,7 @@ _[Watch the capture ↗](https://omp.sh/clips/conflict.mp4)_
 
 ### 19 · Preview, then accept.
 
-`ast_edit` returns a _(proposed)_ card with the replacement count. The change is staged. The agent writes a one-line reason to `xd://resolve`; the TUI turns it into an **Accept** card and the disk move happens — atomic, all or nothing.
+`ast_edit` returns a _(proposed)_ card with the replacement count. The change is staged. The agent runs `resolve "<reason>"`; the TUI turns it into an **Accept** card and the disk move happens — atomic, all or nothing.
 
 ![storoslop TUI: ✓ AST Edit: console.log($X) (proposed) 3 replacements · 1 file, then ✓ Accept: 3 replacements in 1 file (AST Edit), followed by 'Applied 3 replacements in src/auth.ts.'](https://omp.sh/clips/codemod-poster.webp)
 
@@ -268,7 +268,7 @@ Eval's `computer` helpers — `computer.window(...)`, `win.screenshot()`, `win.a
 
 ## Whatever the task needs, _it's already in the box_.
 
-Core tools live in the same namespace as `read` and `bash`. Pin the active set with `--tools read,edit,bash,…`; rarely used discoverable tools stay behind `xd://` devices. `read xd://` lists them, and `write xd://<tool>` runs one when `tools.xdev` is enabled.
+Core tools live in the same namespace as `read` and `bash`. Pin the active set with `--tools read,edit,bash,…`; rarely used discoverable tools mount as bash commands when `tools.commands` is enabled — run `<tool> <args>` with the bash tool, and `<tool> --help` for schema-derived usage instead of schemas shipped on every request.
 
 **Files & search**
 
@@ -296,7 +296,7 @@ Core tools live in the same namespace as `read` and `bash`. Pin the active set w
 - `task` — fan out subagents in parallel, optionally workspace-isolated.
 - `wait` — block until the next background result, peer message, or steering interrupt; message peers and control jobs via `agent://` and `proc://`.
 - `todo` — ordered mutations over the session todo list with phase tracking.
-- `ask` — structured follow-up questions for interactive runs.
+- `ask` — HTML form follow-ups (radios, checkboxes, selects, text) for interactive runs.
 
 **Desktop & web**
 
@@ -350,19 +350,19 @@ Auth tags below: `oauth` signs in with your provider account, `plan` routes thro
 
 Direct APIs and gateways. Mix providers per role.
 
-Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · SambaNova · Fireworks · Together · Modular · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Inception · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · Helmcode · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless · Scaleway
+Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · SambaNova · Fireworks · Together · Modular · Baseten · Chutes · DeepInfra · Hugging Face · NVIDIA · Meta · Inception · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · Helmcode · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless · Scaleway · Otari
 
 ### Coding plans
 
 Subscription-routed. `/login` attaches the session.
 
-Cursor `oauth` · GitHub Copilot `oauth` · GitLab Duo · Devin `oauth` · Kimi Code `plan` · Moonshot · MiniMax Coding Plan `plan` · MiniMax Coding Plan CN `plan` · Alibaba Coding Plan `plan` · Qwen Portal `oauth` · Z.AI / GLM Coding Plan `plan` · Zhipu Coding Plan `plan` · Xiaomi MiMo · Qianfan · Umans `plan` · NanoGPT · Novita · Venice · Kilo · ZenMux · OpenCode Go · OpenCode Zen
+Cursor `oauth` · GitHub Copilot `oauth` · GitLab Duo · Devin `oauth` · Kiro `oauth` · Kimi Code `plan` · Moonshot · MiniMax Coding Plan `plan` · MiniMax Coding Plan CN `plan` · Alibaba Coding Plan `plan` · Qwen Portal `oauth` · Z.AI / GLM Coding Plan `plan` · Zhipu Coding Plan `plan` · Xiaomi MiMo · Qianfan · Umans `plan` · NanoGPT · Novita · Venice · Kilo · ZenMux · OpenCode Go · OpenCode Zen
 
 ### Run it yourself
 
 OpenAI-compatible `/v1/models`. Local instances skip the key.
 
-Ollama `local` · Ollama Cloud · LM Studio `local` · llama.cpp `local` · vLLM `local` · LiteLLM
+Ollama `local` · Ollama Cloud · LM Studio `local` · llama.cpp `local` · vLLM `local` · LiteLLM · Bifrost
 
 ### Custom OpenAI-compatible providers
 
@@ -399,13 +399,13 @@ modelRoles:
 
 Full provider & routing reference at [storoslop/docs/providers](https://github.com/Zanooda/storoslop/docs/providers).
 
-## Twenty-four backends. _One tool the agent already knows_.
+## Twenty-five backends. _One tool the agent already knows_.
 
-`web_search` is built in, not bolted on. `auto` walks a twenty-four-provider chain; pin one by name if you already pay for it. Behind every hit, site-aware extraction turns GitHub, registries, arXiv, Stack Overflow, and docs into structured markdown — anchors and link targets survive.
+`web_search` is built in, not bolted on. `auto` walks a twenty-five-provider chain; pin one by name if you already pay for it. Behind every hit, site-aware extraction turns GitHub, registries, arXiv, Stack Overflow, and docs into structured markdown — anchors and link targets survive.
 
 ### Search providers
 
-Twenty-four backends. Pin one, or let `auto` walk the chain in order.
+Twenty-five backends. Pin one, or let `auto` walk the chain in order.
 
 | provider     | auth                                      |
 | ------------ | ----------------------------------------- |
@@ -419,6 +419,7 @@ Twenty-four backends. Pin one, or let `auto` walk the chain in order.
 | `exa`        | `EXA_API_KEY` (or mcp)                    |
 | `tinyfish`   | `TINYFISH_API_KEY`                        |
 | `keenable`   | `KEENABLE_API_KEY` (keyless fallback)     |
+| `sofya`      | `SOFYA_API_KEY`                           |
 | `jina`       | `JINA_API_KEY`                            |
 | `kagi`       | `KAGI_API_KEY`                            |
 | `tavily`     | `TAVILY_API_KEY`                          |
@@ -463,21 +464,21 @@ Vuln lookups answer with vendor data, not blog summaries.
 
 Six crates, one platform-tagged N-API addon. Search, shell, AST, highlight, PTY, desktop control, image decode, BPE counting — all in-process on the libuv pool. No fork/exec on the hot path. The shell is our own bash 5.3 engine, and 58 command-line utilities — coreutils, findutils, sed, jq, ripgrep-backed grep, fd, diff, moreutils — are ported into the builtins crate and compiled straight into the shell.
 
-- Crates: `pi-natives`, `pi-shell`, `pi-ast`, `pi-iso`, `pi-voice`, `pi-walker`
+- Crates: `omp-natives`, `omp-shell`, `omp-ast`, `omp-iso`, `omp-voice`, `omp-xfs`
 - Platforms: `linux-x64`, `linux-arm64`, `darwin-x64`, `darwin-arm64`, `win32-x64`, `win32-arm64` — x64 ships dual AVX2 and baseline binaries
 
 Per crate, code lines only:
 
 | Crate      | What it does                                                                           |   ~LoC |
 | ---------- | -------------------------------------------------------------------------------------- | -----: |
-| pi-shell   | Embedded bash engine · persistent sessions · in-process coreutils dispatch · minimizer | 38,000 |
-| pi-natives | The N-API surface — every module in the table below                                    | 25,000 |
-| pi-walker  | Parallel walker · listing cache · glob · regex search for natives and shell rg/grep/fd | 11,400 |
-| pi-iso     | Workspace isolation · apfs · btrfs · zfs · reflink · overlayfs · projfs · rcopy        |  3,300 |
-| pi-ast     | tree-sitter + ast-grep matching, block resolution, structural summaries                |  2,900 |
-| pi-voice   | Audio capture/playback · Opus · live WebRTC                                            |  1,000 |
+| omp-shell   | Embedded bash engine · persistent sessions · in-process coreutils dispatch · minimizer | 38,000 |
+| omp-natives | The N-API surface — every module in the table below                                    | 25,000 |
+| omp-xfs  | Parallel walker · listing cache · glob · regex search for natives and shell rg/grep/fd | 11,400 |
+| omp-iso     | Workspace isolation · apfs · btrfs · zfs · reflink · overlayfs · projfs · rcopy        |  3,300 |
+| omp-ast     | tree-sitter + ast-grep matching, block resolution, structural summaries                |  2,900 |
+| omp-voice   | Audio capture/playback · Opus · live WebRTC                                            |  1,000 |
 
-Inside `pi-natives`, the per-module breakdown (glue and tests omitted):
+Inside `omp-natives`, the per-module breakdown (glue and tests omitted):
 
 | Module        | What it does                                                                      | Powered by                                |   ~LoC |
 | ------------- | --------------------------------------------------------------------------------- | ----------------------------------------- | -----: |
@@ -511,9 +512,9 @@ Same engine, four wrappers. `storoslop` runs the TUI. `storoslop -p` answers a s
 
 ### Interactive — when in doubt, the agent asks
 
-The TUI is the default surface. Tool calls render as cards, edits preview before they land, and ambiguity routes through the `ask` tool — a structured option picker the agent can call mid-turn. The keyboard handles the rest.
+The TUI is the default surface. Tool calls render as cards, edits preview before they land, and ambiguity routes through the `ask` tool — a form the agent can put up mid-turn, with its recommendation preselected. The keyboard handles the rest.
 
-The same prompt cards surface over ACP, so editors get the picker without writing one.
+The same forms surface over ACP as elicitations, so editors get them without writing a dialog.
 
 ![storoslop TUI: the ask tool renders an option picker with three choices, a (Recommended) badge on the first, and 'up/down navigate · enter select · esc cancel' footer.](https://omp.sh/captures/ask.webp)
 
@@ -596,12 +597,12 @@ Key ideas:
 - Make advanced behavior configurable rather than hidden
 ### Upstream baseline & reconciliation
 
-Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `33ea58aa7d`**, merged 2026-11-04 — 4971 commits since `a536558dc2` (upstream `18.11.1` → `18.16.0`); the fork itself targets `1.3.8`. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
+Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively tracks the [oh-my-pi](https://github.com/can1357/oh-my-pi) upstream (`can1357/oh-my-pi`). Latest integrated baseline: **upstream `main` `c61a4881a5`**, merged 2026-11-21 — 3699 commits since `584f424757` (upstream `18.18.2` → `19.1.0`); the fork itself targets `1.4.0`. The fork diverges deliberately, so each integration reconciles the overlapping files rather than blindly accepting upstream:
 
 **Keep-fork** (preserved where the fork intentionally diverges):
 
 - storoslop rebrand and hosted capture assets
-- `1.3.x` → `1.3.8` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
+- `1.3.x` → `1.4.0` version lineage across the `Cargo.toml` workspace version and the workspace `packages/*/package.json` versions (the root `package.json` carries no version field; non-lineage packages `browser-relay`, `collab-web`, `metaharness`, `typescript-edit-benchmark` carry their own)
 - `bun@1.4.4` + `@types/bun` pin (the merged upstream deleted its pre-1.4 runtime shims — cowork abort settling and YAML stringify stability — so 1.3.x is no longer supported)
 - ghostty-web TUI engine
 - single-provider model registry with bundled storoslop models merged at read time
@@ -614,18 +615,18 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 
 - KDL compat taxonomy (`packages/catalog/src/compat/rules/` + compiled `rules.json`, `bun run gen:compat`)
 - upstream model catalog wholesale (`packages/catalog/src/models.json`, regenerated with `bun run gen:models`) — every upstream provider/model row is adopted, plus the fork's bundled `storoslop/deepseek-v4.1-flash` seed (`rules/providers/storoslop.kdl` + `STOROSLOP_STATIC_MODELS`); only the runtime registry stays single-provider
-- native `pi-vcs` crate and `pi-natives` `vcs` module (`VcsGitRepo`/`VcsJjWorkspace`/`VcsRepo`), with `utils/git.ts`/`utils/jj.ts` replaced by `utils/github.ts` + vcs natives
+- native `omp-vcs` crate and `omp-natives` `vcs` module (`VcsGitRepo`/`VcsJjWorkspace`/`VcsRepo`), with `utils/git.ts`/`utils/jj.ts` replaced by `utils/github.ts` + vcs natives
 - `cline-pass` provider, `discovery.injectV1` openai-models-list option
 - V2 streaming Responses compaction and V1 `/responses/compact` fallback chain
 - `ompPr*` worktree metadata keys via vcs natives; z.ai OAuth callback port `9999`
 - PTY bridge backpressure rework and `katex` catalog entry for collab-web
 - declarative KDL auth registry (`rules/auth/*.kdl` + `packages/ai/src/registry/build.ts`), with a fork-private `auth/storoslop.kdl` rule replacing the TS `storoslopProvider`
-- native Rust edit engine (`crates/pi-edit`/`crates/pi-diff` via `pi-natives`; `@oh-my-pi/hashline` package removed)
+- native Rust edit engine (`crates/edit`/`crates/diff` via `omp-natives`; `@oh-my-pi/hashline` package removed)
 - oxlint/oxfmt toolchain (replaces biome) and Eval Ruby/Julia runtime removal
 - Agent Hub activity view, Herdr/terminal-multiplexer notification routing, Muse Code provider
 - plan autosave (`plan.autosave`, saved under `<project>/.storoslop/plans/`), `tui.vimMode`, experimental notes-backed context windows, DeepSeek peak/off-peak pricing, Command Code provider, DeepSeek V4.1 Flash on OpenRouter, Anthropic decimation prompt-cache breakpoints (upstream `18.1.13`–`18.1.17`)
-- cross-platform virtual filesystem provider (`crates/pi-vfs`, native Unix/Windows runtimes) unifying native-tool filesystem access and internal URLs, wired into shell execution (`crates/pi-shell`)
-- native Apple Foundation Models integration (`crates/pi-natives/src/applefm/` Swift bridge + `apple-foundation-models` provider in `packages/ai`)
+- cross-platform virtual filesystem provider (`crates/vfs`, native Unix/Windows runtimes) unifying native-tool filesystem access and internal URLs, wired into shell execution (`crates/shell`)
+- native Apple Foundation Models integration (`crates/natives/src/applefm/` Swift bridge + `apple-foundation-models` provider in `packages/ai`)
 - IDA Pro integration via idalib workers migrated to broker-managed host daemons (`packages/coding-agent/src/ida/` host/protocol/client), with LRU eviction, idle autosave and auto-close
 - centralized settings registry and internal URL routing (`cfg://` agent-controlled settings; session-wide approval/timeout handling)
 - `hub` tool deprecated in favour of `wait` and protocol-based interfaces
@@ -651,7 +652,7 @@ Beyond its [Pi](https://github.com/badlogic/pi-mono) lineage, storoslop actively
 - multimodal image judgments in Eval `judge()`/`judge_batch()`, and click-to-dictate plus local streaming speech recognition (`stt`, `local/nemotron-streaming-en-0.6b`)
 - SambaNova Cloud provider, `keep-bundled-names` catalog attribute, and the `gpt-image` model-family split; Claude 1h prompt-cache retention on Google Vertex
 - upstream provider-recovery fixes adopted wholesale (Cursor replayed-call and mid-stream cuts, Codex SSE stalls and usage invalidation, Anthropic fallback-credit redemption, transient "temporarily unavailable"/unknown finish reasons)
-- native shell rewrite: `crates/pi-shell` is now pi's own bash 5.3 engine (the vendored `brush-core`/`brush-parser` crates are gone), with `pi-builtins` holding the uutils-style command-line utilities and the process builtins against the shell's explicit host view, `pi-walker` serving parallel walk/glob/content search, `pi-vfs` the injectable async filesystem shared by the shell and its coreutils, `pi-iso` the cross-platform isolation PAL (APFS clones, kernel overlay with `fuse-overlayfs` fallback, ProjFS), and `pi-predict`/`pi-ast` under the composer word-completion engines and ast-grep (upstream `18.16.0`)
+- native shell rewrite: `crates/shell` is now pi's own bash 5.3 engine (the vendored `brush-core`/`brush-parser` crates are gone), with `pi-builtins` holding the uutils-style command-line utilities and the process builtins against the shell's explicit host view, `omp-xfs` serving parallel walk/glob/content search, `pi-vfs` the injectable async filesystem shared by the shell and its coreutils, `pi-iso` the cross-platform isolation PAL (APFS clones, kernel overlay with `fuse-overlayfs` fallback, ProjFS), and `omp-predict`/`omp-ast` under the composer word-completion engines and ast-grep (upstream `18.16.0`)
 - `/review` and `/annotate code-review` from a folder of checkouts (`/review owner/repo#123` from anywhere; `/review ./repo [#N | !N] [focus]` for a GitHub PR or GitLab MR in that checkout) and GitLab merge-request review in `glab` checkouts, with `mr://<host>/<group>/<project>/<iid>/diff` per-file diff URLs
 - `composer.predictionAlternatives` (one request returns up to four next messages, most likely first; Tab again picks another) and content-free OTLP metrics for composer predictions by serving model (outcome, shown, accepted with Tab/Right, number of choices, accepted rank)
 - `btw.inject` steering (a `/btw` answer can be sent into the main session with `Alt+I`, as a steer while the agent runs or as a new turn) and the `chillax` magic keyword (brief reasoning, dropping to the model's lowest effort where per-message effort applies)
@@ -695,7 +696,7 @@ bun setup
 bun dev
 ```
 
-Build and smoke-test the distributable Nix package with `nix build .#storoslop`. Wayland screencast support is off by default (linking libpipewire adds ~750 MB of runtime closure); enable it with `omp.override { withWaylandScreencast = true; }`. `nix/bun.nix` is generated only when `bun.lock` changes; releases regenerate it automatically. For dependency changes, run:
+Build and smoke-test the distributable Nix package with `nix build .#storoslop`. Wayland screencast support is off by default (putting libpipewire on the addon's library path adds ~750 MB of runtime closure); enable it with `storoslop.override { withWaylandScreencast = true; }`. Release builds link `omp-natives` with fat LTO; `storoslop.override { withFatLto = false; }` uses thin LTO for much faster local rebuilds. Rust dependencies and the native addon build in separate derivations, so Rust edits reuse compiled dependencies and TypeScript edits reuse the addon. `nix/bun.nix` is generated only when `bun.lock` changes; releases regenerate it automatically. For dependency changes, run:
 
 ```sh
 bun run gen:nix
@@ -708,6 +709,15 @@ For a non-interactive smoke check:
 ```sh
 bun dev -- --version
 ```
+
+#### Apple Silicon Nix builds
+
+On Apple Silicon, `nix build .#omp` compiles the Apple Foundation Models bridge
+with nixpkgs' Swift compiler and `apple-sdk_27`; host Xcode or Command Line Tools
+are never used, and the build fails rather than shipping without the bridge.
+Both are build-only dependencies. Using the models still requires macOS 27+, an
+eligible device, and Apple Intelligence enabled. To build without the bridge, use
+`omp.override { withAppleFm = false; }`.
 
 ### Debug Command
 
@@ -742,14 +752,14 @@ For architecture and contribution guidelines, see [packages/coding-agent/DEVELOP
 
 | Crate                                      | Description                                                                                              |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| **[pi-natives](crates/pi-natives)**        | Core Rust native addon (N-API `cdylib`) used by `@oh-my-pi/pi-natives`; aggregates the crates below      |
-| **[pi-shell](crates/pi-shell)**            | Embedded bash 5.3 engine (parser, VM, process spawning, sessions), PTY, and process management           |
-| **[pi-ast](crates/pi-ast)**                | tree-sitter-based code summarizer and AST utilities (50+ language grammars)                              |
-| **[pi-iso](crates/pi-iso)**                | Task isolation backend resolver: APFS clones, btrfs/zfs reflinks, overlayfs, projfs, rcopy               |
-| **[pi-voice](crates/pi-voice)**            | Audio capture/playback, Opus codecs, and live WebRTC streaming primitives                                |
-| **[pi-walker](crates/pi-walker)**          | Parallel ignore-aware walker, directory-listing cache, glob, and content search for natives + shell      |
-| **[pi-edit](crates/pi-edit)**              | Edit engine behind the `edit` tool: line-anchored patch/hashline modes, streaming previews, atomic apply |
-| **[pi-builtins](crates/pi-builtins)**      | 67 in-process command-line utilities plus process builtins (ps, top, pgrep, pkill, …)                    |
+| **[omp-natives](crates/natives)**        | Core Rust native addon (N-API `cdylib`) used by `@oh-my-pi/pi-natives`; aggregates the crates below      |
+| **[omp-shell](crates/shell)**            | Embedded bash 5.3 engine (parser, VM, process spawning, sessions), PTY, and process management           |
+| **[omp-ast](crates/ast)**                | tree-sitter-based code summarizer and AST utilities (50+ language grammars)                              |
+| **[omp-iso](crates/iso)**                | Task isolation backend resolver: APFS clones, btrfs/zfs reflinks, overlayfs, projfs, rcopy               |
+| **[omp-voice](crates/voice)**            | Audio capture/playback, Opus codecs, and live WebRTC streaming primitives                                |
+| **[omp-xfs](crates/xfs)**          | Parallel ignore-aware walker, directory-listing cache, glob, and content search for natives + shell      |
+| **[omp-edit](crates/edit)**              | Edit engine behind the `edit` tool: line-anchored patch/hashline modes, streaming previews, atomic apply |
+| **[omp-builtins](crates/builtins)**      | 67 in-process command-line utilities plus process builtins (ps, top, pgrep, pkill, …)                    |
 
 ## Contributing
 
@@ -765,7 +775,7 @@ guidelines on contributing.
 storoslop is licensed under the [MIT License](LICENSE).
 
 Third-party and vendored code, including the third-party portions identified
-in `crates/pi-builtins/LICENSE`, remains under its respective upstream license.
+in `crates/builtins/LICENSE`, remains under its respective upstream license.
 Each shipped component carries its own `THIRD-PARTY-NOTICES.txt`: the CLI
 (`packages/coding-agent`), the native addon (`packages/natives`), and robomp
 (`python/robomp`). `storoslop --license` prints the CLI's and the addon's.

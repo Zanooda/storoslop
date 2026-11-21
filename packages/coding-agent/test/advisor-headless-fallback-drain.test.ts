@@ -146,7 +146,6 @@ describe("headless advisor drain with a fallback reviewer", () => {
 			sessionManager: SessionManager.inMemory(),
 			settings,
 			modelRegistry: new ModelRegistry(authStorage, tempDir.join("models.yml")),
-			advisorTools: [],
 			advisorStreamFn,
 		});
 		session = advised;

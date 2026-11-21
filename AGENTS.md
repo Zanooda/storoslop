@@ -26,18 +26,18 @@ This repo contains multiple packages, but **`packages/coding-agent/`** is the pr
 |`packages/collab-web`|Browser guest client and local relay tools for collab live sessions|
 |`packages/metaharness`|Unified benchmark runners, Harbor run storage, REST/SSE APIs, live dashboard|
 |`packages/typescript-edit-benchmark`|Edit benchmark suite built from TypeScript source mutations|
-|`crates/pi-natives`|Rust crate for performance-critical text/grep ops|
-|`crates/pi-shell`|Embedded bash 5.3 engine with its OS and VFS hosts and persistent sessions|
-|`crates/pi-builtins`|uutils-style utilities and process builtins for the embedded shell|
-|`crates/pi-walker`|Parallel filesystem walking, globbing, and content search|
-|`crates/pi-iso`|Cross-platform isolation PAL|
-|`crates/pi-predict`|In-house word-completion engines for the prompt composer|
-|`crates/pi-vfs`|Injectable asynchronous filesystem shared by the shell and coreutils|
-|`crates/pi-ast`|Syntax-aware code analysis primitives|
-|`crates/pi-edit`|Edit engine: parsing, matching, application, diff, streaming previews|
-|`crates/pi-diff`|jsdiff-compatible diff primitives without an FFI dependency|
-|`crates/pi-vcs`|In-process git and Jujutsu interface for the coding agent|
-|`crates/pi-voice`|Native voice engine: capture, playback, WebRTC live conversation|
+|`crates/natives`|Rust crate for performance-critical text/grep ops|
+|`crates/shell`|Embedded bash 5.3 engine with its OS and VFS hosts and persistent sessions|
+|`crates/builtins`|uutils-style utilities and process builtins for the embedded shell|
+|`crates/xfs`|Parallel filesystem walking, globbing, and content search|
+|`crates/iso`|Cross-platform isolation PAL|
+|`crates/predict`|In-house word-completion engines for the prompt composer|
+|`crates/vfs`|Injectable asynchronous filesystem shared by the shell and coreutils|
+|`crates/ast`|Syntax-aware code analysis primitives|
+|`crates/edit`|Edit engine: parsing, matching, application, diff, streaming previews|
+|`crates/diff`|jsdiff-compatible diff primitives without an FFI dependency|
+|`crates/vcs`|In-process git and Jujutsu interface for the coding agent|
+|`crates/voice`|Native voice engine: capture, playback, WebRTC live conversation|
 
 **Catalog import convention**: code in this repo imports catalog _values_ (bundled models, model-thinking helpers, identity, descriptors, model manager/cache) from `@oh-my-pi/pi-catalog/<module>` — never via `@oh-my-pi/pi-ai`. The pi-ai barrel re-exports only the model/effort _types_ its own signatures use (`Model`, `Api`, `ThinkingConfig`, `Effort`, …); type-only imports of those from `@oh-my-pi/pi-ai` are fine.
 
@@ -59,7 +59,7 @@ When authorized to create or edit a contributor-submitted PR, follow the checkli
 
 ## Upstream
 
-This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`33ea58aa7d`**, merged alongside the fork's own `1.3.8` lineage on 2026-11-04 (branch `integrate/oh-my-pi-33ea58aa7d`). The fork keeps its own labels — `storoslop` command name, `~/.storoslop` config root, single-provider runtime registry, fork CI topology — while adopting upstream structure and behavior. Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
+This repo is a fork of [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) (originally forked from [Pi](https://github.com/badlogic/pi-mono)). Latest integrated baseline: upstream `main` **`c61a4881a5`**, merged alongside the fork's own `1.4.0` lineage on 2026-11-21 (branch `integrate/oh-my-pi-c61a4881a5`). The fork keeps its own labels — `storoslop` command name, `~/.storoslop` config root, single-provider runtime registry, fork CI topology — while adopting upstream structure and behavior. Deliberate fork deltas are preserved on integration rather than accepted blindly — see the keep-fork / took-upstream decisions in the README "Upstream baseline & reconciliation" section before touching upstream-adjacent files (`package.json`/`Cargo.toml` version lineage, model registry, TUI engine, update flow, CI).
 
 ## Code Quality
 
@@ -282,7 +282,7 @@ For the bash tool specifically:
 
 - NEVER commit unless asked.
 - Never use `tsc`/`npx tsc` — always `bun check`.
-- Never run `cargo test` directly for Rust tests — use `bun run test:rs`. It runs `cargo nextest run` (config: `.config/nextest.toml`) followed by a `cargo test --doc` pass, because nextest does not execute doctests. The doctest pass runs every runnable doctest in the workspace's lib crates; today that is tree-sitter-go's one example (pi-natives is a `cdylib`, which rustdoc skips; pi-builtins' examples are `ignore`d vendored uutils docs).
+- Never run `cargo test` directly for Rust tests — use `bun run test:rs`. It runs `cargo nextest run` (config: `.config/nextest.toml`) followed by a `cargo test --doc` pass, because nextest does not execute doctests. The doctest pass runs every runnable doctest in the workspace's lib crates; today that is tree-sitter-go's one example (omp-natives is a `cdylib`, which rustdoc skips; omp-builtins' examples are `ignore`d vendored uutils docs).
 - `bun check`'s Rust half runs only when the branch changed a Rust-affecting file (`*.rs`, `crates/`, Cargo/toolchain files) since its merge base with `upstream/main` or `origin/main`, committed or not; it always runs in GitHub Actions, when that cannot be determined (e.g. shallow clone), or with `OMP_FORCE_RUST_TASKS=1`.
 - Merge commits (maintainer merges of PRs) follow: `Merge PR #<number>: <conventional PR subject> (@<author>)` — e.g. `Merge PR #6386: feat(catalog): add native Meta Model API provider (@eggpeat)`.
 ## Rust Build Profiles

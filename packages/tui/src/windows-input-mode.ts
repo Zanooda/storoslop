@@ -111,7 +111,14 @@ function parseRecord(data: string): KeyRecord | undefined {
 		const raw = params[index];
 		return raw ? Number.parseInt(raw, 10) : fallback;
 	};
-	return { vk: at(0, 0), uc: at(2, 0), down: at(3, 0) === 1, state: at(4, 0), repeat: Math.max(1, at(5, 1)) };
+	// The console's wRepeatCount is a WORD; anything larger is a spoofed or pasted record.
+	return {
+		vk: at(0, 0),
+		uc: at(2, 0),
+		down: at(3, 0) === 1,
+		state: at(4, 0),
+		repeat: Math.min(Math.max(1, at(5, 1)), 0xffff),
+	};
 }
 
 /** Lowercase codepoint a letter/digit virtual key stands for, or 0. */
@@ -436,8 +443,13 @@ export class Win32PasteMarkerNormalizer {
 		if (output) this.#onInput(output);
 		if (this.#candidate || this.#pending) {
 			this.#timer = setTimeout(() => {
-				this.flush();
-				this.#onExpired?.();
+				// A stalled loop can have the rest of this record waiting in stdin's
+				// poll queue; release only after it has had a chance to arrive.
+				this.#timer = setTimeout(() => {
+					this.#timer = undefined;
+					this.flush();
+					this.#onExpired?.();
+				});
 			}, 75);
 		}
 	}

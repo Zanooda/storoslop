@@ -191,7 +191,7 @@ _[观看录屏 ↗](https://omp.sh/clips/collab.mp4)_
 
 ### 08 · 读一篇 arXiv 上的 PDF？有何不可。
 
-web_search 串联了二十四个按优先级排列的搜索提供商，并把找到的 URL 直接交给 read。arXiv PDF、GitHub 页面、Stack Overflow 帖子都会以结构化 Markdown 返回，锚点完整保留——与处理本地文件使用同一套工具。引用、跟进、摘录，永远不会丢失出处。
+web_search 串联了二十五个按优先级排列的搜索提供商，并把找到的 URL 直接交给 read。arXiv PDF、GitHub 页面、Stack Overflow 帖子都会以结构化 Markdown 返回，锚点完整保留——与处理本地文件使用同一套工具。引用、跟进、摘录，永远不会丢失出处。
 
 ![storoslop TUI：web_search 针对推理时计算扩展返回 10 个按排名排列的 Perplexity 来源，智能体挑选了一篇 arXiv 论文，调用 read https://arxiv.org/pdf/2604.10739v1，并用真实数据总结论文的核心结论。](https://omp.sh/clips/web-poster.webp)
 
@@ -247,7 +247,7 @@ _[观看录屏 ↗](https://omp.sh/clips/conflict.mp4)_
 
 ### 19 · 先预览，再接受。
 
-`ast_edit` 会返回一张带替换数量的 _（proposed）_ 卡片，修改处于暂存状态。智能体向 `xd://resolve` 写入一行理由；TUI 将其变为 **Accept** 卡片，随后才真正写入磁盘——原子操作，要么全部成功，要么全部不做。
+`ast_edit` 会返回一张带替换数量的 _（proposed）_ 卡片，修改处于暂存状态。智能体运行 `resolve "<reason>"`；TUI 将其变为 **Accept** 卡片，随后才真正写入磁盘——原子操作，要么全部成功，要么全部不做。
 
 ![storoslop TUI：✓ AST Edit: console.log($X)（proposed）3 处替换 · 1 个文件，然后 ✓ Accept: 1 个文件中 3 处替换（AST Edit），接着是 “Applied 3 replacements in src/auth.ts.”](https://omp.sh/clips/codemod-poster.webp)
 
@@ -265,7 +265,7 @@ Eval 的 `computer` 辅助方法——`computer.window(...)`、`win.screenshot()
 
 ## 任务需要什么，_早已内置_。
 
-核心工具与 `read` 和 `bash` 位于同一命名空间。用 `--tools read,edit,bash,…` 固定启用的工具集；不常用的工具则通过 `xd://` 设备按需发现。`read xd://` 会列出它们，启用 `tools.xdev` 后可用 `write xd://<tool>` 运行。
+核心工具与 `read` 和 `bash` 位于同一命名空间。用 `--tools read,edit,bash,…` 固定启用的工具集；启用 `tools.commands` 后，不常用的可发现工具会挂载为 bash 命令——用 bash 工具运行 `<tool> <args>`，用 `<tool> --help` 获取由 schema 派生的用法，而无需在每次请求中附带 schema。
 
 **文件与搜索**
 
@@ -293,7 +293,7 @@ Eval 的 `computer` 辅助方法——`computer.window(...)`、`win.screenshot()
 - `task` — 并行扇出子智能体，可选工作区隔离。
 - `wait` — 阻塞直到下一个后台结果、同伴消息或引导中断；通过 `agent://` 和 `proc://` 给同伴发消息、控制任务。
 - `todo` — 对会话待办列表进行有序修改，支持阶段跟踪。
-- `ask` — 交互式运行中的结构化追问。
+- `ask` — 交互式运行中的 HTML 表单追问（单选框、复选框、下拉选择、文本）。
 
 **桌面与网络**
 
@@ -347,7 +347,7 @@ Eval 的 `computer` 辅助方法——`computer.window(...)`、`win.screenshot()
 
 直连 API 和网关。可按角色混用不同提供商。
 
-Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · SambaNova · Fireworks · Together · Modular · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Inception · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · Helmcode · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless · Scaleway
+Anthropic `oauth` · OpenAI · OpenAI Codex `oauth` · Google Gemini · Google Vertex · Google Antigravity `oauth` · xAI · SuperGrok `oauth` · DeepSeek · Mistral · Groq · Cerebras · SambaNova · Fireworks · Together · Modular · Baseten · DeepInfra · Hugging Face · NVIDIA · Meta · Inception · Amazon Bedrock · Azure OpenAI · SiliconFlow · GMI Cloud · CoreWeave · Sakana AI · Command Code · Charm Hyper · StepFun · Helmcode · OpenRouter · Synthetic · Vercel AI Gateway · Cloudflare AI Gateway · Wafer Serverless · Scaleway · Otari
 
 ### 编程套餐
 
@@ -396,13 +396,13 @@ modelRoles:
 
 完整的提供商与路由参考见 [storoslop/docs/providers](https://github.com/Zanooda/storoslop/docs/providers)。
 
-## 二十四个后端。_智能体早已用惯的一个工具_。
+## 二十五个后端。_智能体早已用惯的一个工具_。
 
-`web_search` 是内置的，而不是外挂的。`auto` 会依次尝试二十四个提供商；如果你已经付费订阅了某一个，也可以按名称固定使用。每个搜索结果背后，站点感知的提取器会把 GitHub、包注册表、arXiv、Stack Overflow 和文档站点转换为结构化 Markdown——锚点和链接目标都会保留。
+`web_search` 是内置的，而不是外挂的。`auto` 会依次尝试二十五个提供商；如果你已经付费订阅了某一个，也可以按名称固定使用。每个搜索结果背后，站点感知的提取器会把 GitHub、包注册表、arXiv、Stack Overflow 和文档站点转换为结构化 Markdown——锚点和链接目标都会保留。
 
 ### 搜索提供商
 
-二十四个后端。固定使用其中之一，或让 `auto` 按顺序依次尝试。
+二十五个后端。固定使用其中之一，或让 `auto` 按顺序依次尝试。
 
 | 提供商       | 认证方式                                  |
 | ------------ | ----------------------------------------- |
@@ -416,6 +416,7 @@ modelRoles:
 | `exa`        | `EXA_API_KEY`（或 mcp）                   |
 | `tinyfish`   | `TINYFISH_API_KEY`                        |
 | `keenable`   | `KEENABLE_API_KEY`（可无密钥回退）        |
+| `sofya`      | `SOFYA_API_KEY`                           |
 | `jina`       | `JINA_API_KEY`                            |
 | `kagi`       | `KAGI_API_KEY`                            |
 | `tavily`     | `TAVILY_API_KEY`                          |
@@ -460,21 +461,21 @@ Exa 也可以通过 `/login exa` 存储 API 密钥；显式选择无密钥模式
 
 六个 crate，一个按平台打包的 N-API 插件。搜索、shell、AST、语法高亮、PTY、桌面控制、图像解码、BPE 计数——全部在 libuv 线程池中进程内完成。热路径上没有 fork/exec。shell 是我们自己的 bash 5.3 引擎，58 个命令行工具——coreutils、findutils、sed、jq、基于 ripgrep 的 grep、fd、diff、moreutils——被移植进 builtins crate，直接编译进 shell。
 
-- Crate：`pi-natives`、`pi-shell`、`pi-ast`、`pi-iso`、`pi-voice`、`pi-walker`
+- Crate：`omp-natives`、`omp-shell`、`omp-ast`、`omp-iso`、`omp-voice`、`omp-xfs`
 - 平台：`linux-x64`、`linux-arm64`、`darwin-x64`、`darwin-arm64`、`win32-x64`、`win32-arm64`——x64 同时提供 AVX2 和基线两种二进制
 
 按 crate 统计（仅代码行）：
 
 | Crate      | 功能                                                                         | ~代码行 |
 | ---------- | ---------------------------------------------------------------------------- | ------: |
-| pi-shell   | 内嵌 bash 引擎 · 持久会话 · 进程内 coreutils 调度 · 输出精简器               |  38,000 |
-| pi-natives | N-API 接口层——下表中的所有模块                                               |  25,000 |
-| pi-walker  | 并行遍历器 · 目录列表缓存 · glob · 为 natives 和 shell 的 rg/grep/fd 提供正则搜索 | 11,400 |
-| pi-iso     | 工作区隔离 · apfs · btrfs · zfs · reflink · overlayfs · projfs · rcopy        |   3,300 |
-| pi-ast     | tree-sitter + ast-grep 匹配、代码块解析、结构化摘要                          |   2,900 |
-| pi-voice   | 音频采集/播放 · Opus · 实时 WebRTC                                           |   1,000 |
+| omp-shell   | 内嵌 bash 引擎 · 持久会话 · 进程内 coreutils 调度 · 输出精简器               |  38,000 |
+| omp-natives | N-API 接口层——下表中的所有模块                                               |  25,000 |
+| omp-xfs  | 并行遍历器 · 目录列表缓存 · glob · 为 natives 和 shell 的 rg/grep/fd 提供正则搜索 | 11,400 |
+| omp-iso     | 工作区隔离 · apfs · btrfs · zfs · reflink · overlayfs · projfs · rcopy        |   3,300 |
+| omp-ast     | tree-sitter + ast-grep 匹配、代码块解析、结构化摘要                          |   2,900 |
+| omp-voice   | 音频采集/播放 · Opus · 实时 WebRTC                                           |   1,000 |
 
-`pi-natives` 内部的模块明细（省略胶水代码和测试）：
+`omp-natives` 内部的模块明细（省略胶水代码和测试）：
 
 | 模块          | 功能                                                                  | 基于                                      | ~代码行 |
 | ------------- | --------------------------------------------------------------------- | ----------------------------------------- | ------: |
@@ -508,9 +509,9 @@ Exa 也可以通过 `/login exa` 存储 API 密钥；显式选择无密钥模式
 
 ### 交互式——拿不准时，智能体会问你
 
-TUI 是默认界面。工具调用渲染为卡片，编辑在写入磁盘前可预览，遇到歧义时则通过 `ask` 工具处理——这是一个智能体可以在回合中途调用的结构化选项选择器。其余操作都可以用键盘完成。
+TUI 是默认界面。工具调用渲染为卡片，编辑在写入磁盘前可预览，遇到歧义时则通过 `ask` 工具处理——这是智能体可以在回合中途弹出的表单，并预先选中它推荐的选项。其余操作都可以用键盘完成。
 
-同样的提示卡片也会通过 ACP 呈现，编辑器无需自己实现选择器。
+同样的表单也会以 elicitation 的形式通过 ACP 呈现，编辑器无需自己编写对话框。
 
 ![storoslop TUI：ask 工具渲染出包含三个选项的选择器，第一个带有（Recommended）标记，底栏为“up/down navigate · enter select · esc cancel”。](https://omp.sh/captures/ask.webp)
 
@@ -612,18 +613,18 @@ storoslop 派生自 [Mario Zechner](https://github.com/mariozechner) 的 [pi-mon
 
 - KDL 兼容性分类法（`packages/catalog/src/compat/rules/` + 编译产物 `rules.json`，`bun run gen:compat`）
 - 上游模型目录整体采纳（`packages/catalog/src/models.json`，通过 `bun run gen:models` 重新生成）——上游每个提供商/模型行都被采纳，另加 fork 内置的 `storoslop/deepseek-v4.1-flash` 种子（`rules/providers/storoslop.kdl` + `STOROSLOP_STATIC_MODELS`）；只有运行时注册表保持单提供商
-- 原生 `pi-vcs` crate 与 `pi-natives` 的 `vcs` 模块（`VcsGitRepo`/`VcsJjWorkspace`/`VcsRepo`），`utils/git.ts`/`utils/jj.ts` 由 `utils/github.ts` + vcs natives 取代
+- 原生 `pi-vcs` crate 与 `omp-natives` 的 `vcs` 模块（`VcsGitRepo`/`VcsJjWorkspace`/`VcsRepo`），`utils/git.ts`/`utils/jj.ts` 由 `utils/github.ts` + vcs natives 取代
 - `cline-pass` 提供商、`discovery.injectV1` openai-models-list 选项
 - V2 流式 Responses 压缩与 V1 `/responses/compact` 回退链
 - 通过 vcs natives 提供的 `ompPr*` worktree 元数据键；z.ai OAuth 回调端口 `9999`
 - PTY 桥接背压重构，以及 collab-web 的 `katex` 目录条目
 - 声明式 KDL 认证注册表（`rules/auth/*.kdl` + `packages/ai/src/registry/build.ts`），其中 fork 私有的 `auth/storoslop.kdl` 规则取代 TS 版 `storoslopProvider`
-- 原生 Rust 编辑引擎（`crates/pi-edit`/`crates/pi-diff`，经 `pi-natives` 接入；`@oh-my-pi/hashline` 包已移除）
+- 原生 Rust 编辑引擎（`crates/edit`/`crates/diff`，经 `omp-natives` 接入；`@oh-my-pi/hashline` 包已移除）
 - oxlint/oxfmt 工具链（取代 biome），以及 Eval 的 Ruby/Julia 运行时移除
 - Agent Hub 活动视图、Herdr/终端复用器通知路由、Muse Code 提供商
 - 计划自动保存（`plan.autosave`，保存到 `<project>/.storoslop/plans/`）、`tui.vimMode`、实验性的 notes 支撑上下文窗口、DeepSeek 峰谷定价、Command Code 提供商、OpenRouter 上的 DeepSeek V4.1 Flash、Anthropic 抽稀式 prompt 缓存断点（上游 `18.1.13`–`18.1.17`）
-- 跨平台虚拟文件系统提供方（`crates/pi-vfs`，原生 Unix/Windows 运行时），统一原生工具的文件系统访问与内部 URL，并接入 shell 执行（`crates/pi-shell`）
-- 原生 Apple Foundation Models 集成（`crates/pi-natives/src/applefm/` Swift 桥 + `packages/ai` 中的 `apple-foundation-models` 提供商）
+- 跨平台虚拟文件系统提供方（`crates/vfs`，原生 Unix/Windows 运行时），统一原生工具的文件系统访问与内部 URL，并接入 shell 执行（`crates/shell`）
+- 原生 Apple Foundation Models 集成（`crates/natives/src/applefm/` Swift 桥 + `packages/ai` 中的 `apple-foundation-models` 提供商）
 - 通过 idalib worker 实现的 IDA Pro 集成迁移为由 broker 管理的主机守护进程（`packages/coding-agent/src/ida/` host/protocol/client），带 LRU 淘汰、空闲自动保存与自动关闭
 - 集中式设置注册表与内部 URL 路由（`cfg://` 智能体可控设置；会话级审批/超时处理）
 - `hub` 工具弃用，改由 `wait` 与基于协议的接口承担
@@ -649,7 +650,7 @@ storoslop 派生自 [Mario Zechner](https://github.com/mariozechner) 的 [pi-mon
 - Eval `judge()`/`judge_batch()` 中的多模态图像评判，以及点击听写与本地流式语音识别（`stt`、`local/nemotron-streaming-en-0.6b`）
 - SambaNova Cloud 提供商、`keep-bundled-names` 目录属性与 `gpt-image` 模型族拆分；Google Vertex 上的 Claude 1 小时 prompt 缓存保留
 - 整体采纳上游的提供商恢复修复（Cursor 重放调用与流中断、Codex SSE 停滞与用量失效、Anthropic 回退额度兑换、临时「temporarily unavailable」/未知结束原因）
-- 原生 shell 重写：`crates/pi-shell` 现在是 pi 自有的 bash 5.3 引擎（内置的 `brush-core`/`brush-parser` crate 已移除），`pi-builtins` 持有 uutils 风格命令行工具以及针对 shell 显式宿主视图的进程内建命令，`pi-walker` 提供并行遍历/glob/内容搜索，`pi-vfs` 是 shell 及其 coreutils 共享的可注入异步文件系统，`pi-iso` 是跨平台隔离 PAL（APFS 克隆、内核 overlay 并带 `fuse-overlayfs` 回退、ProjFS），`pi-predict`/`pi-ast` 支撑输入框词语补全引擎与 ast-grep（上游 `18.16.0`）
+- 原生 shell 重写：`crates/shell` 现在是 pi 自有的 bash 5.3 引擎（内置的 `brush-core`/`brush-parser` crate 已移除），`pi-builtins` 持有 uutils 风格命令行工具以及针对 shell 显式宿主视图的进程内建命令，`omp-xfs` 提供并行遍历/glob/内容搜索，`pi-vfs` 是 shell 及其 coreutils 共享的可注入异步文件系统，`pi-iso` 是跨平台隔离 PAL（APFS 克隆、内核 overlay 并带 `fuse-overlayfs` 回退、ProjFS），`omp-predict`/`omp-ast` 支撑输入框词语补全引擎与 ast-grep（上游 `18.16.0`）
 - 来自一组本地检出的 `/review` 与 `/annotate code-review`（任意位置用 `/review owner/repo#123`；`/review ./repo [#N | !N] [focus]` 审查该检出中的 GitHub PR 或 GitLab MR），以及 `glab` 检出中的 GitLab 合并请求评审，带 `mr://<host>/<group>/<project>/<iid>/diff` 逐文件 diff URL
 - `composer.predictionAlternatives`（一次请求最多返回四条下一条消息，最可能的在前；再按 Tab 选择另一条），以及按服务模型统计的、不含内容的补全预测 OTLP 指标（结果、展示、以 Tab/Right 接受、选项数、接受排名）
 - `btw.inject` 引导（`/btw` 的答复可用 `Alt+I` 送入主会话：智能体运行中作为引导，否则作为新回合）与 `chillax` 魔法关键词（简短推理；在支持逐消息 effort 的模型上降到最低 effort）
@@ -693,7 +694,7 @@ bun setup
 bun dev
 ```
 
-使用 `nix build .#storoslop` 构建并冒烟测试可分发的 Nix 包。Wayland 屏幕录制支持默认关闭（链接 libpipewire 会增加约 750 MB 的运行时闭包）；可通过 `omp.override { withWaylandScreencast = true; }` 开启。`nix/bun.nix` 只在 `bun.lock` 变化时生成；发布时会自动重新生成。依赖变更后，请运行：
+使用 `nix build .#storoslop` 构建并冒烟测试可分发的 Nix 包。Wayland 屏幕录制支持默认关闭（将 libpipewire 加入插件的库搜索路径会增加约 750 MB 的运行时闭包）；可通过 `storoslop.override { withWaylandScreencast = true; }` 开启。发布构建使用 fat LTO 链接 `omp-natives`；`storoslop.override { withFatLto = false; }` 改用 thin LTO，本地重新构建会快得多。Rust 依赖和原生插件在不同的 derivation 中构建，因此修改 Rust 代码会复用已编译的依赖，修改 TypeScript 会复用已构建的插件。`nix/bun.nix` 只在 `bun.lock` 变化时生成；发布时会自动重新生成。依赖变更后，请运行：
 
 ```sh
 bun run gen:nix
@@ -706,6 +707,10 @@ bun run gen:nix
 ```sh
 bun dev -- --version
 ```
+
+#### Apple Silicon 上的 Nix 构建
+
+在 Apple Silicon 上，`nix build .#omp` 会使用 nixpkgs 的 Swift 编译器和 `apple-sdk_27` 编译 Apple Foundation Models bridge。构建过程不会使用宿主机的 Xcode 或 Command Line Tools。如果无法编译该 bridge，构建会直接失败，而不是发布一个缺少 bridge 的版本。这两者都只是构建期依赖。要使用这些模型，仍需要 macOS 27+、受支持的设备，并开启 Apple Intelligence。如需在不包含该 bridge 的情况下构建，请使用 `omp.override { withAppleFm = false; }`。
 
 ### 调试命令
 
@@ -740,14 +745,14 @@ bun dev -- --version
 
 | Crate                                      | 说明                                                                                     |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| **[pi-natives](crates/pi-natives)**        | `@oh-my-pi/pi-natives` 使用的核心 Rust 原生插件（N-API `cdylib`）；聚合下列各 crate      |
-| **[pi-shell](crates/pi-shell)**            | 内嵌的 bash 5.3 引擎（解析器、虚拟机、进程创建、会话）、PTY 和进程管理                   |
-| **[pi-ast](crates/pi-ast)**                | 基于 tree-sitter 的代码摘要器和 AST 工具（50+ 种语言语法）                               |
-| **[pi-iso](crates/pi-iso)**                | 任务隔离后端解析器：APFS 克隆、btrfs/zfs reflink、overlayfs、projfs、rcopy               |
-| **[pi-voice](crates/pi-voice)**            | 音频采集/播放、Opus 编解码和实时 WebRTC 流式传输基础组件                                 |
-| **[pi-walker](crates/pi-walker)**          | 为 natives 和 shell 提供并行的 ignore 感知遍历器、目录列表缓存、glob 和内容搜索          |
-| **[pi-edit](crates/pi-edit)**              | `edit` 工具背后的编辑引擎：基于行锚点的 patch/hashline 模式、流式预览、原子化应用        |
-| **[pi-builtins](crates/pi-builtins)**      | 67 个进程内命令行工具以及进程内建命令（ps、top、pgrep、pkill 等）                        |
+| **[omp-natives](crates/natives)**        | `@oh-my-pi/pi-natives` 使用的核心 Rust 原生插件（N-API `cdylib`）；聚合下列各 crate      |
+| **[omp-shell](crates/shell)**            | 内嵌的 bash 5.3 引擎（解析器、虚拟机、进程创建、会话）、PTY 和进程管理                   |
+| **[omp-ast](crates/ast)**                | 基于 tree-sitter 的代码摘要器和 AST 工具（50+ 种语言语法）                               |
+| **[omp-iso](crates/iso)**                | 任务隔离后端解析器：APFS 克隆、btrfs/zfs reflink、overlayfs、projfs、rcopy               |
+| **[omp-voice](crates/voice)**            | 音频采集/播放、Opus 编解码和实时 WebRTC 流式传输基础组件                                 |
+| **[omp-xfs](crates/xfs)**          | 为 natives 和 shell 提供并行的 ignore 感知遍历器、目录列表缓存、glob 和内容搜索          |
+| **[omp-edit](crates/edit)**              | `edit` 工具背后的编辑引擎：基于行锚点的 patch/hashline 模式、流式预览、原子化应用        |
+| **[omp-builtins](crates/builtins)**      | 67 个进程内命令行工具以及进程内建命令（ps、top、pgrep、pkill 等）                        |
 
 ## 参与贡献
 
@@ -759,7 +764,7 @@ Issue 和 Pull Request 向所有人开放。开放 PR 目前处于**试行**阶�
 
 storoslop 基于 [MIT 许可证](LICENSE) 发布。
 
-第三方代码和内置（vendored）的上游代码，包括 `crates/pi-builtins/LICENSE` 中标明的第三方部分，仍遵循各自上游的许可证。每个发布的组件都附带自己的 `THIRD-PARTY-NOTICES.txt`：CLI（`packages/coding-agent`）、原生插件（`packages/natives`）和 robomp（`python/robomp`）。`storoslop --license` 会打印 CLI 和原生插件的许可声明。
+第三方代码和内置（vendored）的上游代码，包括 `crates/builtins/LICENSE` 中标明的第三方部分，仍遵循各自上游的许可证。每个发布的组件都附带自己的 `THIRD-PARTY-NOTICES.txt`：CLI（`packages/coding-agent`）、原生插件（`packages/natives`）和 robomp（`python/robomp`）。`storoslop --license` 会打印 CLI 和原生插件的许可声明。
 
 © 2025 Mario Zechner  
 © 2025-2026 Can Bölük  

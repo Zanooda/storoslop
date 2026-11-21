@@ -1,7 +1,7 @@
 import type { CommandMetadata } from "@oh-my-pi/pi-utils/cli";
 
 export const acpHelp = {
-	description: "Run Storoslop as an ACP (Agent Client Protocol) server over stdio",
+	description: "Run omp as an ACP (Agent Client Protocol) server over stdio",
 } satisfies CommandMetadata;
 
 export const agentsHelp = { description: "Manage bundled task agents" } satisfies CommandMetadata;
@@ -16,7 +16,7 @@ export const authHelp = {
 } satisfies CommandMetadata;
 
 export const authBrokerHelp = {
-	description: "Manage the storoslop auth-broker (credential vault)",
+	description: "Manage the omp auth-broker (credential vault)",
 } satisfies CommandMetadata;
 
 export const authGatewayHelp = {
@@ -29,8 +29,9 @@ export const benchHelp = {
 		"Benchmark models: TTFT/prefill vs decode throughput with p50/p95, across chat, prefill, generation, and prompt-cache workloads, or single-user vs parallel load (--detailed)",
 } satisfies CommandMetadata;
 
+/** Root help description for managing omp's Chrome extension and relay. */
 export const browserRelayHelp = {
-	description: "Run the local CDP relay that lets the browser prelude drive your own Chrome tabs",
+	description: "Install or sync the omp Chrome extension; its native host serves the browser relay",
 } satisfies CommandMetadata;
 
 export const cleanseHelp = {
@@ -146,9 +147,9 @@ export const setupHelp = {
 export const shellHelp = { description: "Interactive shell console" } satisfies CommandMetadata;
 
 const NATIVE_SHELL_DESCRIPTIONS = {
-	zsh: "Run zsh 5.9 on the built-in pi-shell engine (all arguments go to zsh)",
-	bash: "Run bash 5.3 on the built-in pi-shell engine (all arguments go to bash)",
-	sh: "Run a POSIX sh on the built-in pi-shell engine (all arguments go to sh)",
+	zsh: "Run zsh 5.9 on the built-in shell engine (all arguments go to zsh)",
+	bash: "Run bash 5.3 on the built-in shell engine (all arguments go to bash)",
+	sh: "Run a POSIX sh on the built-in shell engine (all arguments go to sh)",
 } as const;
 
 /** `omp zsh|bash|sh`: the whole command line after the word goes to the shell. */
@@ -198,5 +199,5 @@ export const usageHelp = {
 } satisfies CommandMetadata;
 
 export const worktreeHelp = {
-	description: "List or clear agent-managed git worktrees (~/.storoslop/wt)",
+	description: "List or clear managed Git and ovnfs worktrees, or add a linked Git worktree at a path",
 } satisfies CommandMetadata;
