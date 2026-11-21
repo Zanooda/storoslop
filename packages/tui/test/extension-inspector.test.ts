@@ -389,16 +389,16 @@ describe("tool inspector", () => {
 		expect(text).not.toContain("9 args");
 	});
 
-	test("project list hints work for Windows .omp paths", () => {
+	test("project list hints work for Windows .storoslop paths", () => {
 		expect(
 			projectListHint({
 				...toolExtension(),
-				path: "C:\\repo\\.omp\\tools\\x.ts",
+				path: "C:\\repo\\.storoslop\\tools\\x.ts",
 			}),
 		).toBe("repo");
 	});
 
-	test("project list hints work for Windows .omp paths with forward slashes", () => {
+	test("project list hints work for Windows .storoslop paths with forward slashes", () => {
 		expect(
 			projectListHint({
 				...toolExtension(),
