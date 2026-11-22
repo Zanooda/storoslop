@@ -15,7 +15,7 @@ provider "storoslop" {
 			reasoning #true
 			input "text" "image"
 			supports-tools #true
-			cost input=0.14 output=0.28 cache-read=0.028 cache-write=0
+			cost input=0.15 output=0.60 cache-read=0.003 cache-write=0
 			limits context=1048576 max-tokens=131072
 			thinking-mode "effort"
 			thinking-efforts "low" "high" "xhigh" "max"

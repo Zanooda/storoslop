@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Updated the storoslop `deepseek-v4.1-flash` price to $0.15 input, $0.60 output and $0.003 cached-read per million tokens
+
 ## [19.1.0] - 2026-11-21
 
 ### Breaking Changes
