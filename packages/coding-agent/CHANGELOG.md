@@ -2,70 +2,6 @@
 
 ## [Unreleased]
 
-## [1.4.0] - 2026-11-21
-
-### Changed
-
-- The bash tool's embedded shell is now pi's own bash engine with bash 5.3 semantics, so shell rc aliases whose bodies use pipes, subshells or `;` (such as Fedora's default `which`) now run instead of being dropped
-- Refreshed the native layer: `pi-shell` replaces the vendored brush shell with pi's own bash engine, and a patched `grep-searcher` crate feeds streaming searches
-- `/resume` and `storoslop --resume` open at once on titled sessions, then fill in prompts, status and untitled sessions as the scan finishes
-- Browser tabs now belong to the agent that opened them, so tabs stay frozen, idle-closed and released across `/new`, `/resume`, fork and branch
-- The fork keeps its single-provider runtime registry (bundled storoslop models merged at read time) and its binary-only GitHub-release update flow, with no `updateViaManager`
-- Thinking blocks stay hidden by default (`hideThinkingBlock: true`), and the fork keeps its `S` terminal title and welcome branding
-- The fork's pruned `advisor-provider-options-parity.test.ts` and `retry-fallback.test.ts` stay deleted; provider-scoped coverage remains in `agent-session-model-persistence.test.ts`
-- CI keeps the fork's GitHub-hosted runners while adopting upstream's job graph
-- Integrated upstream `main` `c61a4881a5` (v19.1.0, 3699 commits): adopted the renamed Rust crates, the seance removal, the browser-relay native-host rework, and the unified daemon/disasm modules; the fork's version lineage moves from `1.3.9` to `1.4.0`
-- The fork now requires Bun `>= 1.4.4` (upstream removed its pre-1.4 runtime shims), and the compiled binary enables precompiled bytecode again for a faster `--version`/boot
-- The bash tool's embedded shell is now pi's own bash engine with bash 5.3 semantics; aliases from your shell rc whose bodies use pipes, subshells or `;` (such as Fedora's default `which`) now run instead of being dropped from the snapshot ([#3234](https://github.com/can1357/oh-my-pi/issues/3234))
-- Upstream `a536558dc2` integration (958 commits): adopted the `/jobs` subagent job tree, `ctx.ui.getEditorComponent()`, per-client `omp auth-gateway serve --clients` tokens, `lsp.requestTimeout`, `todo` updates riding the next tool call, structured `task` results via frontmatter, click-to-dictate streaming speech recognition, and the replayed-call/transport recovery fixes for Cursor, Codex and Anthropic; thinking traces stay hidden by default.
-
-### Fixed
-
-- Fixed `~/.storoslop/agent/agent.db` getting corrupted (wiping stored logins) on Linux when grep, `read`, the bash tool, extensions or eval read it while the agent held it open; `write` and `tts` refuse to overwrite a database the agent holds open
-- Fixed a subagent's `browser.close({ all: true })` closing its parent's tabs
-- Fixed browser clicks and drags cancelled mid-gesture leaving the mouse button or keys down in the tab, and relay calls failing at 20 s regardless of their own timeout
-- Fixed out-of-credit provider errors (402 billing bodies, balance/credit walls, spend ceilings) being slept on for 30 minutes instead of ending the turn, so Retry works immediately after topping up
-- Fixed `edit` payloads ending a body with `*** End` or `*** End Patch` writing the marker into the file
-- Fixed `omp -p` text mode showing only `Working...` during an automatic retry instead of printing the retry and its error
-- Fixed a session resumed on a later day resending its first message with that day's date, which dropped earlier thinking and missed the prompt cache
-- An out-of-credit provider error (a 402 billing body, an insufficient or prepaid balance, a credits wall, a spend ceiling) now ends the turn with that error instead of starting a retry: the retry engine was sleeping the 30-minute `QUOTA_EXHAUSTED` heuristic on it, and a `retry.maxDelayMs` raised that high let the sleep run, so Retry did nothing while the countdown lasted and the error card was later marked recovered by an unrelated turn. Topping the account up and pressing Retry now re-attempts at once ([#17937](https://github.com/can1357/oh-my-pi/pull/17937) by [@iacore](https://github.com/iacore))
-- Fixed the Agent Hub still listing the previous session's subagents after `/new` or switching sessions; it now shows only the current session's agents ([#17945](https://github.com/can1357/oh-my-pi/issues/17945))
-- `edit` payloads that close each Replace or Insert body with `*** End` or `*** End Patch` (a DeepSeek habit) no longer write the marker line into the file, and no longer drop every operation after the first `*** End Patch`.
-- Fixed composer prediction ghost text being dropped or never shown when a silent advisor card lands after the turn
-- A grouped `read` row that names a URL links the whole URL instead of only its last path segment, so a click anywhere on the visible URL opens it; the row's last `/` no longer splits it into a dim prefix and a linked tail ([#18071](https://github.com/can1357/oh-my-pi/pull/18071) by [@iacore](https://github.com/iacore))
-- Fixed a second `ask` note on a later single-select question reopening and replacing the previous question's note ([#17979](https://github.com/can1357/oh-my-pi/issues/17979))
-- Fixed the first run of a compiled binary after an install or upgrade keeping every subagent on the main thread and failing `omp --smoke-test` with `SubagentCodeChangedError` for the native addon it had just extracted ([#18060](https://github.com/can1357/oh-my-pi/issues/18060))
-- Retrying an aborted turn keeps the unsent composer draft instead of clearing it ([#17977](https://github.com/can1357/oh-my-pi/pull/17977) by [@Shadorain](https://github.com/Shadorain))
-- Fixed the `tts` tool never producing Grok Voice audio: xAI rejected every request for a missing `language`, so it silently fell back to local Kokoro. The tool's `language` is now sent to xAI, which auto-detects when it is omitted ([#17992](https://github.com/can1357/oh-my-pi/pull/17992) by [@Mirceone](https://github.com/Mirceone))
-- Fixed Windows bash output on non-UTF-8 code pages (Korean, Chinese, Japanese, …) turning into mojibake for the rest of a command after a builtin wrote one invalid byte (`printf '\xeb'`, `cut -c` through a CJK character); the stray byte now becomes `�` on its own line, and native programs' ANSI output still decodes, including through `| head` or from `cat` of a legacy file ([#17947](https://github.com/can1357/oh-my-pi/pull/17947) by [@H4vC](https://github.com/H4vC))
-- Fixed Hindsight silently dropping the last mental model (often `User Preferences`) from the prompt once models outgrew their share of the render budget ([#17548](https://github.com/can1357/oh-my-pi/issues/17548), [#17955](https://github.com/can1357/oh-my-pi/pull/17955) by [@harshaygadekar](https://github.com/harshaygadekar))
-- Subagent turns woken by IRC, restored after a restart, or run again by a workpool now keep their `task.softRequestBudget` guard instead of running without one ([#17988](https://github.com/can1357/oh-my-pi/pull/17988) by [@sinhduc01](https://github.com/sinhduc01))
-- The run status `blocked` indicator of a focused subagent follows the subagent's own approval mode, tool policies, remembered grants, and "approve for this session" answers instead of the main session's
-- In the bash tool, `exec >file`, `exec 2>/dev/null` or `exec <file` no longer redirects every later command of the session; each command starts with its own stdin, stdout and stderr
-- In the bash tool, an `EXIT` trap fires once, at the end of the command that set it, instead of again after every later command
-- In the bash tool, output a background job (`(sleep 1; echo late) &`) writes after its command ended no longer shows up in a later command's output
-- In the bash tool, `env -i` no longer passes inherited variables whose names are not shell names (`A-B=1`) to the program, and `X=v env -i`/`X=v env -u X` no longer pass an exported outer `X`
-- In the bash tool, `xargs` reports a command killed by a signal as GNU xargs does: `xargs: CMD: terminated by signal N`, no further commands, status 125
-- On macOS, starting a bash tool session no longer briefly sets pi's umask to 022, which could give files created at that moment the wrong permissions
-- In the bash tool, an executable script without a `#!` line started in the background with its input from a FIFO (`./script < fifo &`) runs as a bash script instead of failing with `Exec format error`
-- Fixed subagents hanging forever in an async Python `@tool` call that waits on a kernel-global `asyncio.Lock` (or other asyncio primitive) another subagent's call held; concurrent async tool calls now share one event loop
-- Interrupting or cancelling a subagent mid-call now cancels an async Python `@tool` coroutine, releasing any locks it holds, and the subagent sees `Python tool request was cancelled` instead of `Python tool call returned an invalid response`
-
-### Removed
-
-- Removed `PI_TOKENIZER_ACCURATE`; every model is counted with a native tokenizer
-- A CLI flag, session-only settings write or SDK override now outranks the setting's environment variable, so `PI_MOTION=none omp --motion full` runs with full motion; env vars still outrank every settings file
-- Updated abort error handling for JS and Python tools to propagate original abort reasons
-- Subagents now move into worker threads when many run at once, so their model streaming and tool work no longer competes with the TUI: up to 3 concurrent subagents run on the main thread, 4 add a worker, and each doubling (8, 16, 32) adds one more, up to the new `task.workerThreads` (default 4; `0` keeps every subagent on the main thread). Each subagent goes where the fewest are running; a needed worker starts while the model is still streaming the spawning call and exits a minute after its last subagent finishes or parks. IRC, the Agent Hub and focus view, `agent://`/`history://`/`proc://`, parking and revival, async jobs, cost caps, account pools and OAuth refresh, runtime model providers, MCP, memory, telemetry, `PI_PROXY` and logs keep working across the thread boundary. If omp's own files change while it runs (a source checkout or an in-place update), new subagents run on the main thread until omp restarts
-- Interactive startup reaches the first frame ~75ms sooner with skills listed in the system prompt: background skill-description compression now starts after the first frame, and resolves its model once per batch of uncached skills instead of once per skill
-- Startup release notes ("What's New") now appear just after the first interactive frame instead of being resolved before the session starts; a launch quit before that frame keeps them for the next start
-- `wait` reports jobs that finish within 1.5 s of each other in one result instead of one wait call per job
-- Broadcasts and progress notes from other agents no longer cut short a `wait` (or interrupt running bash/eval); they arrive after the wait returns. A direct message still ends the wait, and the result now carries every message queued by then instead of one per call
-- A `wait` for a reply to a message you sent gives up after 5 minutes instead of 30, and returns at once when the agent asked is waiting on the user (`ask`, an approval)
-- Subagent and task prompts no longer tell agents to message or broadcast before editing shared files; subagents message only to get unblocked and wait only on their own jobs
-- Subagents can no longer broadcast: `write agent://all` from a subagent fails and points it at a direct `agent://<id>` message, and subagent prompts no longer advertise `agent://all`. The main agent can still broadcast
-- Factory Droid Gemini 4 Argon sessions keep its earlier turns intact through save and reload, and the image clamp counts those turns at the size Argon is sent ([#17861](https://github.com/can1357/oh-my-pi/pull/17861) by [@will-bogusz](https://github.com/will-bogusz))
-
 ## [19.1.0] - 2026-11-21
 
 ### Breaking Changes
@@ -1414,5 +1350,69 @@
 - The plan review's edit button in Tern names your editor ("Edit in Notepad", "Edit in nvim") instead of "Edit in $EDITOR"
 - Fixed `/tan` clones ending without a final answer when they call `ask`; the clone now keeps running and the parent receives its final answer instead of an empty result ([#17223](https://github.com/can1357/oh-my-pi/pull/17223) by [@trukhinyuri](https://github.com/trukhinyuri))
 - Fixed GitHub `/review` diff links keeping the snapshot that built the request after the cached diff refreshes in the background, instead of opening whatever file now sits at the same index ([#16310](https://github.com/can1357/oh-my-pi/pull/16310) by [@tkossak](https://github.com/tkossak))
+
+## [1.4.0] - 2026-11-21
+
+### Changed
+
+- The bash tool's embedded shell is now pi's own bash engine with bash 5.3 semantics, so shell rc aliases whose bodies use pipes, subshells or `;` (such as Fedora's default `which`) now run instead of being dropped
+- Refreshed the native layer: `pi-shell` replaces the vendored brush shell with pi's own bash engine, and a patched `grep-searcher` crate feeds streaming searches
+- `/resume` and `storoslop --resume` open at once on titled sessions, then fill in prompts, status and untitled sessions as the scan finishes
+- Browser tabs now belong to the agent that opened them, so tabs stay frozen, idle-closed and released across `/new`, `/resume`, fork and branch
+- The fork keeps its single-provider runtime registry (bundled storoslop models merged at read time) and its binary-only GitHub-release update flow, with no `updateViaManager`
+- Thinking blocks stay hidden by default (`hideThinkingBlock: true`), and the fork keeps its `S` terminal title and welcome branding
+- The fork's pruned `advisor-provider-options-parity.test.ts` and `retry-fallback.test.ts` stay deleted; provider-scoped coverage remains in `agent-session-model-persistence.test.ts`
+- CI keeps the fork's GitHub-hosted runners while adopting upstream's job graph
+- Integrated upstream `main` `c61a4881a5` (v19.1.0, 3699 commits): adopted the renamed Rust crates, the seance removal, the browser-relay native-host rework, and the unified daemon/disasm modules; the fork's version lineage moves from `1.3.9` to `1.4.0`
+- The fork now requires Bun `>= 1.4.4` (upstream removed its pre-1.4 runtime shims), and the compiled binary enables precompiled bytecode again for a faster `--version`/boot
+- The bash tool's embedded shell is now pi's own bash engine with bash 5.3 semantics; aliases from your shell rc whose bodies use pipes, subshells or `;` (such as Fedora's default `which`) now run instead of being dropped from the snapshot ([#3234](https://github.com/can1357/oh-my-pi/issues/3234))
+- Upstream `a536558dc2` integration (958 commits): adopted the `/jobs` subagent job tree, `ctx.ui.getEditorComponent()`, per-client `omp auth-gateway serve --clients` tokens, `lsp.requestTimeout`, `todo` updates riding the next tool call, structured `task` results via frontmatter, click-to-dictate streaming speech recognition, and the replayed-call/transport recovery fixes for Cursor, Codex and Anthropic; thinking traces stay hidden by default.
+
+### Fixed
+
+- Fixed `~/.storoslop/agent/agent.db` getting corrupted (wiping stored logins) on Linux when grep, `read`, the bash tool, extensions or eval read it while the agent held it open; `write` and `tts` refuse to overwrite a database the agent holds open
+- Fixed a subagent's `browser.close({ all: true })` closing its parent's tabs
+- Fixed browser clicks and drags cancelled mid-gesture leaving the mouse button or keys down in the tab, and relay calls failing at 20 s regardless of their own timeout
+- Fixed out-of-credit provider errors (402 billing bodies, balance/credit walls, spend ceilings) being slept on for 30 minutes instead of ending the turn, so Retry works immediately after topping up
+- Fixed `edit` payloads ending a body with `*** End` or `*** End Patch` writing the marker into the file
+- Fixed `omp -p` text mode showing only `Working...` during an automatic retry instead of printing the retry and its error
+- Fixed a session resumed on a later day resending its first message with that day's date, which dropped earlier thinking and missed the prompt cache
+- An out-of-credit provider error (a 402 billing body, an insufficient or prepaid balance, a credits wall, a spend ceiling) now ends the turn with that error instead of starting a retry: the retry engine was sleeping the 30-minute `QUOTA_EXHAUSTED` heuristic on it, and a `retry.maxDelayMs` raised that high let the sleep run, so Retry did nothing while the countdown lasted and the error card was later marked recovered by an unrelated turn. Topping the account up and pressing Retry now re-attempts at once ([#17937](https://github.com/can1357/oh-my-pi/pull/17937) by [@iacore](https://github.com/iacore))
+- Fixed the Agent Hub still listing the previous session's subagents after `/new` or switching sessions; it now shows only the current session's agents ([#17945](https://github.com/can1357/oh-my-pi/issues/17945))
+- `edit` payloads that close each Replace or Insert body with `*** End` or `*** End Patch` (a DeepSeek habit) no longer write the marker line into the file, and no longer drop every operation after the first `*** End Patch`.
+- Fixed composer prediction ghost text being dropped or never shown when a silent advisor card lands after the turn
+- A grouped `read` row that names a URL links the whole URL instead of only its last path segment, so a click anywhere on the visible URL opens it; the row's last `/` no longer splits it into a dim prefix and a linked tail ([#18071](https://github.com/can1357/oh-my-pi/pull/18071) by [@iacore](https://github.com/iacore))
+- Fixed a second `ask` note on a later single-select question reopening and replacing the previous question's note ([#17979](https://github.com/can1357/oh-my-pi/issues/17979))
+- Fixed the first run of a compiled binary after an install or upgrade keeping every subagent on the main thread and failing `omp --smoke-test` with `SubagentCodeChangedError` for the native addon it had just extracted ([#18060](https://github.com/can1357/oh-my-pi/issues/18060))
+- Retrying an aborted turn keeps the unsent composer draft instead of clearing it ([#17977](https://github.com/can1357/oh-my-pi/pull/17977) by [@Shadorain](https://github.com/Shadorain))
+- Fixed the `tts` tool never producing Grok Voice audio: xAI rejected every request for a missing `language`, so it silently fell back to local Kokoro. The tool's `language` is now sent to xAI, which auto-detects when it is omitted ([#17992](https://github.com/can1357/oh-my-pi/pull/17992) by [@Mirceone](https://github.com/Mirceone))
+- Fixed Windows bash output on non-UTF-8 code pages (Korean, Chinese, Japanese, …) turning into mojibake for the rest of a command after a builtin wrote one invalid byte (`printf '\xeb'`, `cut -c` through a CJK character); the stray byte now becomes `�` on its own line, and native programs' ANSI output still decodes, including through `| head` or from `cat` of a legacy file ([#17947](https://github.com/can1357/oh-my-pi/pull/17947) by [@H4vC](https://github.com/H4vC))
+- Fixed Hindsight silently dropping the last mental model (often `User Preferences`) from the prompt once models outgrew their share of the render budget ([#17548](https://github.com/can1357/oh-my-pi/issues/17548), [#17955](https://github.com/can1357/oh-my-pi/pull/17955) by [@harshaygadekar](https://github.com/harshaygadekar))
+- Subagent turns woken by IRC, restored after a restart, or run again by a workpool now keep their `task.softRequestBudget` guard instead of running without one ([#17988](https://github.com/can1357/oh-my-pi/pull/17988) by [@sinhduc01](https://github.com/sinhduc01))
+- The run status `blocked` indicator of a focused subagent follows the subagent's own approval mode, tool policies, remembered grants, and "approve for this session" answers instead of the main session's
+- In the bash tool, `exec >file`, `exec 2>/dev/null` or `exec <file` no longer redirects every later command of the session; each command starts with its own stdin, stdout and stderr
+- In the bash tool, an `EXIT` trap fires once, at the end of the command that set it, instead of again after every later command
+- In the bash tool, output a background job (`(sleep 1; echo late) &`) writes after its command ended no longer shows up in a later command's output
+- In the bash tool, `env -i` no longer passes inherited variables whose names are not shell names (`A-B=1`) to the program, and `X=v env -i`/`X=v env -u X` no longer pass an exported outer `X`
+- In the bash tool, `xargs` reports a command killed by a signal as GNU xargs does: `xargs: CMD: terminated by signal N`, no further commands, status 125
+- On macOS, starting a bash tool session no longer briefly sets pi's umask to 022, which could give files created at that moment the wrong permissions
+- In the bash tool, an executable script without a `#!` line started in the background with its input from a FIFO (`./script < fifo &`) runs as a bash script instead of failing with `Exec format error`
+- Fixed subagents hanging forever in an async Python `@tool` call that waits on a kernel-global `asyncio.Lock` (or other asyncio primitive) another subagent's call held; concurrent async tool calls now share one event loop
+- Interrupting or cancelling a subagent mid-call now cancels an async Python `@tool` coroutine, releasing any locks it holds, and the subagent sees `Python tool request was cancelled` instead of `Python tool call returned an invalid response`
+
+### Removed
+
+- Removed `PI_TOKENIZER_ACCURATE`; every model is counted with a native tokenizer
+- A CLI flag, session-only settings write or SDK override now outranks the setting's environment variable, so `PI_MOTION=none omp --motion full` runs with full motion; env vars still outrank every settings file
+- Updated abort error handling for JS and Python tools to propagate original abort reasons
+- Subagents now move into worker threads when many run at once, so their model streaming and tool work no longer competes with the TUI: up to 3 concurrent subagents run on the main thread, 4 add a worker, and each doubling (8, 16, 32) adds one more, up to the new `task.workerThreads` (default 4; `0` keeps every subagent on the main thread). Each subagent goes where the fewest are running; a needed worker starts while the model is still streaming the spawning call and exits a minute after its last subagent finishes or parks. IRC, the Agent Hub and focus view, `agent://`/`history://`/`proc://`, parking and revival, async jobs, cost caps, account pools and OAuth refresh, runtime model providers, MCP, memory, telemetry, `PI_PROXY` and logs keep working across the thread boundary. If omp's own files change while it runs (a source checkout or an in-place update), new subagents run on the main thread until omp restarts
+- Interactive startup reaches the first frame ~75ms sooner with skills listed in the system prompt: background skill-description compression now starts after the first frame, and resolves its model once per batch of uncached skills instead of once per skill
+- Startup release notes ("What's New") now appear just after the first interactive frame instead of being resolved before the session starts; a launch quit before that frame keeps them for the next start
+- `wait` reports jobs that finish within 1.5 s of each other in one result instead of one wait call per job
+- Broadcasts and progress notes from other agents no longer cut short a `wait` (or interrupt running bash/eval); they arrive after the wait returns. A direct message still ends the wait, and the result now carries every message queued by then instead of one per call
+- A `wait` for a reply to a message you sent gives up after 5 minutes instead of 30, and returns at once when the agent asked is waiting on the user (`ask`, an approval)
+- Subagent and task prompts no longer tell agents to message or broadcast before editing shared files; subagents message only to get unblocked and wait only on their own jobs
+- Subagents can no longer broadcast: `write agent://all` from a subagent fails and points it at a direct `agent://<id>` message, and subagent prompts no longer advertise `agent://all`. The main agent can still broadcast
+- Factory Droid Gemini 4 Argon sessions keep its earlier turns intact through save and reload, and the image clamp counts those turns at the size Argon is sent ([#17861](https://github.com/can1357/oh-my-pi/pull/17861) by [@will-bogusz](https://github.com/will-bogusz))
 
 Older entries are archived in [packages/coding-agent/CHANGELOG.md@e1c1e072760c](https://github.com/Zanooda/storoslop/blob/e1c1e072760c4e07e0ee5c4c211045e7da0bc4a4/packages/coding-agent/CHANGELOG.md).
