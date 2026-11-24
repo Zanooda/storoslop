@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Installation docs and the Windows installer no longer reference npm or Homebrew packages that are not published; installs use GitHub Releases binaries or a source build.
+
 ## [19.1.0] - 2026-11-21
 
 ### Breaking Changes

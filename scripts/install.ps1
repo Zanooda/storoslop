@@ -25,7 +25,6 @@ if ($PSVersionTable.PSVersion -lt [version]"5.1") {
 }
 
 $Repo = "Zanooda/storoslop"
-$Package = "@oh-my-pi/pi-coding-agent"
 $InstallDir = if ($env:PI_INSTALL_DIR) { $env:PI_INSTALL_DIR } else { "$env:LOCALAPPDATA\storoslop" }
 # Windows PowerShell 5.1 (.NET Framework) does not reliably resolve
 # [System.Runtime.InteropServices.RuntimeInformation] without an
@@ -215,70 +214,101 @@ function Install-Bun {
     Assert-BunVersion $MinimumBunVersion
 }
 
-function Install-ViaBun {
-    Write-Host "Installing via bun..."
-    if ($Ref) {
-        if (-not (Test-GitInstalled)) {
-            throw "git is required for -Ref when installing from source"
+function Install-FromSource {
+    Write-Host "Installing from source..."
+    if (-not (Test-GitInstalled)) {
+        throw "git is required for -Source. Install Git for Windows from https://git-scm.com/download/win and re-run."
+    }
+    if (-not (Test-BunInstalled)) {
+        Install-Bun
+    }
+    Assert-BunVersion $MinimumBunVersion
+
+    $sourceRef = if ($Ref) { $Ref } else { "main" }
+    $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("storoslop-install-" + [System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null
+
+    try {
+        $repoUrl = "https://github.com/$Repo.git"
+        Invoke-Native { git clone --depth 1 --branch $sourceRef $repoUrl $tmpRoot 2>&1 | Out-Null }
+        if ($LASTEXITCODE -ne 0) {
+            Invoke-Native { git clone $repoUrl $tmpRoot 2>&1 | Out-Null }
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to clone $repoUrl"
+            }
+            Push-Location $tmpRoot
+            try {
+                Invoke-Native { git checkout $sourceRef 2>&1 | Out-Null }
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to checkout $sourceRef"
+                }
+            } finally {
+                Pop-Location
+            }
         }
 
-        $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("storoslop-install-" + [System.Guid]::NewGuid().ToString("N"))
-        New-Item -ItemType Directory -Force -Path $tmpRoot | Out-Null
+        # Pull LFS files
+        if (Test-GitLfsInstalled) {
+            Push-Location $tmpRoot
+            try {
+                Invoke-Native { git lfs pull 2>&1 | Out-Null }
+            } finally {
+                Pop-Location
+            }
+        }
 
+        Push-Location $tmpRoot
         try {
-            $repoUrl = "https://github.com/$Repo.git"
-            Invoke-Native { git clone --depth 1 --branch $Ref $repoUrl $tmpRoot 2>&1 | Out-Null }
+            Invoke-Native { bun install }
             if ($LASTEXITCODE -ne 0) {
-                Invoke-Native { git clone $repoUrl $tmpRoot 2>&1 | Out-Null }
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Failed to clone $repoUrl"
-                }
-                Push-Location $tmpRoot
-                try {
-                    Invoke-Native { git checkout $Ref 2>&1 | Out-Null }
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Failed to checkout $Ref"
-                    }
-                } finally {
-                    Pop-Location
-                }
+                throw "Failed to install workspace dependencies via bun"
             }
-
-            # Pull LFS files
-            if (Test-GitLfsInstalled) {
-                Push-Location $tmpRoot
-                try {
-                    Invoke-Native { git lfs pull 2>&1 | Out-Null }
-                } finally {
-                    Pop-Location
-                }
-            }
-
-            $packagePath = Join-Path $tmpRoot "packages\coding-agent"
-            if (-not (Test-Path $packagePath)) {
-                throw "Expected package at $packagePath"
-            }
-
-            Invoke-Native { bun install -g $packagePath }
+            Invoke-Native { bun run build }
             if ($LASTEXITCODE -ne 0) {
-                throw "Failed to install from $packagePath via bun"
+                throw "Failed to build the binary via bun"
             }
         } finally {
-            Remove-Item -Recurse -Force $tmpRoot -ErrorAction SilentlyContinue
+            Pop-Location
         }
-    } else {
-        Invoke-Native { bun install -g $Package }
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to install $Package via bun"
+
+        $builtExe = Join-Path $tmpRoot "packages\coding-agent\dist\storoslop.exe"
+        if (-not (Test-Path $builtExe)) {
+            $builtExe = Join-Path $tmpRoot "packages\coding-agent\dist\storoslop"
         }
+        if (-not (Test-Path $builtExe)) {
+            throw "Build finished but no binary was produced under packages\coding-agent\dist"
+        }
+
+        New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+        $OutPath = Join-Path $InstallDir "storoslop.exe"
+        Copy-Item -Force -LiteralPath $builtExe -Destination $OutPath
+    } finally {
+        Remove-Item -Recurse -Force $tmpRoot -ErrorAction SilentlyContinue
     }
 
     Write-Host ""
-    Write-Host "[OK] Installed omp via bun" -ForegroundColor Green
+    Write-Host "[OK] Installed storoslop (from source) to $OutPath" -ForegroundColor Green
+    $needsRestart = Add-InstallDirToPath
 
     Configure-BashShell
 
-    Write-Host "Run 'omp' to get started!"
+    if ($needsRestart) {
+        Write-Host "Restart your terminal, then run 'storoslop' to get started!"
+    } else {
+        Write-Host "Run 'storoslop' to get started!"
+    }
+}
+
+# Add $InstallDir to the user PATH when it is missing. Returns $true when the
+# PATH changed and the user must restart their terminal to pick it up.
+function Add-InstallDirToPath {
+    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($UserPath -notlike "*$InstallDir*") {
+        Write-Host "Adding $InstallDir to PATH..."
+        [Environment]::SetEnvironmentVariable("Path", "$UserPath;$InstallDir", "User")
+        return $true
+    }
+    return $false
 }
 
 function Install-Binary {
@@ -333,44 +363,23 @@ function Install-Binary {
     }
 
     Write-Host ""
-    Write-Host "[OK] Installed omp to $OutPath" -ForegroundColor Green
+    Write-Host "[OK] Installed storoslop to $OutPath" -ForegroundColor Green
 
-    # Add to PATH if not already there
-    $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    $needsRestart = $UserPath -notlike "*$InstallDir*"
-    if ($needsRestart) {
-        Write-Host "Adding $InstallDir to PATH..."
-        [Environment]::SetEnvironmentVariable("Path", "$UserPath;$InstallDir", "User")
-    }
+    $needsRestart = Add-InstallDirToPath
 
     Configure-BashShell
 
     if ($needsRestart) {
-        Write-Host "Restart your terminal, then run 'omp' to get started!"
+        Write-Host "Restart your terminal, then run 'storoslop' to get started!"
     } else {
-        Write-Host "Run 'omp' to get started!"
+        Write-Host "Run 'storoslop' to get started!"
     }
 }
 
-# Main logic
-if ($Ref -and -not $Source -and -not $Binary) {
-    $Source = $true
-}
-
+# Main logic. The binary comes from GitHub Releases by default; -Source builds
+# from a checkout instead. Nothing is fetched from a package registry.
 if ($Source) {
-    if (-not (Test-BunInstalled)) {
-        Install-Bun
-    }
-    Assert-BunVersion $MinimumBunVersion
-    Install-ViaBun
-} elseif ($Binary) {
-    Install-Binary
+    Install-FromSource
 } else {
-    # Default: use bun if available, otherwise binary
-    if (Test-BunInstalled) {
-        Assert-BunVersion $MinimumBunVersion
-        Install-ViaBun
-    } else {
-        Install-Binary
-    }
+    Install-Binary
 }

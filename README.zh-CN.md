@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent"><img src="https://img.shields.io/npm/v/@oh-my-pi/pi-coding-agent?style=flat&colorA=222222&colorB=CB3837" alt="npm version"></a>
+  <a href="https://github.com/Zanooda/storoslop/releases"><img src="https://img.shields.io/github/v/release/Zanooda/storoslop?style=flat&colorA=222222&colorB=3FB950" alt="Release"></a>
   <a href="https://github.com/Zanooda/storoslop/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
   <a href="https://github.com/Zanooda/storoslop/actions"><img src="https://img.shields.io/github/actions/workflow/status/Zanooda/storoslop/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
   <a href="https://github.com/Zanooda/storoslop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Zanooda/storoslop?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
@@ -41,21 +41,20 @@
 curl -fsSL https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.sh | sh
 ```
 
-如果没有可用的 bun（或指定了 `--binary`），安装脚本会从本 fork 的 GitHub Releases（`https://github.com/Zanooda/storoslop/releases`）下载预编译二进制，并在安装前校验其 SHA-256。可通过本 fork 的安装器以 `--ref v<version>` 固定某个发布版本（PowerShell：`-Ref v<version>`）。
+安装脚本会从本 fork 的 GitHub Releases（`https://github.com/Zanooda/storoslop/releases`）下载适用于当前平台的预编译二进制，并在安装前校验其 SHA-256。可通过本 fork 的安装器以 `--ref v<version>` 固定某个发布版本（PowerShell：`-Ref v<version>`）。传入 `--source`（Windows 上为 `-Source`）可改为从源码构建，需要 bun ≥ 1.4.4 和 git。
 
 > **Alpine / musl：** 预编译的 musl 二进制动态链接 `libstdc++`/`libgcc`，而原生 Alpine 并不自带。请先安装：`apk add libstdc++ libgcc`。
 
-**Homebrew**
+**从源码构建**
 
 ```sh
-brew install storoslop
+git clone https://github.com/Zanooda/storoslop.git
+cd storoslop
+bun install
+bun run build
 ```
 
-**Bun（推荐）**
-
-```sh
-bun install -g @oh-my-pi/pi-coding-agent
-```
+编译产物位于 `packages/coding-agent/dist/storoslop`，将其加入 `PATH` 即可。`scripts/install.sh --source` 会执行同样的步骤并自动完成安装。
 
 **Nix**
 
@@ -94,7 +93,7 @@ irm https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.ps1
 mise use -g github:Zanooda/storoslop
 ```
 
-macOS · Linux · Windows · bun ≥ 1.4.4
+macOS · Linux · Windows · 源码构建需要 bun ≥ 1.4.4
 
 ### Shell 补全
 
@@ -775,6 +774,6 @@ _为常开的终端而生_
 - [storoslop](https://github.com/Zanooda/storoslop)
 - [GitHub](https://github.com/Zanooda/storoslop)
 - [变更日志](https://github.com/Zanooda/storoslop/blob/main/packages/coding-agent/CHANGELOG.md)
-- [npm](https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent)
+- [Releases](https://github.com/Zanooda/storoslop/releases)
 - [Discord](https://discord.gg/4NMW9cdXZa)
 - [MIT](https://github.com/Zanooda/storoslop/blob/main/LICENSE)

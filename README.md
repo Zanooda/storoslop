@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent"><img src="https://img.shields.io/npm/v/@oh-my-pi/pi-coding-agent?style=flat&colorA=222222&colorB=CB3837" alt="npm version"></a>
+  <a href="https://github.com/Zanooda/storoslop/releases"><img src="https://img.shields.io/github/v/release/Zanooda/storoslop?style=flat&colorA=222222&colorB=3FB950" alt="Release"></a>
   <a href="https://github.com/Zanooda/storoslop/blob/main/packages/coding-agent/CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="Changelog"></a>
   <a href="https://github.com/Zanooda/storoslop/actions"><img src="https://img.shields.io/github/actions/workflow/status/Zanooda/storoslop/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="CI"></a>
   <a href="https://github.com/Zanooda/storoslop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Zanooda/storoslop?style=flat&colorA=222222&colorB=58A6FF" alt="License"></a>
@@ -44,21 +44,20 @@ The most capable agent surface that ships. Continuously tuned by real-world use 
 curl -fsSL https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.sh | sh
 ```
 
-Without a usable bun (or with `--binary`), the install scripts fetch the prebuilt binary from the fork's GitHub Releases (`https://github.com/Zanooda/storoslop/releases`) and verify its SHA-256 before installing it. Pin a release with the fork's installer `--ref v<version>` (PowerShell: `-Ref v<version>`).
+The install scripts download the prebuilt binary for your platform from the fork's GitHub Releases (`https://github.com/Zanooda/storoslop/releases`) and verify its SHA-256 before installing it. Pin a release with the fork's installer `--ref v<version>` (PowerShell: `-Ref v<version>`). Pass `--source` (`-Source` on Windows) to build from a checkout instead — that requires bun ≥ 1.4.4 and git.
 
 > **Alpine / musl:** the prebuilt musl binary links `libstdc++`/`libgcc` dynamically, which stock Alpine does not ship. Install them first: `apk add libstdc++ libgcc`.
 
-**Homebrew**
+**From source**
 
 ```sh
-brew install storoslop
+git clone https://github.com/Zanooda/storoslop.git
+cd storoslop
+bun install
+bun run build
 ```
 
-**Bun (recommended)**
-
-```sh
-bun install -g @oh-my-pi/pi-coding-agent
-```
+The compiled binary lands at `packages/coding-agent/dist/storoslop`; put it on your `PATH`. `scripts/install.sh --source` performs the same steps and installs it for you.
 
 **Nix**
 
@@ -97,7 +96,7 @@ irm https://raw.githubusercontent.com/Zanooda/storoslop/main/scripts/install.ps1
 mise use -g github:Zanooda/storoslop
 ```
 
-macOS · Linux · Windows · bun ≥ 1.4.4
+macOS · Linux · Windows · source builds require bun ≥ 1.4.4
 
 ### Shell completions
 
@@ -789,6 +788,6 @@ _made for terminals that stay open_
 - [storoslop](https://github.com/Zanooda/storoslop)
 - [GitHub](https://github.com/Zanooda/storoslop)
 - [Changelog](https://github.com/Zanooda/storoslop/blob/main/packages/coding-agent/CHANGELOG.md)
-- [npm](https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent)
+- [Releases](https://github.com/Zanooda/storoslop/releases)
 - [Discord](https://discord.gg/4NMW9cdXZa)
 - [MIT](https://github.com/Zanooda/storoslop/blob/main/LICENSE)
